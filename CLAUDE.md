@@ -47,34 +47,44 @@ No anything that wouldn't survive a Lovable import. See §8 for the port checkli
 | Soft deletes | All artworks, contacts, invoices use `deleted_at` (nullable timestamptz). Never hard-delete |
 | Secrets | **Never in code.** `.env.local` for dev, Supabase secrets / Vercel env for prod |
 
-## 3. Visual aesthetic — PRO style (from `ControlCLSFYD/trainingbureaupublic`)
+## 3. Visual aesthetic — PRO style (modelled on `ControlCLSFYD/blindspot-dispatch` `viz-pro` mode)
 
 > **Aesthetic only.** File structure follows gallery/stock-mgmt best practice (§5).
 >
-> The PRO style is the **clean shadcn-ui baseline** seen on the project's
-> blank Index page — not the SearchPath terminal overlay. **No CRT effects.**
-> **No scanlines. No glow. No VT323. No cursor-blink.** Plain, beautiful,
-> readable black-and-white.
+> Reference: the `viz-pro` visualization in `ControlCLSFYD/blindspot-dispatch`.
+> White surface, charcoal type, hairline 1px borders, square corners,
+> zero shadows. **No CRT effects. No scanlines. No glow. No VT323. No
+> cursor-blink. No dark theme.** Editorial, gallery, curated.
 
-- Background: pure black `hsl(0 0% 0%)` (`--background`)
-- Foreground: pure white `hsl(0 0% 100%)` (`--foreground`)
-- Muted/secondary/borders: grayscale only — `hsl(0 0% 70%)` (muted-foreground), `hsl(0 0% 15%)` (border/input), `hsl(0 0% 9%)` (card/popover)
-- Primary = foreground (white on black buttons), so no color accents anywhere in the UI chrome
-- **One exception:** the "needs attention this week" highlight in inventory uses **orange** (per spec). Token: `--attention: 25 100% 55%`. Used nowhere else
-- Font: **Inter** (system-fallback `ui-sans-serif, system-ui, sans-serif`), loaded from Google Fonts. Easy to read at small sizes, neutral, professional. Apply globally
-- Border radius: `0.5rem` (`--radius`) — shadcn default. Soft, modern, not pillowy
-- Dark mode is the **only** mode. Do not build a light theme. Set `class="dark"` on `<html>` and use class-based dark mode in Tailwind for shadcn compat
-- Tailwind config: shadcn semantic tokens (`background`, `foreground`, `primary`, `secondary`, `muted`, `accent`, `card`, `popover`, `border`, `input`, `ring`, `destructive`) all mapped to grayscale variables in `src/index.css`
-- Components are plain shadcn-ui primitives. No custom decorative classes (no `terminal-*`, no `scanline`, no `cursor-blink`)
+- Background: white `hsl(0 0% 100%)` (`--background`)
+- Foreground: charcoal `hsl(0 0% 10%)` (`--foreground`) ≈ `#1a1a1a`
+- Muted/secondary/borders: grayscale only — `hsl(0 0% 40%)` (muted-foreground), `hsl(0 0% 88%)` (border/input — hairline on white), `hsl(0 0% 96%)` (card/popover/secondary/accent panel — off-white)
+- Primary = foreground (charcoal on white buttons). The chrome is monochrome.
+- Font: **Inter** (system-fallback `ui-sans-serif, system-ui, sans-serif`), loaded from Google Fonts. Apply globally
+- **Border radius: `0` — sharp corners everywhere.** Token: `--radius: 0`. Tailwind's `rounded-sm/md/lg` are overridden to `0` in `tailwind.config.ts`, so any pre-existing `rounded-*` class resolves to a square corner
+- **No shadows.** `boxShadow.sm/md/lg/xl/2xl/inner` overridden to `none` in `tailwind.config.ts`. Elevation = hairline borders, not soft drop-shadows
+- **Light mode is the only mode.** No dark theme. The `<html>` element has no `class="dark"`. Tailwind's `darkMode: ["class"]` stays for shadcn compat but is never activated
+- Tailwind config: shadcn semantic tokens (`background`, `foreground`, `primary`, `secondary`, `muted`, `accent`, `card`, `popover`, `border`, `input`, `ring`, `destructive`) all mapped in `src/index.css`. Plus `attention` (orange) and `accent-red` (Yusto Giner brand red) — see Color exceptions below
+- Components are plain shadcn-ui primitives. No custom decorative classes
 - Spacing is generous: large negative space, table rows breathe, dossier previews feel like a catalogue page
 
-### Color exceptions (the only two)
+### Color exceptions (the only three)
 
-The UI chrome is monochrome. Only **two places** allow color, and both are
-**user data**, not decoration:
+The UI chrome is monochrome. Only **three** non-grayscale tokens are allowed,
+each with a fixed and narrow purpose:
 
-1. `--attention` orange — the inventory "needs attention this week" flag (per spec).
-2. **Kanban card color labels** — these are user-defined per-card tags. Render as small filled chips in the user's chosen palette (red, orange, yellow, green, blue, purple). Allowed because the user is choosing them as data; they do not theme the chrome.
+1. `--attention` orange (`hsl(25 100% 50%)`) — the inventory "needs attention this week" flag (per spec). User-data flag, not decoration.
+2. **Kanban card color labels** — user-defined per-card tags. Rendered as small filled chips in the user's chosen palette (red, orange, yellow, green, blue, purple). Allowed because the user is choosing them as data; they do not theme the chrome.
+3. `--accent-red` (`hsl(4 85% 55%)`, ≈ `#ee4533`) — Yusto Giner Gallery brand accent, sampled from the gallery's wordmark slash. Used at three identity moments: (a) the slash in the `YUSTO / GINER` wordmark in the sidebar, (b) the active-item left rail in the sidebar, (c) the small `┐` corner bracket in the top-right of every page. `--destructive` shares the same hue (one red, two semantic uses — destructive actions are also branded red). Never as a fill for content surfaces. If a fourth use is needed, list it here in the same commit.
+
+### Brand mark — corner bracket
+
+Every authenticated page renders a small red `┐` bracket in the top-right of
+the main content area, drawn with `border-t-2 border-r-2 border-accent-red`
+on a 12px square. Implemented once in `AppShell.tsx`, automatically applies
+everywhere. Aesthetic: editorial corner mark, signs the work as YUSTO/GINER
+space without competing with content. **Do not** add the same bracket to
+sub-headers or cards — once per page only.
 
 Anything else in color is a bug.
 
@@ -318,8 +328,8 @@ criteria pass against `supabase/seed.sql`.
 
 ## 9. Open questions (must be asked before the relevant feature is built)
 
-- **Gallery name & wordmark text** — needed before feature 1 ships (placeholder "YGManager" until then).
-- **Logo file** — needed before feature 1 polish; until provided, use a plain Inter wordmark "YGManager".
+- ~~**Gallery name & wordmark text**~~ — **resolved 2026-05-07.** The gallery is **Yusto / Giner**. Wordmark is `YUSTO / GINER` set in Inter, uppercase, letterspacing ~`0.22em`, with the `/` glyph in `--accent-red`. Internal product name remains "YGManager" in code/types/routes; user-facing chrome shows the gallery brand.
+- **Logo file** — wordmark above is rendered as live HTML (not an asset). If a vector logo is supplied later, swap into the sidebar header.
 - **Internal ID format** — current placeholder `YG-{0000}` zero-padded.
 - **Stripe account** — test keys can be Claude-generated dummies for build; live keys before feature 11 ships.
 - **CSV column mapping from Artlogic export** — provide a sample export before feature 15.
