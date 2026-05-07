@@ -1,7 +1,8 @@
 // Filename parser. Treat the filename as a soup of structured tokens
 // (size, year, price, status, medium, known artist) and let "whatever
 // is left after pulling those out" be the title. Works regardless of
-// separator — space, underscore, dash, em/en-dash all OK.
+// separator — space, underscore, dash, em/en-dash, comma, semicolon
+// all OK.
 
 import type { ArtworkStatus } from "@/integrations/supabase/domain";
 
@@ -29,76 +30,133 @@ const PRICE_RE =
   /(?:€\s*(\d+(?:[.,]\d{1,3})*)|(\d+(?:[.,]\d{1,3})*)\s*€|EUR\s*(\d+(?:[.,]\d{1,3})*)|(\d+(?:[.,]\d{1,3})*)\s*EUR)/i;
 const STATUS_RE =
   /(?<![A-Za-z])(SOLD|RESERVED|ON[\s_-]?HOLD|AVAILABLE|ARCHIVED)(?![A-Za-z])/i;
+const HAS_CM_SIZE =
+  /\d+(?:[.,]\d+)?\s*[x×*]\s*\d+(?:[.,]\d+)?(?:\s*[x×*]\s*\d+(?:[.,]\d+)?)?\s*cm/i;
 
-// Known mediums. Multi-word phrases come first in the sorted list so
-// "oil on canvas" matches before bare "oil". Word-bounded (so "oil"
-// can't match inside "boil" or "oily").
-const MEDIUMS = [
-  "oil on canvas",
-  "oil on linen",
-  "oil on panel",
-  "oil on board",
-  "oil on paper",
-  "oil on wood",
-  "acrylic on canvas",
-  "acrylic on linen",
-  "acrylic on panel",
-  "acrylic on board",
-  "acrylic on paper",
-  "watercolor on paper",
-  "watercolour on paper",
-  "ink on paper",
-  "pencil on paper",
-  "charcoal on paper",
-  "pastel on paper",
-  "gouache on paper",
-  "mixed media on canvas",
-  "mixed media on paper",
+// === Medium: compositional, not enumerated. ==========================
+// A medium is either:
+//   (A) "<prefix> on <substrate>"  — every combination valid
+//   (B) a standalone term (bronze, lithograph, photograph…)
+// Composing the regex from these lists handles any combination
+// (mixed media on linen, oil on muslin, acrylic on plywood…) without
+// needing to hardcode every pair.
+const MEDIUM_PREFIXES = [
   "mixed media",
-  "digital photograph",
-  "silver gelatin print",
-  "silver gelatin",
-  "screen print",
-  "screenprint",
-  "silkscreen",
-  "c-print",
-  "c print",
+  "oil pastel",
+  "spray paint",
   "oil",
   "acrylic",
   "watercolor",
   "watercolour",
-  "gouache",
   "tempera",
+  "gouache",
   "ink",
   "pencil",
+  "graphite",
   "charcoal",
   "pastel",
-  "pastels",
   "crayon",
+  "encaustic",
+  "marker",
+];
+const SUBSTRATES = [
+  "watercolor paper",
+  "watercolour paper",
+  "cotton canvas",
+  "linen canvas",
+  "canvas",
+  "linen",
+  "paper",
+  "panel",
+  "board",
+  "cardboard",
+  "plywood",
+  "wood",
+  "mdf",
+  "silk",
+  "vellum",
+  "muslin",
+  "burlap",
+  "masonite",
+  "fabric",
+  "cotton",
+  "plexiglass",
+  "plastic",
+  "mylar",
+  "metal",
+  "aluminium",
+  "aluminum",
+];
+const STANDALONE_MEDIA = [
+  // composite pieces
+  "mixed media",
+  // print methods
   "lithograph",
   "etching",
   "engraving",
   "woodcut",
   "linocut",
+  "screenprint",
+  "silkscreen",
+  "screen print",
+  "silver gelatin print",
+  "silver gelatin",
+  "c-print",
+  "c print",
+  "digital photograph",
+  "digital print",
+  // sculpture / 3D
   "bronze",
   "marble",
   "ceramic",
   "clay",
-  "wood",
-  "steel",
   "sculpture",
   "collage",
   "assemblage",
   "installation",
+  // photo / video
   "photograph",
   "photography",
   "video",
+  // base media when standalone
+  "oil pastel",
+  "spray paint",
+  "oil",
+  "acrylic",
+  "watercolor",
+  "watercolour",
+  "tempera",
+  "gouache",
+  "ink",
+  "pencil",
+  "graphite",
+  "charcoal",
+  "pastel",
+  "crayon",
+  "encaustic",
 ];
-const MEDIUMS_SORTED = [...MEDIUMS].sort((a, b) => b.length - a.length);
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+function alternation(items: readonly string[]): string {
+  // Longest first so multi-word phrases match before the single-word
+  // fragments they contain ("oil pastel" before "oil").
+  return [...items]
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegex)
+    .join("|");
+}
+
+const COMPOUND_MEDIUM_RE = new RegExp(
+  `(?<![A-Za-z])(${alternation(MEDIUM_PREFIXES)})\\s+(?:on|over)\\s+(${alternation(SUBSTRATES)})(?![A-Za-z])`,
+  "i",
+);
+const STANDALONE_MEDIUM_RE = new RegExp(
+  `(?<![A-Za-z])(${alternation(STANDALONE_MEDIA)})(?![A-Za-z])`,
+  "i",
+);
 
 function statusFromMatch(raw: string): ArtworkStatus | null {
   const v = raw.toUpperCase().replace(/[\s_-]+/g, "");
@@ -119,8 +177,6 @@ function parsePrice(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Dimensions can be "40", "40.5", or European "40,5". Treat both
-// separators as decimal points.
 function parseDecimal(raw: string): number | null {
   const n = Number(raw.replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -130,19 +186,15 @@ function titleCase(s: string): string {
   return s.replace(/\b(\w)(\w*)/g, (_, a, b) => a.toUpperCase() + b.toLowerCase());
 }
 
-// Collapse leftover separator junk into single spaces, trim.
+// Collapse leftover separator junk (slug chars, commas, semicolons,
+// orphan "by") into clean words.
 function tidy(s: string): string {
   return s
-    .replace(/[_\-–—]+/g, " ")
+    .replace(/[_\-–—,;]+/g, " ")
+    .replace(/\b(?:by|para)\b/gi, " ") // strip orphan "by"/"para" left after artist extraction
     .replace(/\s+/g, " ")
     .trim();
 }
-
-// Detects an artwork size (NxN or NxNxN) followed by "cm" anywhere in
-// a normalised string. Used to decide whether a trailing pixel-dim
-// suffix is junk we should strip.
-const HAS_CM_SIZE =
-  /\d+(?:[.,]\d+)?\s*[x×*]\s*\d+(?:[.,]\d+)?(?:\s*[x×*]\s*\d+(?:[.,]\d+)?)?\s*cm/i;
 
 export function parseFilename(
   filename: string,
@@ -150,18 +202,18 @@ export function parseFilename(
 ): ParseResult {
   let working = stripExt(filename);
 
-  // Slugified filenames (WordPress, web exports) use hyphens or
-  // underscores as word separators, breaking our space-bounded regexes
-  // for size ("94-x-93-cm") and medium ("oil-on-linen"). Normalise
-  // them to spaces first so the rest of the pipeline works as if the
-  // user had typed the filename out.
-  working = working.replace(/[-_]+/g, " ");
+  // Slugified filenames (WordPress, web exports, hand-typed lists)
+  // separate words with hyphens, underscores, commas, or semicolons.
+  // Normalise everything to spaces so the structured-token regexes
+  // below see "94 x 93 cm", "oil on linen", "mixed media on paper"
+  // regardless of the original separator.
+  working = working.replace(/[-_,;]+/g, " ");
 
-  // CMS image exports often append the image's own pixel dimensions
-  // ("-510x382") at the end of the filename, which would otherwise be
-  // picked up as the artwork size. Strip that trailing suffix only
-  // when a real cm-marked artwork size exists earlier — without that
-  // signal, the trailing NxN might legitimately be the artwork size.
+  // CMS image exports often append the file's pixel dimensions
+  // ("-510x382") at the end, which would otherwise be picked up as the
+  // artwork size. Strip that trailing suffix only when a real cm-marked
+  // size exists earlier — without that signal the trailing NxN might
+  // legitimately be the artwork's dimensions.
   if (HAS_CM_SIZE.test(working)) {
     working = working.replace(/\s+\d+\s*[x×*]\s*\d+\s*$/i, "").trim();
   }
@@ -203,18 +255,18 @@ export function parseFilename(
     working = working.replace(STATUS_RE, " ");
   }
 
-  // 5. Medium — match longest known medium phrase first.
+  // 5. Medium — try compound (<prefix> on <substrate>) first, then
+  // standalone. Compound match consumes both prefix and substrate.
   let medium: string | null = null;
-  for (const m of MEDIUMS_SORTED) {
-    const re = new RegExp(
-      `(?<![A-Za-z])${escapeRegex(m)}(?![A-Za-z])`,
-      "i",
-    );
-    const match = working.match(re);
-    if (match) {
-      medium = titleCase(match[0]);
-      working = working.replace(re, " ");
-      break;
+  const cm = working.match(COMPOUND_MEDIUM_RE);
+  if (cm) {
+    medium = titleCase(cm[0]);
+    working = working.replace(COMPOUND_MEDIUM_RE, " ");
+  } else {
+    const sm2 = working.match(STANDALONE_MEDIUM_RE);
+    if (sm2) {
+      medium = titleCase(sm2[0]);
+      working = working.replace(STANDALONE_MEDIUM_RE, " ");
     }
   }
 
