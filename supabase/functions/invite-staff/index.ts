@@ -69,15 +69,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Where the invitee lands after clicking the email link. We prefer an
-    // explicit SITE_URL secret (set this to your production domain), then
-    // fall back to the request origin (only safe when invites are issued
-    // from the live app, not a preview). Final fallback is the production
-    // domain so invites never end up on a stale Lovable preview URL.
+    // Where the invitee lands after clicking the email link. Never trust the
+    // request origin here because invites are often sent from editor previews,
+    // which would send the recipient back to a Lovable-owned domain instead of
+    // the live app. Prefer an explicit SITE_URL secret, otherwise use the
+    // production domain. Only fall back to the request origin for localhost.
+    const origin = req.headers.get("origin")?.replace(/\/$/, "");
     const siteUrl =
       Deno.env.get("SITE_URL")?.replace(/\/$/, "") ??
-      req.headers.get("origin")?.replace(/\/$/, "") ??
-      "https://www.ygmanager.com";
+      (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+        ? origin
+        : "https://www.ygmanager.com");
     const redirectTo = `${siteUrl}/accept-invite`;
     const { data: invited, error: inviteErr } =
       await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
