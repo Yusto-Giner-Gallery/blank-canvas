@@ -1,25 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import type { Profile } from "@/integrations/supabase/domain";
 import { useProfile } from "@/hooks/useProfile";
+import { useTeam } from "@/hooks/useTeam";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InviteMemberModal } from "@/components/team/InviteMemberModal";
 
 export default function Team() {
   const { profile, isAdmin } = useProfile();
-
-  const teamQuery = useQuery<Profile[]>({
-    queryKey: ["team", profile?.gallery_id ?? null],
-    enabled: !!profile && isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("full_name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const teamQuery = useTeam();
+  const [inviting, setInviting] = useState(false);
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
@@ -27,11 +17,17 @@ export default function Team() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
-        <p className="text-sm text-muted-foreground">
-          Members of this gallery.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
+          <p className="text-sm text-muted-foreground">
+            Members of this gallery. Invited members can view and edit
+            everything.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setInviting(true)}>
+          Invite member
+        </Button>
       </div>
 
       {teamQuery.isLoading ? (
@@ -45,9 +41,9 @@ export default function Team() {
           <CardHeader>
             <CardTitle>No team members yet</CardTitle>
             <CardDescription>
-              Invite staff via Lovable Cloud once the backend is set up. Until
-              then, profiles can be inserted directly in the Supabase
-              dashboard.
+              Click "Invite member" to send an email invite. They'll join as
+              staff with full access to artworks, contacts, and everything else
+              in the gallery.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -64,7 +60,14 @@ export default function Team() {
             <tbody>
               {members.map((m) => (
                 <tr key={m.id} className="border-t border-border">
-                  <td className="px-4 py-3">{m.full_name || "—"}</td>
+                  <td className="px-4 py-3">
+                    {m.full_name || "—"}
+                    {m.id === profile?.id && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (you)
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{m.email}</td>
                   <td className="px-4 py-3 capitalize">{m.role}</td>
                 </tr>
@@ -73,6 +76,8 @@ export default function Team() {
           </table>
         </div>
       )}
+
+      {inviting && <InviteMemberModal onClose={() => setInviting(false)} />}
     </div>
   );
 }
