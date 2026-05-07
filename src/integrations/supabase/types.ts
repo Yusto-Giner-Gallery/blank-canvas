@@ -838,6 +838,45 @@ export type Database = {
           },
         ]
       }
+      feedback_reports: {
+        Row: {
+          action_history: Json | null
+          console_logs: Json | null
+          created_at: string
+          description: string
+          gallery_id: string
+          id: string
+          kind: Database["public"]["Enums"]["feedback_kind"]
+          page_path: string | null
+          profile_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action_history?: Json | null
+          console_logs?: Json | null
+          created_at?: string
+          description: string
+          gallery_id: string
+          id?: string
+          kind: Database["public"]["Enums"]["feedback_kind"]
+          page_path?: string | null
+          profile_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action_history?: Json | null
+          console_logs?: Json | null
+          created_at?: string
+          description?: string
+          gallery_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["feedback_kind"]
+          page_path?: string | null
+          profile_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       galleries: {
         Row: {
           created_at: string
@@ -1231,6 +1270,7 @@ export type Database = {
         | "special"
         | "art_fair"
         | "collector_offer"
+      feedback_kind: "bug" | "feature"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
     }
     CompositeTypes: {
@@ -1393,6 +1433,7 @@ export const Constants = {
         "art_fair",
         "collector_offer",
       ],
+      feedback_kind: ["bug", "feature"],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
     },
   },
