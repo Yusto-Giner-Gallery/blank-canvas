@@ -54,8 +54,8 @@ export default function Login() {
         aria-hidden
         className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r-2 border-t-2 border-accent-red md:right-8 md:top-6"
       />
-      <div className="w-full max-w-sm space-y-8">
-        <header>
+      <div className="relative w-full max-w-sm">
+        <header className="absolute bottom-full left-0 right-0 mb-6">
           <h1 className="text-2xl font-bold uppercase leading-[0.9] tracking-tight md:text-3xl">
             <span className="block">Your</span>
             <span className="block">Gallery</span>
