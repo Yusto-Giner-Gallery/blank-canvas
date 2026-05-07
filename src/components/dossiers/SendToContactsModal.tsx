@@ -10,7 +10,7 @@ import { useTags } from "@/hooks/useTags";
 import { useLogContactActivity } from "@/hooks/useLogContactActivity";
 import { generateText } from "@/lib/ai/client";
 import { buildMailto } from "@/lib/email";
-import type { ArtworkListItem, Dossier } from "@/integrations/supabase/types";
+import type { ArtworkListItem, Dossier } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 export function SendToContactsModal({

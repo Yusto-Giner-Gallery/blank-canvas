@@ -14,7 +14,7 @@ import {
   useDetachContactTag,
 } from "@/hooks/useContactTags";
 import { useTags } from "@/hooks/useTags";
-import type { ContactActivityKind } from "@/integrations/supabase/types";
+import type { ContactActivityKind } from "@/integrations/supabase/domain";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 
 const ACTIVITY_LABEL: Record<ContactActivityKind, string> = {

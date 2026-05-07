@@ -4,7 +4,7 @@ import type {
   ActivityEntityType,
   ActivityLog,
   Profile,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type ActivityLogRow = ActivityLog & {

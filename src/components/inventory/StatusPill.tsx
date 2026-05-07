@@ -1,4 +1,4 @@
-import type { ArtworkStatus } from "@/integrations/supabase/types";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 const labels: Record<ArtworkStatus, string> = {

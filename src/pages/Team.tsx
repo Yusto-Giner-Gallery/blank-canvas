@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/integrations/supabase/domain";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 

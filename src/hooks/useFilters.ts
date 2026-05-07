@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { ArtworkStatus } from "@/integrations/supabase/types";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 
 export type Filters = {
   q: string;

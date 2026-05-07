@@ -27,7 +27,7 @@ import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
 import { supabase } from "@/lib/supabase";
 import { parseMentions } from "@/lib/mentions";
 import { ALL_LABELS, LabelChip } from "./LabelChips";
-import type { CardLabel } from "@/integrations/supabase/types";
+import type { CardLabel } from "@/integrations/supabase/domain";
 
 type MentionedArtwork = { id: string; internal_id: string; title: string };
 

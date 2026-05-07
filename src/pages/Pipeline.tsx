@@ -26,7 +26,7 @@ import {
   type DealListItem,
 } from "@/hooks/useDeals";
 import { NewDealModal } from "@/components/pipeline/NewDealModal";
-import type { DealStage } from "@/integrations/supabase/types";
+import type { DealStage } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 const STAGES: Array<{ value: DealStage; label: string }> = [

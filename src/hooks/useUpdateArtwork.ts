@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { ArtworkStatus } from "@/integrations/supabase/types";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 
 export type ArtworkPatch = {
   status?: ArtworkStatus;

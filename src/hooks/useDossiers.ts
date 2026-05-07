@@ -5,7 +5,7 @@ import type {
   Dossier,
   DossierBodyBlocks,
   DossierKind,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export function useDossiers() {
@@ -19,7 +19,7 @@ export function useDossiers() {
         .select("*")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as Dossier[];
     },
   });
 }
@@ -37,7 +37,7 @@ export function useDossier(id: string | undefined) {
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return (data ?? null) as unknown as Dossier | null;
     },
   });
 }
@@ -91,7 +91,7 @@ export function useCreateDossier() {
         .select("*")
         .single();
       if (error) throw error;
-      return data;
+      return data as unknown as Dossier;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dossiers"] }),
   });

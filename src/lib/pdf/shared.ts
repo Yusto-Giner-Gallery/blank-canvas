@@ -2,7 +2,7 @@ import { StyleSheet } from "@react-pdf/renderer";
 import type {
   ArtworkListItem,
   Dossier,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 
 export type CommonProps = {
   dossier: Dossier;

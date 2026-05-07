@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ImageOff } from "lucide-react";
-import type { ArtworkListItem } from "@/integrations/supabase/types";
+import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
 import { useLongPress } from "@/hooks/useLongPress";
 import { Checkbox } from "@/components/ui/checkbox";

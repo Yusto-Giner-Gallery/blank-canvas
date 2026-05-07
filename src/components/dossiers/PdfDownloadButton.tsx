@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DossierPDF } from "@/lib/pdf/DossierPDF";
 import { imageUrl } from "@/hooks/useArtworks";
-import type { ArtworkListItem, Dossier } from "@/integrations/supabase/types";
+import type { ArtworkListItem, Dossier } from "@/integrations/supabase/domain";
 
 export default function PdfDownloadButton({
   dossier,

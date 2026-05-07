@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ImageOff } from "lucide-react";
-import type { ArtworkListItem } from "@/integrations/supabase/types";
+import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
 
 function Tile({ artwork }: { artwork: ArtworkListItem }) {

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { ContactActivityKind } from "@/integrations/supabase/types";
+import type { ContactActivityKind } from "@/integrations/supabase/domain";
 
 export function useLogContactActivity() {
   const qc = useQueryClient();

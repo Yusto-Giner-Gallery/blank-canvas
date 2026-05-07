@@ -4,7 +4,7 @@ import type {
   Contact,
   Invoice,
   InvoiceLine,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type InvoiceListItem = Invoice & {

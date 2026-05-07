@@ -6,7 +6,7 @@ import type {
   Deal,
   DealStage,
   Invoice,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type DealListItem = Deal & {

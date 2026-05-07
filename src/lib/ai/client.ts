@@ -5,7 +5,7 @@
 // Repointing requires only changes inside this file — feature code (the
 // editor, hooks, etc.) stays untouched.
 
-import type { ArtworkListItem } from "@/integrations/supabase/types";
+import type { ArtworkListItem } from "@/integrations/supabase/domain";
 
 export type AIRequest =
   | {

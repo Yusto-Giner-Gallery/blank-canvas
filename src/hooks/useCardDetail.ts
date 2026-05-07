@@ -6,7 +6,7 @@ import type {
   CardComment,
   CardMember,
   Profile,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 // --- Members ---

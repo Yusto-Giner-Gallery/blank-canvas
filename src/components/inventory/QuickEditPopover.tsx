@@ -8,7 +8,7 @@ import { useUpdateArtwork } from "@/hooks/useUpdateArtwork";
 import type {
   ArtworkStatus,
   Artwork,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: Array<{ value: ArtworkStatus; label: string }> = [

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Contact, ContactActivity } from "@/integrations/supabase/types";
+import type { Contact, ContactActivity } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type ContactWithTags = Contact & { tag_ids: string[] };

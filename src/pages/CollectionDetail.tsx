@@ -35,7 +35,7 @@ import { useCreateDossier } from "@/hooks/useDossiers";
 import type {
   ArtworkListItem,
   DossierKind,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 
 function SortableTile({
   artwork,
