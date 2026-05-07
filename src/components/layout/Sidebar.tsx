@@ -9,6 +9,7 @@ import {
   TrendingUp,
   KanbanSquare,
   Shield,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
@@ -30,6 +31,7 @@ const items: Item[] = [
   { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
   { to: "/kanban", label: "Shirika", icon: KanbanSquare },
   { to: "/team", label: "Team", icon: Shield, adminOnly: true },
+  { to: "/feedback", label: "Feedback", icon: Inbox, adminOnly: true },
 ];
 
 export function Sidebar() {

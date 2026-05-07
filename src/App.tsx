@@ -21,6 +21,7 @@ import Pipeline from "@/pages/Pipeline";
 import Kanban from "@/pages/Kanban";
 import BoardDetail from "@/pages/BoardDetail";
 import Team from "@/pages/Team";
+import Feedback from "@/pages/Feedback";
 import NotFound from "@/pages/NotFound";
 
 export default function App() {
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/kanban/:id" element={<BoardDetail />} />
           <Route path="/team" element={<Team />} />
+          <Route path="/feedback" element={<Feedback />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
