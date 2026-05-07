@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useBoard, useDeleteCard, useUpdateCard } from "@/hooks/useKanban";
 import {
-  attachmentUrl,
+  useAttachmentUrl,
   useAddCardComment,
   useAddCardMember,
   useAddChecklistItem,
