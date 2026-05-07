@@ -19,6 +19,9 @@ export function useSubmitFeedback() {
     mutationFn: async ({ kind, description, page_path }) => {
       if (!profile) throw new Error("Not signed in");
       const snap = kind === "bug" ? snapshotFeedback() : null;
+      const actionPayload = snap
+        ? { context: snap.context, actions: snap.actions }
+        : null;
       const { error } = await supabase.from("feedback_reports").insert({
         gallery_id: profile.gallery_id,
         profile_id: profile.id,
@@ -26,10 +29,8 @@ export function useSubmitFeedback() {
         description: description.trim(),
         page_path,
         user_agent: navigator.userAgent,
-        // safeSerialise in feedback-buffer guarantees JSON-shape output;
-        // cast to Json so the supabase Insert type accepts the buffers.
         console_logs: (snap?.logs ?? null) as unknown as Json,
-        action_history: (snap?.actions ?? null) as unknown as Json,
+        action_history: (actionPayload ?? null) as unknown as Json,
       });
       if (error) throw error;
       return { ok: true };
