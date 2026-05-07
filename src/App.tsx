@@ -21,6 +21,7 @@ import Pipeline from "@/pages/Pipeline";
 import Kanban from "@/pages/Kanban";
 import BoardDetail from "@/pages/BoardDetail";
 import Team from "@/pages/Team";
+import AcceptInvite from "@/pages/AcceptInvite";
 import Feedback from "@/pages/Feedback";
 import NotFound from "@/pages/NotFound";
 
@@ -30,6 +31,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup-contact" element={<PublicSignup />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route
           element={
             <RequireAuth>

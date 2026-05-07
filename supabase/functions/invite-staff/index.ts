@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const redirectTo = req.headers.get("origin") ?? undefined;
+    const origin = req.headers.get("origin");
+    const redirectTo = origin ? `${origin}/accept-invite` : undefined;
     const { data: invited, error: inviteErr } =
       await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
 
