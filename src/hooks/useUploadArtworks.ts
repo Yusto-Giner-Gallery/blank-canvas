@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type DraftArtwork = {
@@ -12,6 +13,10 @@ export type DraftArtwork = {
   width_cm: number | null;
   height_cm: number | null;
   depth_cm: number | null;
+  price_eur: number | null;
+  location_id: string | null;
+  status: ArtworkStatus;
+  year: number | null;
 };
 
 export type UploadOutcome = {
@@ -54,14 +59,14 @@ async function uploadOne(
     internal_id: draft.internal_id,
     title: draft.title,
     artist_id,
-    year: null,
+    year: draft.year,
     medium: null,
     width_cm: draft.width_cm,
     height_cm: draft.height_cm,
     depth_cm: draft.depth_cm,
-    price_eur: null,
-    location_id: null,
-    status: "available",
+    price_eur: draft.price_eur,
+    location_id: draft.location_id,
+    status: draft.status,
     notes: null,
   });
   if (artErr) throw artErr;

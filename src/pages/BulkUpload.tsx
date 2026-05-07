@@ -13,12 +13,21 @@ import {
 } from "@/components/ui/card";
 import { useArtists } from "@/hooks/useArtists";
 import { useArtworks } from "@/hooks/useArtworks";
+import { useLocations } from "@/hooks/useLocations";
 import {
   useUploadArtworks,
   type DraftArtwork,
 } from "@/hooks/useUploadArtworks";
 import { parseFilename, type ParseResult } from "@/lib/filename-parser";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS: { value: ArtworkStatus; label: string }[] = [
+  { value: "available", label: "Available" },
+  { value: "on_hold", label: "On hold" },
+  { value: "sold", label: "Sold" },
+  { value: "archived", label: "Archived" },
+];
 
 type DraftRow = DraftArtwork & {
   preview_url: string;
@@ -39,18 +48,27 @@ export default function BulkUpload() {
   const navigate = useNavigate();
   const artistsQuery = useArtists();
   const artworksQuery = useArtworks();
+  const locationsQuery = useLocations();
   const upload = useUploadArtworks();
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [dragOver, setDragOver] = useState(false);
 
   const artists = artistsQuery.data ?? [];
+  const locations = locationsQuery.data ?? [];
   const knownIds = useMemo(
     () => (artworksQuery.data ?? []).map((a) => a.internal_id),
     [artworksQuery.data],
   );
 
   function addFiles(files: FileList | File[]) {
-    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const all = Array.from(files);
+    const list = all.filter((f) => f.type.startsWith("image/"));
+    const skipped = all.length - list.length;
+    if (skipped > 0) {
+      toast.error(
+        `${skipped} non-image file${skipped === 1 ? "" : "s"} ignored. Bulk upload accepts images only — for CSV use Import.`,
+      );
+    }
     const known = artists.map((a) => a.name);
     setDrafts((prev) => {
       const startOffset = prev.length;
@@ -80,6 +98,10 @@ export default function BulkUpload() {
             width_cm: parse.width_cm,
             height_cm: parse.height_cm,
             depth_cm: parse.depth_cm,
+            year: parse.year,
+            price_eur: parse.price_eur,
+            status: parse.status ?? "available",
+            location_id: null,
           };
         }),
       ];
@@ -141,9 +163,11 @@ export default function BulkUpload() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Bulk upload</h1>
         <p className="text-sm text-muted-foreground">
-          Drop images. Filenames in <code>Title_40x40cm_Artist</code> or{" "}
-          <code>Artist_Title_40x40cm</code> are parsed automatically. Confirm
-          each row, then upload.
+          Drop images. Filenames are parsed automatically — title, artist,
+          size, year, price (€), and status (sold / on hold) are all
+          extracted when present, in any order, separated by{" "}
+          <code>_</code> <code>-</code> <code>–</code> or <code>—</code>.
+          Confirm each row, then upload.
         </p>
       </div>
 
@@ -188,26 +212,38 @@ export default function BulkUpload() {
           </CardHeader>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-md border border-border">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
                 <th className="w-16 px-3 py-2 text-left font-medium">Image</th>
                 <th className="px-3 py-2 text-left font-medium">Title</th>
                 <th className="px-3 py-2 text-left font-medium">Artist</th>
-                <th className="w-32 px-3 py-2 text-left font-medium">
+                <th className="w-28 px-3 py-2 text-left font-medium">
                   Internal ID
                 </th>
-                <th className="w-40 px-3 py-2 text-left font-medium">
+                <th className="w-44 px-3 py-2 text-left font-medium">
                   Size (cm)
+                </th>
+                <th className="w-28 px-3 py-2 text-left font-medium">
+                  Price (€)
+                </th>
+                <th className="w-32 px-3 py-2 text-left font-medium">Status</th>
+                <th className="w-36 px-3 py-2 text-left font-medium">
+                  Location
                 </th>
                 <th className="w-10 px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {drafts.map((d) => {
+                // Flag only when nothing structural was extracted: no size
+                // AND no artist match. Anything else parsed cleanly enough
+                // that the warning would just be noise.
                 const ambiguous =
-                  d.parse.format === "unknown" || d.parse.artist_match === "none";
+                  !d.parse.width_cm &&
+                  !d.parse.height_cm &&
+                  d.parse.artist_match === "none";
                 return (
                   <tr key={d.client_key} className="border-t border-border align-top">
                     <td className="px-3 py-2">
@@ -307,7 +343,72 @@ export default function BulkUpload() {
                           placeholder="H"
                           className="h-9"
                         />
+                        <span className="text-muted-foreground">×</span>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={d.depth_cm ?? ""}
+                          onChange={(e) =>
+                            update(d.client_key, {
+                              depth_cm: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          placeholder="D"
+                          className="h-9"
+                        />
                       </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        type="number"
+                        step="50"
+                        value={d.price_eur ?? ""}
+                        onChange={(e) =>
+                          update(d.client_key, {
+                            price_eur:
+                              e.target.value === ""
+                                ? null
+                                : Number(e.target.value),
+                          })
+                        }
+                        placeholder="—"
+                        className="h-9"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={d.status}
+                        onChange={(e) =>
+                          update(d.client_key, {
+                            status: e.target.value as ArtworkStatus,
+                          })
+                        }
+                        className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={d.location_id ?? ""}
+                        onChange={(e) =>
+                          update(d.client_key, {
+                            location_id: e.target.value || null,
+                          })
+                        }
+                        className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">— None —</option>
+                        {locations.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-2 py-2">
                       <Button

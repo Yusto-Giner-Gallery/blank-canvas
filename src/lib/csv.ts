@@ -79,11 +79,57 @@ function status(v: string | undefined): ArtworkStatus {
     : "available";
 }
 
+// Maps common header variants to canonical column names so the importer
+// accepts CSVs from Artlogic, Excel, or hand-rolled spreadsheets without
+// the user having to rename columns.
+const HEADER_ALIASES: Record<string, string> = {
+  // Identity
+  id: "internal_id",
+  ref: "internal_id",
+  reference: "internal_id",
+  // Artist
+  artist: "artist_name",
+  author: "artist_name",
+  creator: "artist_name",
+  nationality: "artist_nationality",
+  // Dimensions
+  width: "width_cm",
+  height: "height_cm",
+  depth: "depth_cm",
+  w: "width_cm",
+  h: "height_cm",
+  d: "depth_cm",
+  "width_(cm)": "width_cm",
+  "height_(cm)": "height_cm",
+  "depth_(cm)": "depth_cm",
+  // Price
+  price: "price_eur",
+  "price_(eur)": "price_eur",
+  "price_(€)": "price_eur",
+  amount: "price_eur",
+  // Location
+  location: "location_name",
+  loc: "location_name",
+  place: "location_name",
+  // Misc
+  comments: "notes",
+  description: "notes",
+};
+
+function normalizeHeader(h: string): string {
+  const cleaned = h
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_()€]/g, "");
+  return HEADER_ALIASES[cleaned] ?? cleaned;
+}
+
 export function parseArtworkCSV(text: string): ParsedRow[] {
   const out = Papa.parse<CsvRow>(text, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (h) => h.trim().toLowerCase().replace(/[\s-]+/g, "_"),
+    transformHeader: normalizeHeader,
   });
   const rows = out.data ?? [];
   return rows.map((raw) => {
