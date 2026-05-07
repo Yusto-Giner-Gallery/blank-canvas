@@ -19,8 +19,11 @@ export type ParseResult = {
   artist_match: "exact" | "none";
 };
 
+// Size: tolerant of cm suffix on every dimension (30cm x 20cm x 15cm),
+// European decimal commas (40,5x60), surrounding spaces, and all of
+// x/×/* as the multiplier.
 const SIZE_RE =
-  /(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?\s*(?:cm)?/i;
+  /(\d+(?:[.,]\d+)?)\s*(?:cm)?\s*[x×*]\s*(\d+(?:[.,]\d+)?)\s*(?:cm)?(?:\s*[x×*]\s*(\d+(?:[.,]\d+)?)\s*(?:cm)?)?/i;
 const YEAR_RE = /(?<![0-9])(19\d{2}|20\d{2})(?![0-9])/;
 const PRICE_RE =
   /(?:€\s*(\d+(?:[.,]\d{1,3})*)|(\d+(?:[.,]\d{1,3})*)\s*€|EUR\s*(\d+(?:[.,]\d{1,3})*)|(\d+(?:[.,]\d{1,3})*)\s*EUR)/i;
@@ -116,6 +119,13 @@ function parsePrice(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// Dimensions can be "40", "40.5", or European "40,5". Treat both
+// separators as decimal points.
+function parseDecimal(raw: string): number | null {
+  const n = Number(raw.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 function titleCase(s: string): string {
   return s.replace(/\b(\w)(\w*)/g, (_, a, b) => a.toUpperCase() + b.toLowerCase());
 }
@@ -140,9 +150,9 @@ export function parseFilename(
   let depth_cm: number | null = null;
   const sm = working.match(SIZE_RE);
   if (sm) {
-    width_cm = Number(sm[1]);
-    height_cm = Number(sm[2]);
-    depth_cm = sm[3] ? Number(sm[3]) : null;
+    width_cm = parseDecimal(sm[1]);
+    height_cm = parseDecimal(sm[2]);
+    depth_cm = sm[3] ? parseDecimal(sm[3]) : null;
     working = working.replace(SIZE_RE, " ");
   }
 
