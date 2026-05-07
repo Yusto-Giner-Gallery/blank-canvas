@@ -91,7 +91,7 @@ export function useCreateDossier() {
         .select("*")
         .single();
       if (error) throw error;
-      return data;
+      return data as unknown as Dossier;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dossiers"] }),
   });
