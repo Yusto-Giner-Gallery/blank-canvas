@@ -40,3 +40,53 @@ export function useInviteMember() {
     },
   });
 }
+
+export function useSetMemberRole() {
+  const qc = useQueryClient();
+  return useMutation<
+    { ok: true },
+    Error,
+    { user_id: string; role: "admin" | "staff" }
+  >({
+    mutationFn: async (vars) => {
+      const { data, error } = await supabase.functions.invoke<{ ok: true }>(
+        "manage-member",
+        { body: { action: "set_role", ...vars } },
+      );
+      if (error) throw new Error(await extractError(error, "Update failed"));
+      if (!data?.ok) throw new Error("Update failed");
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation<{ ok: true }, Error, { user_id: string }>({
+    mutationFn: async (vars) => {
+      const { data, error } = await supabase.functions.invoke<{ ok: true }>(
+        "manage-member",
+        { body: { action: "remove", ...vars } },
+      );
+      if (error) throw new Error(await extractError(error, "Remove failed"));
+      if (!data?.ok) throw new Error("Remove failed");
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
+  });
+}
+
+async function extractError(error: unknown, fallback: string): Promise<string> {
+  // FunctionsHttpError exposes .context.response with the JSON body.
+  const ctx = (error as { context?: { response?: Response } })?.context;
+  if (ctx?.response) {
+    try {
+      const body = await ctx.response.clone().json();
+      if (body?.error) return String(body.error);
+    } catch {
+      /* ignore */
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
+}
