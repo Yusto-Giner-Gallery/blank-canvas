@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { Bug, Plus } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { FeedbackModal } from "./FeedbackModal";
+
+// Hidden by default. A small invisible hot-zone in the bottom-right
+// corner reveals two icons (Plus = feature, Bug = bug) when the cursor
+// enters it. On touch (no hover) the icons are always visible since
+// pointer:hover queries don't fire there.
+export function FeedbackWidget() {
+  const location = useLocation();
+  const [open, setOpen] = useState<null | "bug" | "feature">(null);
+  const [hovered, setHovered] = useState(false);
+
+  const visible = hovered || open !== null;
+
+  return (
+    <>
+      <div
+        className="pointer-events-auto fixed bottom-0 right-0 z-40 flex h-32 w-32 items-end justify-end p-4"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div
+          className={cn(
+            "flex flex-col items-end gap-2 transition-opacity duration-200",
+            visible ? "opacity-100" : "opacity-0",
+            "[@media(hover:none)]:opacity-100",
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => setOpen("feature")}
+            aria-label="Request a feature"
+            tabIndex={visible ? 0 : -1}
+            className="flex h-9 w-9 items-center justify-center border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen("bug")}
+            aria-label="Report a bug"
+            tabIndex={visible ? 0 : -1}
+            className="flex h-9 w-9 items-center justify-center border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Bug className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      {open ? (
+        <FeedbackModal
+          kind={open}
+          page_path={location.pathname}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+    </>
+  );
+}

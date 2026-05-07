@@ -1,14 +1,22 @@
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useRealtimeArtworks } from "@/hooks/useRealtimeArtworks";
 import { useRealtimeKanban } from "@/hooks/useRealtimeKanban";
+import { FeedbackWidget } from "@/components/shared/FeedbackWidget";
+import { recordRouteChange } from "@/lib/feedback-buffer";
 
 export function AppShell() {
   // Subscribes to artworks/artwork_tags/artwork_images channel and
   // invalidates the cache on changes (multi-tab/multi-user sync).
   useRealtimeArtworks();
   useRealtimeKanban();
+
+  const location = useLocation();
+  useEffect(() => {
+    recordRouteChange(location.pathname);
+  }, [location.pathname]);
 
   return (
     <div className="flex h-full bg-background">
@@ -19,6 +27,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <FeedbackWidget />
     </div>
   );
 }
