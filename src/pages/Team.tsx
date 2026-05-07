@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { MoreHorizontal } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import {
   useTeam,
@@ -15,13 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { InviteMemberModal } from "@/components/team/InviteMemberModal";
 import type { Profile } from "@/integrations/supabase/domain";
 
@@ -123,42 +115,35 @@ export default function Team() {
                     <td className="px-4 py-3 capitalize">{m.role}</td>
                     <td className="px-4 py-3 text-right">
                       {!isSelf && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                        <div className="flex items-center justify-end gap-2">
+                          {m.role === "staff" ? (
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Manage ${m.full_name || m.email}`}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => changeRole(m, "admin")}
+                              disabled={setRole.isPending}
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              Promote
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {m.role === "staff" ? (
-                              <DropdownMenuItem
-                                onClick={() => changeRole(m, "admin")}
-                                disabled={setRole.isPending}
-                              >
-                                Promote to admin
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => changeRole(m, "staff")}
-                                disabled={setRole.isPending}
-                              >
-                                Demote to staff
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setConfirmRemove(m)}
-                              className="text-destructive focus:text-destructive"
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => changeRole(m, "staff")}
+                              disabled={setRole.isPending}
                             >
-                              Remove from gallery
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              Demote
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmRemove(m)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
