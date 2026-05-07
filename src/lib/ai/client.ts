@@ -1,10 +1,9 @@
 // Single AI client module (CLAUDE.md §2 + §4b). Every AI feature in the
-// app imports from here. Stubbed in v1; the body of `generateText` is
-// replaced when Lovable AI (or another provider) is wired.
-//
-// Repointing requires only changes inside this file — feature code (the
-// editor, hooks, etc.) stays untouched.
+// app imports from here. Provider is switched via VITE_AI_PROVIDER:
+//   - "lovable" → calls the `ai-generate` edge function (Lovable AI)
+//   - "stub"    → deterministic placeholder text (offline / dev fallback)
 
+import { supabase } from "@/lib/supabase";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 
 export type AIRequest =
@@ -24,7 +23,7 @@ export type AIRequest =
       contact_name?: string;
     };
 
-const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "stub") as
+const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
   | "stub"
   | "lovable";
 
@@ -69,15 +68,19 @@ function stubResponse(req: AIRequest): string {
 }
 
 export async function generateText(req: AIRequest): Promise<string> {
-  if (PROVIDER === "stub") {
-    // No network call. Returning synchronously-ish so the editor can
-    // surface "Generated" instantly without faking latency.
-    return stubResponse(req);
+  if (PROVIDER === "stub") return stubResponse(req);
+
+  const { data, error } = await supabase.functions.invoke<{
+    text?: string;
+    error?: string;
+  }>("ai-generate", { body: req });
+
+  if (error) {
+    // Surface a useful message; the caller decides how to display it.
+    throw new Error(error.message || "AI request failed");
   }
-  // Lovable AI path — wire up the SDK call here. The shape (one async
-  // function returning a string) is intentionally narrow so the rest of
-  // the app does not need to change.
-  throw new Error(
-    `[ai] provider "${PROVIDER}" is not wired yet. See src/lib/ai/client.ts.`,
-  );
+  if (data?.error) throw new Error(data.error);
+  if (!data?.text) throw new Error("AI returned an empty response");
+  return data.text;
 }
+
