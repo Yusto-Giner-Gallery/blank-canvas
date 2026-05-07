@@ -38,10 +38,12 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
-      <div className="flex h-14 items-center px-4 text-base font-semibold tracking-tight">
-        YGManager
+      <div className="flex h-14 items-center gap-2 border-b border-border px-4 text-sm font-semibold uppercase tracking-[0.22em]">
+        <span>Yusto</span>
+        <span aria-hidden className="text-accent-red text-base font-normal leading-none">/</span>
+        <span>Giner</span>
       </div>
-      <nav className="flex-1 space-y-1 px-2 pb-4">
+      <nav className="flex-1 space-y-px px-0 pb-4 pt-2">
         {visible.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
@@ -49,10 +51,10 @@ export function Sidebar() {
             end={to === "/"}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 border-l-2 px-3 py-2 text-sm font-medium uppercase tracking-wider transition-colors",
                 isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "border-accent-red bg-accent text-accent-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
               )
             }
           >
