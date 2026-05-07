@@ -194,9 +194,24 @@ export function useCardAttachments(card_id: string | undefined) {
   });
 }
 
-export function attachmentUrl(storage_path: string) {
-  const { data } = supabase.storage.from("card-attachments").getPublicUrl(storage_path);
-  return data.publicUrl;
+/**
+ * `card-attachments` is a private bucket — use a signed URL.
+ * Returns a hook so React Query can cache + refresh the (1h) signed URL.
+ */
+export function useAttachmentUrl(storage_path: string | undefined) {
+  return useQuery<string | null>({
+    queryKey: ["card_attachment_url", storage_path ?? null],
+    enabled: !!storage_path,
+    staleTime: 1000 * 60 * 50, // refresh well before 1h expiry
+    queryFn: async () => {
+      if (!storage_path) return null;
+      const { data, error } = await supabase.storage
+        .from("card-attachments")
+        .createSignedUrl(storage_path, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
 }
 
 export function useUploadCardAttachment() {
