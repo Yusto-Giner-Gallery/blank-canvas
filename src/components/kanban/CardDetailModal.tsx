@@ -351,35 +351,18 @@ export function CardDetailModal({
           ) : (
             <ul className="space-y-1">
               {attachments.map((a) => (
-                <li
+                <AttachmentRow
                   key={a.id}
-                  className="flex items-center gap-2 rounded-sm border border-border bg-card px-2 py-1 text-sm"
-                >
-                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  <a
-                    href={attachmentUrl(a.storage_path)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="min-w-0 flex-1 truncate hover:underline"
-                  >
-                    {a.name}
-                  </a>
-                  <button
-                    type="button"
-                    aria-label="Remove attachment"
-                    onClick={() => {
-                      if (!window.confirm(`Remove "${a.name}"?`)) return;
-                      deleteAttachment.mutate({
-                        card_id: card.id,
-                        id: a.id,
-                        storage_path: a.storage_path,
-                      });
-                    }}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </li>
+                  attachment={a}
+                  onDelete={() => {
+                    if (!window.confirm(`Remove "${a.name}"?`)) return;
+                    deleteAttachment.mutate({
+                      card_id: card.id,
+                      id: a.id,
+                      storage_path: a.storage_path,
+                    });
+                  }}
+                />
               ))}
             </ul>
           )}
