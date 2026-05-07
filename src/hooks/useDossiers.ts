@@ -19,7 +19,7 @@ export function useDossiers() {
         .select("*")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as Dossier[];
     },
   });
 }
