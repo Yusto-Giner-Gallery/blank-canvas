@@ -15,11 +15,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
-        <main className="relative flex-1 overflow-y-auto px-4 py-6 md:px-8">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r-2 border-t-2 border-accent-red md:right-8 md:top-6"
-          />
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <Outlet />
         </main>
       </div>

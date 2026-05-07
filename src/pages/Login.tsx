@@ -50,11 +50,7 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r-2 border-t-2 border-accent-red md:right-8 md:top-6"
-      />
+    <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em]">
