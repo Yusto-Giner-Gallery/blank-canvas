@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { ArtworkStatus } from "@/integrations/supabase/types";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 import type { ArtworkWithFilters } from "@/hooks/useArtworks";
 
 // CSV column shape for both export and import.

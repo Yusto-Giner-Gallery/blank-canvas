@@ -37,7 +37,7 @@ import {
 } from "@/hooks/useKanban";
 import { LabelDot } from "@/components/kanban/LabelChips";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
-import type { Card } from "@/integrations/supabase/types";
+import type { Card } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 function isDueSoon(due: string | null): boolean {

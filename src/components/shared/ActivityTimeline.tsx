@@ -3,7 +3,7 @@ import {
   useActivityLog,
   type ActivityLogRow,
 } from "@/hooks/useActivityLog";
-import type { ActivityEntityType, Json } from "@/integrations/supabase/types";
+import type { ActivityEntityType, Json } from "@/integrations/supabase/domain";
 
 function formatValue(v: Json | null | undefined): string {
   if (v === null || v === undefined) return "—";

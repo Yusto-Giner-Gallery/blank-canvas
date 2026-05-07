@@ -9,7 +9,7 @@ import {
   useCollections,
   useCreateCollection,
 } from "@/hooks/useCollections";
-import type { CollectionKind } from "@/integrations/supabase/types";
+import type { CollectionKind } from "@/integrations/supabase/domain";
 
 const KIND_OPTIONS: Array<{ value: CollectionKind; label: string }> = [
   { value: "exhibition", label: "Exhibition" },

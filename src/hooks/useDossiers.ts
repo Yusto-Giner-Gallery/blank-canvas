@@ -5,7 +5,7 @@ import type {
   Dossier,
   DossierBodyBlocks,
   DossierKind,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export function useDossiers() {

@@ -4,7 +4,7 @@ import type {
   ArtworkListItem,
   Collection,
   CollectionKind,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 import { imageUrl } from "./useArtworks";
 

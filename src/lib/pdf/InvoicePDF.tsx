@@ -10,7 +10,7 @@ import type {
   Contact,
   Invoice,
   InvoiceLine,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 
 const local = StyleSheet.create({
   meta: {

@@ -1,4 +1,4 @@
-import type { CardLabel } from "@/integrations/supabase/types";
+import type { CardLabel } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 const COLOR: Record<CardLabel, string> = {

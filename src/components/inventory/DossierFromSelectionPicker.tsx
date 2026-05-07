@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateDossier } from "@/hooks/useDossiers";
-import type { DossierKind } from "@/integrations/supabase/types";
+import type { DossierKind } from "@/integrations/supabase/domain";
 
 const KIND_OPTIONS: Array<{ value: DossierKind; label: string }> = [
   { value: "solo_show", label: "Solo show" },

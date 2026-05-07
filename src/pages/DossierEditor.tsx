@@ -22,7 +22,7 @@ import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
 import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescriptionEditor";
 import { SendToContactsModal } from "@/components/dossiers/SendToContactsModal";
 import { generateText } from "@/lib/ai/client";
-import type { DossierKind } from "@/integrations/supabase/types";
+import type { DossierKind } from "@/integrations/supabase/domain";
 
 const PdfPanel = lazy(() => import("@/components/dossiers/PdfPanel"));
 

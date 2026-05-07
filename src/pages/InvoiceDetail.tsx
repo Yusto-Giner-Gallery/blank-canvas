@@ -23,7 +23,7 @@ import {
   InvoiceLinesEditor,
   type DraftLine,
 } from "@/components/invoicing/InvoiceLinesEditor";
-import type { InvoiceStatus } from "@/integrations/supabase/types";
+import type { InvoiceStatus } from "@/integrations/supabase/domain";
 
 const PdfDownloadButton = lazy(
   () => import("@/components/invoicing/InvoicePdfDownloadButton"),

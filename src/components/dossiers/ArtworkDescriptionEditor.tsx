@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ImageOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import type { ArtworkListItem } from "@/integrations/supabase/types";
+import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { generateText } from "@/lib/ai/client";
 import { imageUrl } from "@/hooks/useArtworks";
 

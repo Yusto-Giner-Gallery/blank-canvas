@@ -6,7 +6,7 @@ import type {
   Card,
   CardLabel,
   List,
-} from "@/integrations/supabase/types";
+} from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export type BoardWithCount = Board & { card_count: number };

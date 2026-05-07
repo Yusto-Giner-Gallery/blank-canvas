@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/integrations/supabase/domain";
 import { useAuth } from "./useAuth";
 
 export function useProfile() {

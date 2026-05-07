@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Profile } from "@/integrations/supabase/types";
+import type { Profile } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 // All profiles in the current gallery — used for member pickers and

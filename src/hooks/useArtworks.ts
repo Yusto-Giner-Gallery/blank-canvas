@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Artwork, ArtworkListItem } from "@/integrations/supabase/types";
+import type { Artwork, ArtworkListItem } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 type Row = Artwork & {

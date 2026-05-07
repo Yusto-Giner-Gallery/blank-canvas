@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DossierKind } from "@/integrations/supabase/types";
+import type { DossierKind } from "@/integrations/supabase/domain";
 
 const KIND_LABEL: Record<DossierKind, string> = {
   solo_show: "Solo show",

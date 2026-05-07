@@ -17,7 +17,7 @@ import { SelectionBar } from "@/components/inventory/SelectionBar";
 import { CollectionPicker } from "@/components/inventory/CollectionPicker";
 import { DossierFromSelectionPicker } from "@/components/inventory/DossierFromSelectionPicker";
 import { downloadCSV, exportArtworksCSV } from "@/lib/csv";
-import type { ArtworkListItem } from "@/integrations/supabase/types";
+import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
 type View = "list" | "grid";

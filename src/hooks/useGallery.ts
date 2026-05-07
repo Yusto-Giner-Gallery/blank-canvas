@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Gallery } from "@/integrations/supabase/types";
+import type { Gallery } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
 export function useGallery() {
