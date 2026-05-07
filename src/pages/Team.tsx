@@ -7,10 +7,15 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { InviteMemberModal } from "@/components/team/InviteMemberModal";
 
 export default function Team() {
-  const { profile, isAdmin } = useProfile();
+  const { profile, loading, isAdmin } = useProfile();
   const teamQuery = useTeam();
   const [inviting, setInviting] = useState(false);
 
+  if (loading) {
+    return (
+      <p className="text-sm text-muted-foreground">Loading…</p>
+    );
+  }
   if (!isAdmin) return <Navigate to="/" replace />;
 
   const members = teamQuery.data ?? [];
