@@ -37,7 +37,7 @@ export function useDossier(id: string | undefined) {
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return (data ?? null) as unknown as Dossier | null;
     },
   });
 }
