@@ -19,6 +19,8 @@ export default function Login() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && session) {
@@ -29,9 +31,22 @@ export default function Login() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (mode === "signin") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { full_name: fullName },
+        },
+      });
+      if (error) toast.error(error.message);
+      else toast.success("Account created. Check your email to confirm, then sign in.");
+    }
     setSubmitting(false);
-    if (error) toast.error(error.message);
   }
 
   return (
