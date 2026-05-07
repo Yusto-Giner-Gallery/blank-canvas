@@ -1,0 +1,267 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowLeft, FileText, GripVertical, ImageOff, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  imageUrl,
+  useCollection,
+  useRemoveFromCollection,
+  useReorderCollection,
+} from "@/hooks/useCollections";
+import { useCreateDossier } from "@/hooks/useDossiers";
+import type {
+  ArtworkListItem,
+  DossierKind,
+} from "@/integrations/supabase/types";
+
+function SortableTile({
+  artwork,
+  collection_id,
+  onRemove,
+}: {
+  artwork: ArtworkListItem;
+  collection_id: string;
+  onRemove: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: artwork.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const url = imageUrl(artwork.primary_image?.storage_path);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="relative flex flex-col overflow-hidden rounded-md border border-border bg-card"
+    >
+      <div className="relative aspect-square bg-muted">
+        {url ? (
+          <img src={url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageOff className="h-6 w-6 text-muted-foreground" />
+          </div>
+        )}
+        <button
+          type="button"
+          {...listeners}
+          {...attributes}
+          aria-label="Drag to reorder"
+          className="absolute left-2 top-2 cursor-grab rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical className="h-3 w-3" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onRemove(artwork.id)}
+          aria-label="Remove from collection"
+          className="absolute right-2 top-2 rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+      <Link
+        to={`/inventory/${artwork.id}`}
+        className="flex flex-col gap-0.5 p-3 hover:bg-accent/40"
+      >
+        <div className="truncate text-sm font-medium">{artwork.title}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {artwork.artist?.name ?? "Unknown artist"} · {artwork.internal_id}
+        </div>
+      </Link>
+      <span className="sr-only">collection {collection_id}</span>
+    </div>
+  );
+}
+
+// Map collection.kind → a sensible default dossier kind.
+const COLLECTION_KIND_TO_DOSSIER_KIND: Record<string, DossierKind> = {
+  exhibition: "group_show",
+  fair: "art_fair",
+  viewing_room: "collector_offer",
+  other: "special",
+};
+
+export default function CollectionDetail() {
+  const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { data, isLoading, error } = useCollection(id);
+  const reorder = useReorderCollection();
+  const remove = useRemoveFromCollection();
+  const createDossier = useCreateDossier();
+
+  const initialOrder = useMemo(
+    () => (data?.artworks ?? []).map((a) => a.id),
+    [data],
+  );
+  const [order, setOrder] = useState<string[]>(initialOrder);
+  useEffect(() => setOrder(initialOrder), [initialOrder]);
+
+  const byId = useMemo(() => {
+    const map = new Map<string, ArtworkListItem>();
+    (data?.artworks ?? []).forEach((a) => map.set(a.id, a));
+    return map;
+  }, [data]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    }),
+  );
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setOrder((prev) => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      const next = arrayMove(prev, oldIndex, newIndex);
+      reorder.mutate(
+        { collection_id: id, artwork_ids_in_order: next },
+        {
+          onError: (err) => {
+            toast.error(err.message);
+          },
+        },
+      );
+      return next;
+    });
+  }
+
+  async function onRemove(artwork_id: string) {
+    try {
+      await remove.mutateAsync({ collection_id: id, artwork_id });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function onGenerateDossier() {
+    if (!data) return;
+    try {
+      const dossier = await createDossier.mutateAsync({
+        kind: COLLECTION_KIND_TO_DOSSIER_KIND[data.kind] ?? "special",
+        title: data.name,
+        artwork_ids: order,
+      });
+      toast.success(`Dossier "${dossier.title}" created`);
+      navigate(`/dossiers/${dossier.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (isLoading)
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error)
+    return (
+      <p className="text-sm text-destructive">
+        Could not load collection. {(error as Error).message}
+      </p>
+    );
+  if (!data)
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Collection not found</CardTitle>
+          <CardDescription>
+            <Link to="/collections" className="underline">
+              Back to collections
+            </Link>
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/collections">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={onGenerateDossier}
+          disabled={order.length === 0 || createDossier.isPending}
+        >
+          <FileText className="h-4 w-4" />
+          {createDossier.isPending ? "Generating…" : "Generate dossier"}
+        </Button>
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
+        <p className="text-sm text-muted-foreground">
+          {data.kind} · {order.length} artwork{order.length === 1 ? "" : "s"} ·
+          drag to reorder
+        </p>
+      </div>
+
+      {order.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>No artworks yet</CardTitle>
+            <CardDescription>
+              Use multi-select on the inventory page to add artworks.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={order} strategy={rectSortingStrategy}>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {order.map((aid) => {
+                const a = byId.get(aid);
+                if (!a) return null;
+                return (
+                  <SortableTile
+                    key={aid}
+                    artwork={a}
+                    collection_id={id}
+                    onRemove={onRemove}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,83 @@
+// Single AI client module (CLAUDE.md §2 + §4b). Every AI feature in the
+// app imports from here. Stubbed in v1; the body of `generateText` is
+// replaced when Lovable AI (or another provider) is wired.
+//
+// Repointing requires only changes inside this file — feature code (the
+// editor, hooks, etc.) stays untouched.
+
+import type { ArtworkListItem } from "@/integrations/supabase/types";
+
+export type AIRequest =
+  | {
+      kind: "exhibition_blurb";
+      dossier_kind: string;
+      title: string;
+      artworks: ArtworkListItem[];
+    }
+  | {
+      kind: "artwork_description";
+      artwork: ArtworkListItem;
+    }
+  | {
+      kind: "collector_pitch";
+      artwork: ArtworkListItem;
+      contact_name?: string;
+    };
+
+const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "stub") as
+  | "stub"
+  | "lovable";
+
+function stubResponse(req: AIRequest): string {
+  switch (req.kind) {
+    case "exhibition_blurb": {
+      const artistNames = Array.from(
+        new Set(req.artworks.map((a) => a.artist?.name).filter(Boolean)),
+      );
+      const artistList =
+        artistNames.length === 0
+          ? "the artists in this selection"
+          : artistNames.slice(0, 4).join(", ") +
+            (artistNames.length > 4 ? ", and others" : "");
+      return [
+        `[stub blurb — ${req.dossier_kind}] "${req.title}"`,
+        ``,
+        `This dossier brings together ${req.artworks.length} works by ${artistList}.`,
+        `Replace this text with a real exhibition statement, or click "Generate with AI" once a provider is wired up in src/lib/ai/client.ts.`,
+      ].join("\n");
+    }
+    case "artwork_description": {
+      const a = req.artwork;
+      const size = [a.width_cm, a.height_cm, a.depth_cm]
+        .filter((n): n is number => typeof n === "number")
+        .join(" × ");
+      return `[stub description] ${a.title} by ${a.artist?.name ?? "the artist"}${
+        size ? `, ${size} cm` : ""
+      }${a.year ? `, ${a.year}` : ""}.`;
+    }
+    case "collector_pitch": {
+      const lead = req.contact_name ? `Dear ${req.contact_name},` : `Hello,`;
+      return [
+        `[stub pitch]`,
+        ``,
+        lead,
+        ``,
+        `I thought of you when looking at "${req.artwork.title}" by ${req.artwork.artist?.name ?? "the artist"}. Replace this body with a personalised note.`,
+      ].join("\n");
+    }
+  }
+}
+
+export async function generateText(req: AIRequest): Promise<string> {
+  if (PROVIDER === "stub") {
+    // No network call. Returning synchronously-ish so the editor can
+    // surface "Generated" instantly without faking latency.
+    return stubResponse(req);
+  }
+  // Lovable AI path — wire up the SDK call here. The shape (one async
+  // function returning a string) is intentionally narrow so the rest of
+  // the app does not need to change.
+  throw new Error(
+    `[ai] provider "${PROVIDER}" is not wired yet. See src/lib/ai/client.ts.`,
+  );
+}
