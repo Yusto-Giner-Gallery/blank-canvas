@@ -41,7 +41,10 @@ export type DossierBodyBlocks = {
   artwork_descriptions?: Record<string, string>;
   collector_pitch?: string;
 };
-export type Dossier = T["dossiers"]["Row"];
+export type Dossier = Omit<T["dossiers"]["Row"], "body_blocks" | "image_layout"> & {
+  body_blocks: DossierBodyBlocks;
+  image_layout: string[];
+};
 
 export type Invoice = T["invoices"]["Row"];
 export type InvoiceLine = T["invoice_lines"]["Row"];
