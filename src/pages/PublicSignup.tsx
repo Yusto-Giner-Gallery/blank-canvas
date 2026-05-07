@@ -52,20 +52,27 @@ export default function PublicSignup() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            <span>Yusto</span>
-            <span aria-hidden className="text-accent-red text-sm font-normal leading-none">/</span>
-            <span>Giner</span>
-          </div>
-          <CardTitle>Stay in touch</CardTitle>
-          <CardDescription>
-            Leave your details and we will keep you posted on shows and
-            artists you might like.
-          </CardDescription>
-        </CardHeader>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-md space-y-8">
+        <header>
+          <h1 className="text-5xl font-bold uppercase leading-[0.9] tracking-tight md:text-6xl">
+            <span className="block">Your</span>
+            <span className="block">Gallery</span>
+            <span className="block text-accent-red">Manager</span>
+          </h1>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            By Yusto{" "}
+            <span aria-hidden className="text-accent-red">/</span> Giner
+          </p>
+        </header>
+        <Card>
+          <CardHeader>
+            <CardTitle>Stay in touch</CardTitle>
+            <CardDescription>
+              Leave your details and we will keep you posted on shows and
+              artists you might like.
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {done ? (
             <p className="text-sm">Thanks — we have your details.</p>
@@ -123,7 +130,8 @@ export default function PublicSignup() {
             </form>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
