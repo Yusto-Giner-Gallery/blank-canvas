@@ -138,11 +138,33 @@ function tidy(s: string): string {
     .trim();
 }
 
+// Detects an artwork size (NxN or NxNxN) followed by "cm" anywhere in
+// a normalised string. Used to decide whether a trailing pixel-dim
+// suffix is junk we should strip.
+const HAS_CM_SIZE =
+  /\d+(?:[.,]\d+)?\s*[x×*]\s*\d+(?:[.,]\d+)?(?:\s*[x×*]\s*\d+(?:[.,]\d+)?)?\s*cm/i;
+
 export function parseFilename(
   filename: string,
   knownArtistNames: string[],
 ): ParseResult {
   let working = stripExt(filename);
+
+  // Slugified filenames (WordPress, web exports) use hyphens or
+  // underscores as word separators, breaking our space-bounded regexes
+  // for size ("94-x-93-cm") and medium ("oil-on-linen"). Normalise
+  // them to spaces first so the rest of the pipeline works as if the
+  // user had typed the filename out.
+  working = working.replace(/[-_]+/g, " ");
+
+  // CMS image exports often append the image's own pixel dimensions
+  // ("-510x382") at the end of the filename, which would otherwise be
+  // picked up as the artwork size. Strip that trailing suffix only
+  // when a real cm-marked artwork size exists earlier — without that
+  // signal, the trailing NxN might legitimately be the artwork size.
+  if (HAS_CM_SIZE.test(working)) {
+    working = working.replace(/\s+\d+\s*[x×*]\s*\d+\s*$/i, "").trim();
+  }
 
   // 1. Size
   let width_cm: number | null = null;
