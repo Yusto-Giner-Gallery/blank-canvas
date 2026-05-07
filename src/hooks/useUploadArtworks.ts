@@ -17,6 +17,7 @@ export type DraftArtwork = {
   location_id: string | null;
   status: ArtworkStatus;
   year: number | null;
+  medium: string | null;
 };
 
 export type UploadOutcome = {
@@ -60,7 +61,7 @@ async function uploadOne(
     title: draft.title,
     artist_id,
     year: draft.year,
-    medium: null,
+    medium: draft.medium,
     width_cm: draft.width_cm,
     height_cm: draft.height_cm,
     depth_cm: draft.depth_cm,

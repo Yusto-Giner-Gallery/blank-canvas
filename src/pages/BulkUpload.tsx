@@ -100,6 +100,7 @@ export default function BulkUpload() {
             depth_cm: parse.depth_cm,
             year: parse.year,
             price_eur: parse.price_eur,
+            medium: parse.medium,
             status: parse.status ?? "available",
             location_id: null,
           };
@@ -163,11 +164,12 @@ export default function BulkUpload() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Bulk upload</h1>
         <p className="text-sm text-muted-foreground">
-          Drop images. Filenames are parsed automatically — title, artist,
-          size, year, price (€), and status (sold / on hold) are all
-          extracted when present, in any order, separated by{" "}
-          <code>_</code> <code>-</code> <code>–</code> or <code>—</code>.
-          Confirm each row, then upload.
+          Drop images. Filenames are read automatically — size, year,
+          price (€), medium (Oil on Canvas, Acrylic, Bronze…), and status
+          (sold / on hold) are all extracted from anywhere in the name,
+          in any order, separated by spaces or <code>_ - – —</code>.
+          Whatever's left becomes the title. Known artists are matched
+          by name. Confirm each row, then upload.
         </p>
       </div>
 
@@ -213,7 +215,7 @@ export default function BulkUpload() {
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full min-w-[1300px] text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
                 <th className="w-16 px-3 py-2 text-left font-medium">Image</th>
@@ -225,6 +227,8 @@ export default function BulkUpload() {
                 <th className="w-44 px-3 py-2 text-left font-medium">
                   Size (cm)
                 </th>
+                <th className="w-40 px-3 py-2 text-left font-medium">Medium</th>
+                <th className="w-20 px-3 py-2 text-left font-medium">Year</th>
                 <th className="w-28 px-3 py-2 text-left font-medium">
                   Price (€)
                 </th>
@@ -357,6 +361,34 @@ export default function BulkUpload() {
                           className="h-9"
                         />
                       </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        value={d.medium ?? ""}
+                        onChange={(e) =>
+                          update(d.client_key, {
+                            medium: e.target.value || null,
+                          })
+                        }
+                        placeholder="e.g. Oil on Canvas"
+                        className="h-9"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        type="number"
+                        value={d.year ?? ""}
+                        onChange={(e) =>
+                          update(d.client_key, {
+                            year:
+                              e.target.value === ""
+                                ? null
+                                : Number(e.target.value),
+                          })
+                        }
+                        placeholder="—"
+                        className="h-9"
+                      />
                     </td>
                     <td className="px-3 py-2">
                       <Input
