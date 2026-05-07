@@ -224,11 +224,11 @@ export default function BulkUpload() {
                 <th className="w-28 px-3 py-2 text-left font-medium">
                   Internal ID
                 </th>
-                <th className="w-56 px-3 py-2 text-left font-medium">
+                <th className="w-44 px-3 py-2 text-left font-medium">
                   Size (cm)
                 </th>
                 <th className="w-40 px-3 py-2 text-left font-medium">Medium</th>
-                <th className="w-24 px-3 py-2 text-left font-medium">Year</th>
+                <th className="w-20 px-3 py-2 text-left font-medium">Year</th>
                 <th className="w-28 px-3 py-2 text-left font-medium">
                   Price (€)
                 </th>
