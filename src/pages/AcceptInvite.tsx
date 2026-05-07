@@ -62,8 +62,23 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-4 top-4 h-3 w-3 border-r-2 border-t-2 border-accent-red md:right-8 md:top-6"
+      />
+      <div className="relative w-full max-w-sm">
+        <header className="absolute bottom-full left-0 right-0 mb-6">
+          <h1 className="text-2xl font-bold uppercase leading-[0.9] tracking-tight md:text-3xl">
+            <span className="block">Your</span>
+            <span className="block">Gallery</span>
+            <span className="block text-accent-red">Manager</span>
+          </h1>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            By Yusto{" "}
+            <span aria-hidden className="text-accent-red">/</span> Giner
+          </p>
+        </header>
         <Card>
           <CardHeader>
             <CardTitle>Set your password</CardTitle>
