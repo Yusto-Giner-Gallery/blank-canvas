@@ -28,7 +28,7 @@ const items: Item[] = [
   { to: "/contacts", label: "Contacts", icon: Users },
   { to: "/invoices", label: "Invoices", icon: Receipt },
   { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
-  { to: "/kanban", label: "Kanban", icon: KanbanSquare },
+  { to: "/kanban", label: "Shirika", icon: KanbanSquare },
   { to: "/team", label: "Team", icon: Shield, adminOnly: true },
 ];
 
