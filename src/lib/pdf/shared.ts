@@ -4,11 +4,21 @@ import type {
   Dossier,
 } from "@/integrations/supabase/domain";
 
+export type TitlePathData = {
+  d: string;
+  width: number;
+  cap_height: number;
+};
+
 export type CommonProps = {
   dossier: Dossier;
   artworks: ArtworkListItem[];
   galleryName: string;
   imageUrlFor: (storage_path: string | null | undefined) => string | null;
+  // Outlined-stroke title path (editorial cover only). Extracted from
+  // Inter-Bold via opentype.js so we can render the PARALLELS hollow type.
+  // null/undefined → cover falls back to solid white text.
+  titlePath?: TitlePathData | null;
 };
 
 export const palette = {

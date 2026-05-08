@@ -7,6 +7,7 @@ import * as ReactNS from "react";
 
 import { renderToBuffer } from "@react-pdf/renderer";
 import { EditorialPDF } from "../src/lib/pdf/EditorialPDF";
+import { getTitleSvgPath } from "../src/lib/pdf/glyph-path";
 
 const dossier: any = {
   id: "d1",
@@ -79,12 +80,21 @@ const artworks: any[] = [
 ];
 
 (async () => {
+  const titlePath = await getTitleSvgPath("PARALLELS", 42, 3);
+  if (!titlePath || !titlePath.d) {
+    console.error("Outlined title path didn't load (Inter-Bold.ttf missing?)");
+    process.exit(1);
+  }
+  console.log(
+    `Outlined title path: ${titlePath.d.length} chars, width ${titlePath.width.toFixed(1)}, cap ${titlePath.cap_height.toFixed(1)}`,
+  );
   const buf = await renderToBuffer(
     ReactNS.createElement(EditorialPDF, {
       dossier,
       artworks,
       galleryName: "YUSTO / GINER",
       imageUrlFor: () => null,
+      titlePath,
     }) as any,
   );
   // Expect: cover + 2 intros + 3 artworks (w1 default, w2 full, w3 detail)

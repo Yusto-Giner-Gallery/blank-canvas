@@ -16,6 +16,7 @@ type Props = {
   galleryName: string;
   onUpdate: (patch: Partial<Dossier["body_blocks"]>) => void;
   onUpdateTitle: (next: string) => void;
+  onUpdateLayout: (next: string[]) => void;
 };
 
 export function HtmlEditorPreview({
@@ -24,6 +25,7 @@ export function HtmlEditorPreview({
   galleryName,
   onUpdate,
   onUpdateTitle,
+  onUpdateLayout,
 }: Props) {
   switch (dossier.kind) {
     case "editorial":
@@ -33,6 +35,7 @@ export function HtmlEditorPreview({
           artworks={artworks}
           galleryName={galleryName}
           onUpdate={onUpdate}
+          onUpdateLayout={onUpdateLayout}
         />
       );
     case "solo_show":

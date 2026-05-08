@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type {
   ArtworkListItem,
   Dossier,
@@ -28,6 +44,7 @@ type Props = {
   artworks: ArtworkListItem[];
   galleryName: string;
   onUpdate: (patch: Partial<Dossier["body_blocks"]>) => void;
+  onUpdateLayout: (next: string[]) => void;
 };
 
 export function EditorialHtml({
@@ -35,6 +52,7 @@ export function EditorialHtml({
   artworks,
   galleryName,
   onUpdate,
+  onUpdateLayout,
 }: Props) {
   const accent = dossier.body_blocks.accent_color?.trim() || palette.accent;
   const showTitle = dossier.body_blocks.show_title ?? "";
@@ -97,67 +115,126 @@ export function EditorialHtml({
     onUpdate({ custom_pages: customPages.filter((p) => p.id !== id) });
   }
 
+  // Drag-to-reorder. Two independent SortableContexts so artworks don't
+  // accidentally swap with custom pages: artwork ids drive image_layout,
+  // custom-page ids drive position renumbering.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
+  const artworkIds = useMemo(() => artworks.map((a) => a.id), [artworks]);
+  const customIds = useMemo(
+    () => [...customPages].sort((a, b) => a.position - b.position).map((p) => p.id),
+    [customPages],
+  );
+  function handleArtworkDrag(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = artworkIds.indexOf(String(active.id));
+    const newIndex = artworkIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    onUpdateLayout(arrayMove(artworkIds, oldIndex, newIndex));
+  }
+  function handleCustomDrag(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = customIds.indexOf(String(active.id));
+    const newIndex = customIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(customIds, oldIndex, newIndex);
+    const byId = new Map(customPages.map((p) => [p.id, p]));
+    onUpdate({
+      custom_pages: reordered.map((id, idx) => ({
+        ...(byId.get(id) as DossierCustomPage),
+        position: idx,
+      })),
+    });
+  }
+
+  // Split sequence into the three sections so each gets its own DndContext.
+  const coverSpec = sequence.find((s) => s.type === "cover");
+  const artistAndArtworkSpecs = sequence.filter(
+    (s) => s.type === "artist_intro" || s.type === "artwork",
+  );
+  const customSpecs = sequence.filter((s) => s.type === "custom");
+
   return (
     <div className="space-y-4">
-      {sequence.map((spec, i) => {
-        if (spec.type === "cover") {
-          return (
-            <CoverPage
-              key={`cover-${i}`}
-              accent={accent}
-              showTitle={(showTitle || dossier.title || "").toUpperCase()}
-              artistNames={artistNamesFor(sequence)}
-              onTitleChange={(v) => onUpdate({ show_title: v })}
-            />
-          );
-        }
-        if (spec.type === "artist_intro") {
-          const intro = intros[spec.artist.id] ?? {};
-          return (
-            <ArtistIntroPage
-              key={`intro-${spec.artist.id}`}
-              artistName={spec.artist.name}
-              intro={intro}
-              dossierId={dossier.id}
-              galleryName={galleryName}
-              accent={accent}
-              onPatch={(p) => patchIntro(spec.artist.id, p)}
-            />
-          );
-        }
-        if (spec.type === "custom") {
-          return (
-            <CustomPageBlock
-              key={`custom-${spec.page.id}`}
-              page={spec.page}
-              dossierId={dossier.id}
-              galleryName={galleryName}
-              accent={accent}
-              onPatch={(p) => patchCustomPage(spec.page.id, p)}
-              onDelete={() => deleteCustomPage(spec.page.id)}
-            />
-          );
-        }
-        // Artwork page — variant-specific render
-        const aw = spec.artwork;
-        return (
-          <ArtworkPageBlock
-            key={`aw-${aw.id}`}
-            artwork={aw}
-            paired={spec.paired_with}
-            variant={spec.variant}
-            galleryName={galleryName}
-            accent={accent}
-            siblingArtworks={artworks.filter((x) => x.id !== aw.id)}
-            onChangeVariant={(variant, extra) => setVariant(aw.id, variant, extra)}
-            onClearPair={() => spec.paired_with && clearPair(spec.paired_with.id)}
-            detailImageUrl={imageUrl(layouts[aw.id]?.detail_image_path)}
-            onDetailUpload={(path) =>
-              setVariant(aw.id, "detail_zoom", { detail_image_path: path })
+      {coverSpec ? (
+        <CoverPage
+          accent={accent}
+          showTitle={(showTitle || dossier.title || "").toUpperCase()}
+          artistNames={artistNamesFor(sequence)}
+          onTitleChange={(v) => onUpdate({ show_title: v })}
+        />
+      ) : null}
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleArtworkDrag}
+      >
+        <SortableContext items={artworkIds} strategy={rectSortingStrategy}>
+          {artistAndArtworkSpecs.map((spec) => {
+            if (spec.type === "artist_intro") {
+              const intro = intros[spec.artist.id] ?? {};
+              return (
+                <ArtistIntroPage
+                  key={`intro-${spec.artist.id}`}
+                  artistName={spec.artist.name}
+                  intro={intro}
+                  dossierId={dossier.id}
+                  galleryName={galleryName}
+                  accent={accent}
+                  onPatch={(p) => patchIntro(spec.artist.id, p)}
+                />
+              );
             }
-          />
-        );
-      })}
+            const aw = spec.artwork;
+            return (
+              <SortableArtworkPage
+                key={`aw-${aw.id}`}
+                artwork={aw}
+                paired={spec.paired_with}
+                variant={spec.variant}
+                galleryName={galleryName}
+                accent={accent}
+                siblingArtworks={artworks.filter((x) => x.id !== aw.id)}
+                onChangeVariant={(variant, extra) => setVariant(aw.id, variant, extra)}
+                onClearPair={() => spec.paired_with && clearPair(spec.paired_with.id)}
+                detailImageUrl={imageUrl(layouts[aw.id]?.detail_image_path)}
+                onDetailUpload={(path) =>
+                  setVariant(aw.id, "detail_zoom", { detail_image_path: path })
+                }
+              />
+            );
+          })}
+        </SortableContext>
+      </DndContext>
+
+      {customSpecs.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleCustomDrag}
+        >
+          <SortableContext items={customIds} strategy={rectSortingStrategy}>
+            {customSpecs.map((spec) =>
+              spec.type === "custom" ? (
+                <SortableCustomPage
+                  key={`custom-${spec.page.id}`}
+                  page={spec.page}
+                  dossierId={dossier.id}
+                  galleryName={galleryName}
+                  accent={accent}
+                  onPatch={(p) => patchCustomPage(spec.page.id, p)}
+                  onDelete={() => deleteCustomPage(spec.page.id)}
+                />
+              ) : null,
+            )}
+          </SortableContext>
+        </DndContext>
+      ) : null}
 
       <div className="flex items-center justify-end pt-2">
         <Button type="button" variant="outline" size="sm" onClick={addCustomPage}>
@@ -165,6 +242,62 @@ export function EditorialHtml({
           Add custom page
         </Button>
       </div>
+    </div>
+  );
+}
+
+// Wrappers — apply useSortable on top of the existing page blocks so the
+// page itself is the drag target. The grip handle (top-left) is the only
+// drag activator; all the inner click-to-edit affordances stay clickable.
+
+function SortableArtworkPage(
+  props: React.ComponentProps<typeof ArtworkPageBlock> & { artwork: ArtworkListItem },
+) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.artwork.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <button
+        type="button"
+        {...listeners}
+        {...attributes}
+        aria-label="Drag to reorder"
+        className="absolute left-2 top-2 z-30 cursor-grab border border-border bg-background/90 p-1 text-muted-foreground hover:text-foreground"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <ArtworkPageBlock {...props} />
+    </div>
+  );
+}
+
+function SortableCustomPage(
+  props: React.ComponentProps<typeof CustomPageBlock> & { page: DossierCustomPage },
+) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.page.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <button
+        type="button"
+        {...listeners}
+        {...attributes}
+        aria-label="Drag to reorder"
+        className="absolute left-2 top-2 z-30 cursor-grab border border-border bg-background/90 p-1 text-muted-foreground hover:text-foreground"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <CustomPageBlock {...props} />
     </div>
   );
 }
@@ -235,18 +368,46 @@ function CoverPage({
         className="absolute inset-y-0 left-0"
         style={{ width: BAND_W, backgroundColor: accent }}
       />
+      {/* Outlined-stroke title. Browser SVG supports text stroke natively
+          (unlike @react-pdf), so this matches PARALLELS exactly in the
+          editor preview; the PDF export uses opentype.js glyph paths to
+          achieve the same effect. */}
+      <svg
+        className="pointer-events-none absolute"
+        style={{ top: 56, left: MARGIN, width: BAND_W - MARGIN, height: 60 }}
+        viewBox={`0 0 ${BAND_W - MARGIN} 60`}
+        preserveAspectRatio="xMinYMin meet"
+      >
+        <text
+          x={0}
+          y={45}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth={1.6}
+          fontSize={42}
+          fontWeight={700}
+          fontFamily="Inter, Helvetica, Arial, sans-serif"
+          letterSpacing={3}
+        >
+          {showTitle}
+        </text>
+      </svg>
+      {/* Editable title overlay (transparent text) so the user can still
+          click and type — the SVG above provides the visible glyphs. */}
       <EditableText
         value={showTitle}
         onChange={onTitleChange}
         placeholder="UPPERCASE COVER TITLE"
         ariaLabel="Show title"
-        className="absolute font-bold text-white uppercase tracking-[0.18em]"
+        className="absolute font-bold uppercase tracking-[0.18em]"
         style={{
           top: 56,
           left: MARGIN,
           width: BAND_W - MARGIN,
           fontSize: 42,
           lineHeight: 1.1,
+          color: "transparent",
+          caretColor: "white",
         }}
       />
       <Slash accent={accent} />
