@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useLayoutMode } from "@/lib/layout/LayoutContext";
+import { Drawer } from "@/components/shared/Drawer";
+
+// Peek the artwork detail in a Drawer when split-view layout is enabled —
+// otherwise the existing <Link to=/inventory/:id> navigates the user out
+// of the Kanban modal and loses their place. ArtworkDetail is lazy because
+// pulling it eagerly into every Kanban session would bloat the modal's
+// initial render with a 600+ LOC subtree.
+const ArtworkDetail = lazy(() => import("@/pages/ArtworkDetail"));
 import {
   AlignLeft,
   CalendarDays,
@@ -85,6 +94,9 @@ export function CardDetailModal({
 
   const update = useUpdateCard();
   const del = useDeleteCard();
+  const { mode: layoutMode } = useLayoutMode();
+  const splitMode = layoutMode === "split";
+  const [peekArtworkId, setPeekArtworkId] = useState<string | null>(null);
 
   const profiles = useGalleryProfiles().data ?? [];
   const members = useCardMembers(card_id).data ?? [];
@@ -247,6 +259,12 @@ export function CardDetailModal({
                     <li key={a.id}>
                       <Link
                         to={`/inventory/${a.id}`}
+                        onClick={(e) => {
+                          if (splitMode) {
+                            e.preventDefault();
+                            setPeekArtworkId(a.id);
+                          }
+                        }}
                         className="inline-flex items-center gap-1 border border-border bg-accent px-2 py-1 text-xs hover:border-foreground/40"
                       >
                         {a.internal_id} · {a.title}
@@ -584,6 +602,19 @@ export function CardDetailModal({
           </Button>
         </div>
       </div>
+      {peekArtworkId ? (
+        <Drawer
+          open
+          onClose={() => setPeekArtworkId(null)}
+          title="Artwork"
+          depth={1}
+          widthClass="md:w-[36rem]"
+        >
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+            <ArtworkDetail id={peekArtworkId} />
+          </Suspense>
+        </Drawer>
+      ) : null}
     </div>
   );
 }

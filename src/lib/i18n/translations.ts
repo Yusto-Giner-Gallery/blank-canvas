@@ -85,6 +85,99 @@ export const STRINGS: Record<string, Entry> = {
   "topbar.openNav": { en: "Open navigation", es: "Abrir navegación" },
   "topbar.signOut": { en: "Sign out", es: "Cerrar sesión" },
 
+  // Dashboard
+  "dashboard.title": { en: "Dashboard", es: "Inicio" },
+  "dashboard.description": {
+    en: "Overview of your gallery. Inventory, dossiers, contacts, invoices and the team board live in the sidebar.",
+    es: "Visión general de la galería. Inventario, dossiers, contactos, facturas y el tablero del equipo viven en la barra lateral.",
+  },
+  "dashboard.cards.inventory": { en: "Inventory", es: "Inventario" },
+  "dashboard.cards.inventory.description": { en: "Artworks in stock.", es: "Obras en stock." },
+  "dashboard.cards.attention": { en: "Needs attention", es: "Requieren atención" },
+  "dashboard.cards.attention.description": { en: "Flagged this week.", es: "Marcadas esta semana." },
+  "dashboard.cards.invoices": { en: "Open invoices", es: "Facturas abiertas" },
+  "dashboard.cards.invoices.description": { en: "Awaiting payment.", es: "Pendientes de cobro." },
+
+  // Activity stream
+  "activity.title": { en: "Recent activity", es: "Actividad reciente" },
+  "activity.description": {
+    en: "Field changes and events across the gallery, newest first.",
+    es: "Cambios de campo y eventos de la galería, los más recientes primero.",
+  },
+  "activity.empty": {
+    en: "No activity yet. As soon as the team edits an artwork, contact, deal, invoice, or kanban card, it appears here.",
+    es: "Aún no hay actividad. En cuanto el equipo edite una obra, un contacto, un trato, una factura o una tarjeta de kanban, aparecerá aquí.",
+  },
+  "activity.loading": { en: "Loading activity…", es: "Cargando actividad…" },
+  "activity.error": { en: "Could not load activity.", es: "No se pudo cargar la actividad." },
+  "activity.changed": { en: "changed", es: "cambió" },
+  "activity.verb.created": { en: "created", es: "creó" },
+  "activity.verb.updated": { en: "updated", es: "actualizó" },
+  "activity.verb.deleted": { en: "deleted", es: "eliminó" },
+  "activity.verb.archived": { en: "archived", es: "archivó" },
+  "activity.entity.artwork": { en: "an artwork", es: "una obra" },
+  "activity.entity.contact": { en: "a contact", es: "un contacto" },
+  "activity.entity.invoice": { en: "an invoice", es: "una factura" },
+  "activity.entity.deal": { en: "a deal", es: "un trato" },
+  "activity.entity.card": { en: "a kanban card", es: "una tarjeta" },
+  "activity.entity.loan": { en: "a loan", es: "un préstamo" },
+  "activity.entity.consignment": { en: "a consignment", es: "una consignación" },
+  "activity.entity.shipment": { en: "a shipment", es: "un envío" },
+  "activity.entity.document": { en: "a document", es: "un documento" },
+  "activity.relative.justNow": { en: "just now", es: "justo ahora" },
+  "activity.relative.minute": { en: "min", es: "min" },
+  "activity.relative.hour": { en: "h", es: "h" },
+  "activity.relative.day": { en: "d", es: "d" },
+  "activity.relative.week": { en: "w", es: "sem" },
+  "activity.someone": { en: "Someone", es: "Alguien" },
+
+  // Inventory chrome
+  "inventory.summary": {
+    en: "{filtered} of {total} artwork{plural}{filtersClause}.",
+    es: "{filtered} de {total} obra{plural}{filtersClause}.",
+  },
+  "inventory.summary.filters": {
+    en: " · {n} filter{plural} active",
+    es: " · {n} filtro{plural} activo{plural}",
+  },
+  "inventory.empty.title": { en: "No artworks yet", es: "Aún no hay obras" },
+  "inventory.empty.description": {
+    en: "Use Bulk upload to add the first images. Filenames in Title_40x40cm_Artist or Artist_Title_40x40cm are parsed automatically.",
+    es: "Usa Carga masiva para añadir las primeras imágenes. Nombres en formato Título_40x40cm_Artista o Artista_Título_40x40cm se analizan automáticamente.",
+  },
+  "inventory.noMatches.title": { en: "No matches", es: "Sin coincidencias" },
+  "inventory.noMatches.description": {
+    en: "{total} artwork{plural} in inventory, but none match the current filters. Adjust or clear above.",
+    es: "{total} obra{plural} en inventario, pero ninguna coincide con los filtros actuales. Ajusta o quita arriba.",
+  },
+  "inventory.export.title": { en: "Export current filter as CSV", es: "Exportar filtro actual como CSV" },
+
+  // Contacts chrome
+  "contacts.summary": {
+    en: "{filtered} of {total} contact{plural}.",
+    es: "{filtered} de {total} contacto{plural}.",
+  },
+  "contacts.searchPlaceholder": { en: "Search name or email…", es: "Buscar nombre o email…" },
+  "contacts.scanCard": { en: "Scan card", es: "Escanear tarjeta" },
+  "contacts.addContact": { en: "Add contact", es: "Añadir contacto" },
+  "contacts.empty.title": { en: "No contacts yet", es: "Aún no hay contactos" },
+  "contacts.empty.description": {
+    en: "Add one above, or share the public signup link with your guests.",
+    es: "Añade uno arriba o comparte el enlace público de inscripción con tus invitados.",
+  },
+
+  // Invoices chrome
+  "invoices.summary": {
+    en: "{n} invoice{plural} · EUR.",
+    es: "{n} factura{plural} · EUR.",
+  },
+  "invoices.newInvoice": { en: "New invoice", es: "Nueva factura" },
+  "invoices.empty.title": { en: "No invoices yet", es: "Aún no hay facturas" },
+  "invoices.empty.description": {
+    en: "Click 'New invoice' to start a draft. Add line items, then generate a Stripe payment link or download the PDF.",
+    es: "Haz clic en 'Nueva factura' para empezar un borrador. Añade líneas, luego genera un enlace de pago Stripe o descarga el PDF.",
+  },
+
   // Inventory headings
   "inventory.title": { en: "Inventory", es: "Inventario" },
   "inventory.viewList": { en: "List", es: "Lista" },

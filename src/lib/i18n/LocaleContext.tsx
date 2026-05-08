@@ -11,7 +11,9 @@ const STORAGE_KEY = "ygm.locale";
 type LocaleContextValue = {
   locale: Locale;
   setLocale: (next: Locale) => void;
-  t: (key: string) => string;
+  /** Translate a key. Optional `vars` interpolates {placeholders} —
+   *  e.g. `t("inventory.summary", { filtered: 3, total: 12, plural: "s" })`. */
+  t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -34,7 +36,18 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => setLocaleState(next), []);
-  const t = useCallback((key: string) => resolve(key, locale), [locale]);
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => {
+      let s = resolve(key, locale);
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) {
+          s = s.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+        }
+      }
+      return s;
+    },
+    [locale],
+  );
 
   const value = useMemo<LocaleContextValue>(
     () => ({ locale, setLocale, t }),
@@ -58,6 +71,6 @@ export function useLocale(): LocaleContextValue {
   return ctx;
 }
 
-export function useT(): (key: string) => string {
+export function useT() {
   return useLocale().t;
 }

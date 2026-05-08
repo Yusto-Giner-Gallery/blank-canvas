@@ -21,11 +21,13 @@ import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 import { useLayoutMode } from "@/lib/layout/LayoutContext";
 import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
+import { useT } from "@/lib/i18n/LocaleContext";
 import ArtworkDetail from "./ArtworkDetail";
 
 type View = "list" | "grid";
 
 export default function Inventory() {
+  const t = useT();
   const [view, setView] = useState<View>("list");
   const [edit, setEdit] = useState<QuickEdit | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -70,10 +72,20 @@ export default function Inventory() {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Inventory</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("inventory.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} of {total} artwork{total === 1 ? "" : "s"}
-            {activeCount > 0 ? ` · ${activeCount} filter${activeCount === 1 ? "" : "s"} active` : ""}.
+            {t("inventory.summary", {
+              filtered: filtered.length,
+              total,
+              plural: total === 1 ? "" : "s",
+              filtersClause:
+                activeCount > 0
+                  ? t("inventory.summary.filters", {
+                      n: activeCount,
+                      plural: activeCount === 1 ? "" : "s",
+                    })
+                  : "",
+            })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -90,18 +102,18 @@ export default function Inventory() {
             title="Export current filter as CSV"
           >
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">{t("inventory.export")}</span>
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link to="/inventory/import">
               <FileUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Import</span>
+              <span className="hidden sm:inline">{t("inventory.import")}</span>
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/inventory/upload">
               <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Bulk upload</span>
+              <span className="hidden sm:inline">{t("inventory.bulkUpload")}</span>
             </Link>
           </Button>
           <div className="flex items-center gap-1 rounded-md border border-border p-1">
@@ -114,7 +126,7 @@ export default function Inventory() {
               aria-label="List view"
             >
               <List className="h-4 w-4" />
-              <span className="hidden sm:inline">List</span>
+              <span className="hidden sm:inline">{t("inventory.viewList")}</span>
             </Button>
             <Button
               variant="ghost"
@@ -125,7 +137,7 @@ export default function Inventory() {
               aria-label="Grid view"
             >
               <LayoutGrid className="h-4 w-4" />
-              <span className="hidden sm:inline">Grid</span>
+              <span className="hidden sm:inline">{t("inventory.viewGrid")}</span>
             </Button>
           </div>
         </div>
@@ -142,21 +154,19 @@ export default function Inventory() {
       ) : total === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No artworks yet</CardTitle>
-            <CardDescription>
-              Use Bulk upload to add the first images. Filenames in
-              {" "}<code>Title_40x40cm_Artist</code> or{" "}
-              <code>Artist_Title_40x40cm</code> are parsed automatically.
-            </CardDescription>
+            <CardTitle>{t("inventory.empty.title")}</CardTitle>
+            <CardDescription>{t("inventory.empty.description")}</CardDescription>
           </CardHeader>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No matches</CardTitle>
+            <CardTitle>{t("inventory.noMatches.title")}</CardTitle>
             <CardDescription>
-              {total} artwork{total === 1 ? "" : "s"} in inventory, but none
-              match the current filters. Adjust or clear above.
+              {t("inventory.noMatches.description", {
+                total,
+                plural: total === 1 ? "" : "s",
+              })}
             </CardDescription>
           </CardHeader>
         </Card>

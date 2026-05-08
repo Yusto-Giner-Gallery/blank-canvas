@@ -4,6 +4,7 @@ import { Camera, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useLayoutMode } from "@/lib/layout/LayoutContext";
 import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
+import { useT } from "@/lib/i18n/LocaleContext";
 import ContactDetail from "./ContactDetail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,94 @@ import { useTags } from "@/hooks/useTags";
 import { SignupShare } from "@/components/crm/SignupShare";
 import { ScanContactModal } from "@/components/crm/ScanContactModal";
 import { cn, errorMessage } from "@/lib/utils";
+import type { ContactWithTags } from "@/hooks/useContacts";
+
+// Table render extracted so it can be used both standalone (classic mode)
+// and as the `list` slot of SplitViewLayout (split mode), without an IIFE
+// in the JSX that obscured the control flow.
+function renderContactsTable({
+  filtered,
+  splitMode,
+  peek,
+  selectInSplit,
+  update,
+}: {
+  filtered: ContactWithTags[];
+  splitMode: boolean;
+  peek: string | null;
+  selectInSplit: (id: string) => void;
+  update: ReturnType<typeof useUpdateContact>;
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 text-left font-medium">Name</th>
+            <th className="px-3 py-2 text-left font-medium">Email</th>
+            <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
+              Interest
+            </th>
+            <th className="px-3 py-2 text-left font-medium">Newsletter</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((c) => {
+            const peeked = peek === c.id;
+            return (
+              <tr
+                key={c.id}
+                className={cn(
+                  "border-t border-border hover:bg-accent/40",
+                  peeked && "bg-accent/80",
+                )}
+              >
+                <td className="px-3 py-2">
+                  {splitMode ? (
+                    <button
+                      type="button"
+                      onClick={() => selectInSplit(c.id)}
+                      className="text-left font-medium hover:underline"
+                    >
+                      {c.full_name}
+                    </button>
+                  ) : (
+                    <Link
+                      to={`/contacts/${c.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {c.full_name}
+                    </Link>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                    <Mail className="h-3 w-3" /> {c.email}
+                  </a>
+                </td>
+                <td className="hidden truncate px-3 py-2 text-muted-foreground md:table-cell">
+                  {c.interest ?? "—"}
+                </td>
+                <td className="px-3 py-2">
+                  <Checkbox
+                    checked={c.newsletter_opt_in}
+                    onCheckedChange={(v) =>
+                      update.mutate({ id: c.id, patch: { newsletter_opt_in: v } })
+                    }
+                    ariaLabel="Toggle newsletter"
+                  />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function Contacts() {
+  const t = useT();
   const { data, isLoading, error } = useContacts();
   const tagsQuery = useTags();
   const tags = tagsQuery.data ?? [];
@@ -102,10 +189,13 @@ export default function Contacts() {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("contacts.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} of {contacts.length} contact
-            {contacts.length === 1 ? "" : "s"}.
+            {t("contacts.summary", {
+              filtered: filtered.length,
+              total: contacts.length,
+              plural: contacts.length === 1 ? "" : "s",
+            })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -116,11 +206,11 @@ export default function Contacts() {
             onClick={() => setScanning(true)}
           >
             <Camera className="h-4 w-4" />
-            <span className="hidden sm:inline">Scan card</span>
+            <span className="hidden sm:inline">{t("contacts.scanCard")}</span>
           </Button>
           <Button size="sm" onClick={() => setAdding((v) => !v)}>
             <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add contact</span>
+            <span className="hidden sm:inline">{t("contacts.addContact")}</span>
           </Button>
         </div>
       </div>
@@ -184,7 +274,7 @@ export default function Contacts() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name or email…"
+          placeholder={t("contacts.searchPlaceholder")}
           className="h-9"
         />
         {tags.length > 0 ? (
@@ -220,10 +310,8 @@ export default function Contacts() {
       ) : contacts.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No contacts yet</CardTitle>
-            <CardDescription>
-              Add one above, or share the public signup link with your guests.
-            </CardDescription>
+            <CardTitle>{t("contacts.empty.title")}</CardTitle>
+            <CardDescription>{t("contacts.empty.description")}</CardDescription>
           </CardHeader>
         </Card>
       ) : filtered.length === 0 ? (
@@ -236,86 +324,29 @@ export default function Contacts() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : (() => {
-        const tableEl = (
-          <div className="overflow-hidden rounded-md border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Name</th>
-                  <th className="px-3 py-2 text-left font-medium">Email</th>
-                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-                    Interest
-                  </th>
-                  <th className="px-3 py-2 text-left font-medium">Newsletter</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => {
-                  const peeked = peek === c.id;
-                  return (
-                    <tr
-                      key={c.id}
-                      className={cn(
-                        "border-t border-border hover:bg-accent/40",
-                        peeked && "bg-accent/80",
-                      )}
-                    >
-                      <td className="px-3 py-2">
-                        {splitMode ? (
-                          <button
-                            type="button"
-                            onClick={() => selectInSplit(c.id)}
-                            className="text-left font-medium hover:underline"
-                          >
-                            {c.full_name}
-                          </button>
-                        ) : (
-                          <Link
-                            to={`/contacts/${c.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {c.full_name}
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                          <Mail className="h-3 w-3" /> {c.email}
-                        </a>
-                      </td>
-                      <td className="hidden truncate px-3 py-2 text-muted-foreground md:table-cell">
-                        {c.interest ?? "—"}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Checkbox
-                          checked={c.newsletter_opt_in}
-                          onCheckedChange={(v) =>
-                            update.mutate({ id: c.id, patch: { newsletter_opt_in: v } })
-                          }
-                          ariaLabel="Toggle newsletter"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        );
-        if (splitMode) {
-          return (
-            <SplitViewLayout
-              selectedId={peek}
-              onClearSelection={clearSplitSelection}
-              list={tableEl}
-              detail={peek ? <ContactDetail id={peek} /> : null}
-              emptyState="Select a contact from the list to see their profile."
-            />
-          );
-        }
-        return tableEl;
-      })()}
+      ) : splitMode ? (
+        <SplitViewLayout
+          selectedId={peek}
+          onClearSelection={clearSplitSelection}
+          list={renderContactsTable({
+            filtered,
+            splitMode,
+            peek,
+            selectInSplit,
+            update,
+          })}
+          detail={peek ? <ContactDetail id={peek} /> : null}
+          emptyState="Select a contact from the list to see their profile."
+        />
+      ) : (
+        renderContactsTable({
+          filtered,
+          splitMode,
+          peek,
+          selectInSplit,
+          update,
+        })
+      )}
 
       {scanning ? (
         <ScanContactModal onClose={() => setScanning(false)} />

@@ -11,6 +11,27 @@ export type ActivityLogRow = ActivityLog & {
   actor: Pick<Profile, "id" | "full_name" | "email"> | null;
 };
 
+// Reads the last `limit` activity_log rows across the gallery (no entity
+// filter), joined with the acting profile. Used by the dashboard activity
+// stream. Filtered by gallery_id implicitly via RLS.
+export function useGlobalActivity(limit = 30) {
+  const { profile } = useProfile();
+  return useQuery<ActivityLogRow[]>({
+    queryKey: ["activity_log", "_all", limit],
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("activity_log")
+        .select("*, actor:profiles(id, full_name, email)")
+        .order("created_at", { ascending: false })
+        .limit(limit)
+        .returns<ActivityLogRow[]>();
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 // Reads the last `limit` activity_log rows for an entity, joined with the
 // acting profile. Trigger that writes these lives on Lovable
 // (`log_change()` per CLAUDE.md §13). Until then the table is empty and

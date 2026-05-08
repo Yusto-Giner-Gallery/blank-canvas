@@ -35,6 +35,9 @@ import {
 } from "@/hooks/useCollections";
 import { useCreateDossier } from "@/hooks/useDossiers";
 import { useProfile } from "@/hooks/useProfile";
+import { useLayoutMode } from "@/lib/layout/LayoutContext";
+import { Drawer } from "@/components/shared/Drawer";
+import ArtworkDetail from "./ArtworkDetail";
 import type {
   ArtworkListItem,
   DossierKind,
@@ -44,10 +47,15 @@ function SortableTile({
   artwork,
   collection_id,
   onRemove,
+  onPeek,
 }: {
   artwork: ArtworkListItem;
   collection_id: string;
   onRemove: (id: string) => void;
+  /** When provided (split-view mode), intercepts the artwork link to open
+   *  the detail in a Drawer instead of navigating away from the
+   *  collection. */
+  onPeek?: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: artwork.id });
@@ -92,6 +100,12 @@ function SortableTile({
       </div>
       <Link
         to={`/inventory/${artwork.id}`}
+        onClick={(e) => {
+          if (onPeek) {
+            e.preventDefault();
+            onPeek(artwork.id);
+          }
+        }}
         className="flex flex-col gap-0.5 p-3 hover:bg-accent/40"
       >
         <div className="truncate text-sm font-medium">{artwork.title}</div>
@@ -124,6 +138,11 @@ export default function CollectionDetail() {
   const createDossier = useCreateDossier();
   const deleteCollection = useDeleteCollection();
   const { isAdmin } = useProfile();
+  const { mode: layoutMode } = useLayoutMode();
+  const splitMode = layoutMode === "split";
+  // Local peek state — independent of URL because Collections live at
+  // /collections/:id and we don't want to overload that path's :id.
+  const [peekArtworkId, setPeekArtworkId] = useState<string | null>(null);
 
   const initialOrder = useMemo(
     () => (data?.artworks ?? []).map((a) => a.id),
@@ -289,6 +308,7 @@ export default function CollectionDetail() {
                     artwork={a}
                     collection_id={id}
                     onRemove={onRemove}
+                    onPeek={splitMode ? setPeekArtworkId : undefined}
                   />
                 );
               })}
@@ -296,6 +316,17 @@ export default function CollectionDetail() {
           </SortableContext>
         </DndContext>
       )}
+
+      {peekArtworkId ? (
+        <Drawer
+          open
+          onClose={() => setPeekArtworkId(null)}
+          title="Artwork"
+          widthClass="md:w-[36rem]"
+        >
+          <ArtworkDetail id={peekArtworkId} />
+        </Drawer>
+      ) : null}
     </div>
   );
 }
