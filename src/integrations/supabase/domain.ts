@@ -58,9 +58,9 @@ export type DossierCustomPage = {
   id: string;
   image_path: string;
   caption?: string;
-  // Position is an opaque sort key — string so insertion between two
-  // existing pages is cheap (Notion-style fractional index).
-  position: string;
+  // Sort key for display order. Lower = earlier. Custom pages are appended
+  // after all artwork pages in ascending position order.
+  position: number;
 };
 
 export type DossierBodyBlocks = {

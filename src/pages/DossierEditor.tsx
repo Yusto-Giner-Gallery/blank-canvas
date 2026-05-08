@@ -60,6 +60,8 @@ export default function DossierEditor() {
   const [showTitle, setShowTitle] = useState("");
   const [accentColor, setAccentColor] = useState("");
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
+  const [pageLayouts, setPageLayouts] = useState<NonNullable<Dossier["body_blocks"]["page_layouts"]>>({});
+  const [customPages, setCustomPages] = useState<NonNullable<Dossier["body_blocks"]["custom_pages"]>>([]);
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -79,6 +81,8 @@ export default function DossierEditor() {
     setShowTitle(d.body_blocks.show_title ?? "");
     setAccentColor(d.body_blocks.accent_color ?? "");
     setArtistIntros(d.body_blocks.artist_intros ?? {});
+    setPageLayouts(d.body_blocks.page_layouts ?? {});
+    setCustomPages(d.body_blocks.custom_pages ?? []);
     setDescriptions(d.body_blocks.artwork_descriptions ?? {});
     setLayout(d.image_layout);
   }, [dossierQuery.data]);
@@ -121,10 +125,12 @@ export default function DossierEditor() {
         accent_color:
           kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
         artist_intros: kind === "editorial" ? artistIntros : undefined,
+        page_layouts: kind === "editorial" ? pageLayouts : undefined,
+        custom_pages: kind === "editorial" ? customPages : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, pageLayouts, customPages, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -142,6 +148,8 @@ export default function DossierEditor() {
             accent_color:
               kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
             artist_intros: kind === "editorial" ? artistIntros : undefined,
+            page_layouts: kind === "editorial" ? pageLayouts : undefined,
+            custom_pages: kind === "editorial" ? customPages : undefined,
           },
           image_layout: layout,
         },
@@ -160,6 +168,8 @@ export default function DossierEditor() {
     if ("show_title" in patch) setShowTitle(patch.show_title ?? "");
     if ("accent_color" in patch) setAccentColor(patch.accent_color ?? "");
     if ("artist_intros" in patch) setArtistIntros(patch.artist_intros ?? {});
+    if ("page_layouts" in patch) setPageLayouts(patch.page_layouts ?? {});
+    if ("custom_pages" in patch) setCustomPages(patch.custom_pages ?? []);
     if ("artwork_descriptions" in patch)
       setDescriptions(patch.artwork_descriptions ?? {});
     if ("extra" in patch) setExtra(patch.extra ?? "");
@@ -502,6 +512,7 @@ export default function DossierEditor() {
                     artworks={artworks}
                     galleryName={galleryName}
                     onUpdate={(patch) => applyBodyBlocksPatch(patch)}
+                    onUpdateTitle={(next) => setTitle(next)}
                   />
                 </div>
               ) : (

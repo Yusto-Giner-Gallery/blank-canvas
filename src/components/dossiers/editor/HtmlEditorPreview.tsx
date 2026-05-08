@@ -1,17 +1,21 @@
 import type { ArtworkListItem, Dossier } from "@/integrations/supabase/domain";
 import { EditorialHtml } from "./templates/EditorialHtml";
+import { SoloShowHtml } from "./templates/SoloShowHtml";
+import { GroupShowHtml } from "./templates/GroupShowHtml";
+import { SpecialHtml } from "./templates/SpecialHtml";
+import { ArtFairHtml } from "./templates/ArtFairHtml";
+import { CollectorOfferHtml } from "./templates/CollectorOfferHtml";
 
-// Top-level dispatcher for the WYSIWYG editor preview. For dossier kinds
-// that have an HTML mirror, click-to-edit + drop-to-upload work directly
-// on the preview. For kinds that don't have a mirror yet (B-2 will add
-// solo/group/special/art_fair/collector_offer), the parent should fall
-// back to the read-only PDF preview.
+// Top-level dispatcher for the WYSIWYG editor preview. Every dossier kind
+// has an HTML mirror; click-to-edit + drop-to-upload work directly on the
+// preview, and the PDF export reads from the same body_blocks.
 
 type Props = {
   dossier: Dossier;
   artworks: ArtworkListItem[];
   galleryName: string;
   onUpdate: (patch: Partial<Dossier["body_blocks"]>) => void;
+  onUpdateTitle: (next: string) => void;
 };
 
 export function HtmlEditorPreview({
@@ -19,6 +23,7 @@ export function HtmlEditorPreview({
   artworks,
   galleryName,
   onUpdate,
+  onUpdateTitle,
 }: Props) {
   switch (dossier.kind) {
     case "editorial":
@@ -30,14 +35,60 @@ export function HtmlEditorPreview({
           onUpdate={onUpdate}
         />
       );
-    // B-2: HTML mirrors for solo_show, group_show, special, art_fair,
-    // collector_offer. Until they exist, return null and let the parent
-    // render the existing read-only PDF preview as a fallback.
-    default:
-      return null;
+    case "solo_show":
+      return (
+        <SoloShowHtml
+          dossier={dossier}
+          artworks={artworks}
+          galleryName={galleryName}
+          onUpdate={onUpdate}
+          onUpdateTitle={onUpdateTitle}
+        />
+      );
+    case "group_show":
+      return (
+        <GroupShowHtml
+          dossier={dossier}
+          artworks={artworks}
+          galleryName={galleryName}
+          onUpdate={onUpdate}
+          onUpdateTitle={onUpdateTitle}
+        />
+      );
+    case "special":
+      return (
+        <SpecialHtml
+          dossier={dossier}
+          artworks={artworks}
+          galleryName={galleryName}
+          onUpdate={onUpdate}
+          onUpdateTitle={onUpdateTitle}
+        />
+      );
+    case "art_fair":
+      return (
+        <ArtFairHtml
+          dossier={dossier}
+          artworks={artworks}
+          galleryName={galleryName}
+          onUpdate={onUpdate}
+          onUpdateTitle={onUpdateTitle}
+        />
+      );
+    case "collector_offer":
+      return (
+        <CollectorOfferHtml
+          dossier={dossier}
+          artworks={artworks}
+          galleryName={galleryName}
+          onUpdate={onUpdate}
+          onUpdateTitle={onUpdateTitle}
+        />
+      );
   }
 }
 
-export function hasHtmlEditor(kind: Dossier["kind"]): boolean {
-  return kind === "editorial";
+export function hasHtmlEditor(_kind: Dossier["kind"]): boolean {
+  // All dossier kinds now have HTML mirrors.
+  return true;
 }
