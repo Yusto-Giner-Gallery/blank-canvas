@@ -170,7 +170,7 @@ function CardFooter({
         </span>
       ) : null}
       <div className="ml-auto">
-        <AvatarStack members={card.member_profiles} />
+        <AvatarStack members={members} />
       </div>
     </div>
   );
