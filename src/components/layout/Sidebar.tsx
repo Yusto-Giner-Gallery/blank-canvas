@@ -37,7 +37,7 @@ const items: Item[] = [
 
 function Wordmark() {
   return (
-    <div className="flex h-14 items-center gap-2 border-b border-border px-4 text-sm font-semibold uppercase tracking-[0.22em]">
+    <div className="flex h-14 items-center gap-2 border-b border-border px-4 font-recta text-sm font-medium uppercase tracking-[0.22em]">
       <span>Yusto</span>
       <span aria-hidden className="text-accent-red text-base font-normal leading-none">/</span>
       <span>Giner</span>

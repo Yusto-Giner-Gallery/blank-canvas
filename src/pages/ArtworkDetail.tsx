@@ -315,11 +315,16 @@ export default function ArtworkDetail() {
               {!editing ? (
                 <>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h1 className="text-2xl font-semibold tracking-tight">
                         {artwork.title}
                       </h1>
                       {artwork.needs_attention ? <AttentionBadge /> : null}
+                      {artwork.is_nfs ? (
+                        <span className="inline-flex items-center rounded-sm border border-foreground px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+                          NFS
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {artwork.artist?.name ?? "Unknown artist"} ·{" "}

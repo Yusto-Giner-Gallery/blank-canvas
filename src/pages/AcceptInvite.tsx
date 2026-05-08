@@ -74,7 +74,7 @@ export default function AcceptInvite() {
             <span className="block">Gallery</span>
             <span className="block text-accent-red">Manager</span>
           </h1>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="mt-4 font-recta text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
             By Yusto{" "}
             <span aria-hidden className="text-accent-red">/</span> Giner
           </p>
