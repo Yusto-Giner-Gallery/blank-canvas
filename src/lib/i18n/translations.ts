@@ -40,6 +40,21 @@ export const STRINGS: Record<string, Entry> = {
   "settings.section.layout": { en: "Layout", es: "Disposición" },
   "settings.section.visualStyle": { en: "Visual style", es: "Estilo visual" },
   "settings.comingSoon": { en: "Coming soon", es: "Próximamente" },
+  "settings.layout.mode": { en: "Layout mode", es: "Modo de disposición" },
+  "settings.layout.mode.description": {
+    en: "Affects Inventory, Contacts, Invoices, and the mobile navigation. The classic mode is the original full-page navigation.",
+    es: "Afecta Inventario, Contactos, Facturas y la navegación en móvil. El modo clásico es la navegación de página completa original.",
+  },
+  "settings.layout.classic": { en: "Classic", es: "Clásico" },
+  "settings.layout.classic.description": {
+    en: "Sidebar + full-page navigation. List a section, click into a record, navigate back.",
+    es: "Barra lateral + navegación a página completa. Lista una sección, abre un registro, vuelve.",
+  },
+  "settings.layout.split": { en: "Split view + drawers", es: "Vista dividida + paneles" },
+  "settings.layout.split.description": {
+    en: "List on the left, detail on the right — no back-and-forth. Slide-over panels for nested drilldowns. On mobile, the sidebar becomes a bottom tab bar.",
+    es: "Lista a la izquierda, detalle a la derecha — sin idas y vueltas. Paneles deslizantes para desglosar. En móvil, la barra lateral se convierte en barra inferior.",
+  },
   "settings.layout.placeholder": {
     en: "Density, sidebar position, font size, motion. Pending design review.",
     es: "Densidad, posición de la barra, tamaño de fuente, animación. Pendiente de revisión.",

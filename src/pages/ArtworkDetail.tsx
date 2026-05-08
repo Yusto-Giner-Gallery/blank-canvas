@@ -53,8 +53,9 @@ function toNum(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export default function ArtworkDetail() {
-  const { id = "" } = useParams<{ id: string }>();
+export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
+  const params = useParams<{ id: string }>();
+  const id = idProp ?? params.id ?? "";
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { data, isLoading } = useArtworks();

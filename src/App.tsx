@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RequireAuth } from "@/components/layout/RequireAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/lib/i18n/LocaleContext";
+import { LayoutModeProvider } from "@/lib/layout/LayoutContext";
 import Login from "@/pages/Login";
 import Index from "@/pages/Index";
 import Inventory from "@/pages/Inventory";
@@ -30,6 +31,7 @@ import NotFound from "@/pages/NotFound";
 export default function App() {
   return (
     <LocaleProvider>
+      <LayoutModeProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup-contact" element={<PublicSignup />} />
@@ -64,6 +66,7 @@ export default function App() {
         </Route>
       </Routes>
       <Toaster />
+      </LayoutModeProvider>
     </LocaleProvider>
   );
 }

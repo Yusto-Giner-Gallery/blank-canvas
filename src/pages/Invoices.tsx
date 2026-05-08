@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,10 @@ import {
 import { useInvoices } from "@/hooks/useInvoices";
 import { InvoiceStatusPill } from "@/components/invoicing/StatusPill";
 import { NewInvoiceModal } from "@/components/invoicing/NewInvoiceModal";
+import { useLayoutMode } from "@/lib/layout/LayoutContext";
+import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
+import { cn } from "@/lib/utils";
+import InvoiceDetail from "./InvoiceDetail";
 
 function formatPrice(eur: number) {
   return new Intl.NumberFormat("en-IE", {
@@ -24,6 +28,20 @@ export default function Invoices() {
   const { data, isLoading, error } = useInvoices();
   const invoices = data ?? [];
   const [creating, setCreating] = useState(false);
+  const { mode: layoutMode } = useLayoutMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const splitMode = layoutMode === "split";
+  const peek = splitMode ? searchParams.get("peek") : null;
+  function selectInSplit(id: string) {
+    const next = new URLSearchParams(searchParams);
+    next.set("peek", id);
+    setSearchParams(next, { replace: false });
+  }
+  function clearSplitSelection() {
+    const next = new URLSearchParams(searchParams);
+    next.delete("peek");
+    setSearchParams(next, { replace: true });
+  }
 
   return (
     <div className="space-y-4">
@@ -56,55 +74,88 @@ export default function Invoices() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : (
-        <div className="overflow-hidden rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">No.</th>
-                <th className="px-3 py-2 text-left font-medium">Contact</th>
-                <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-                  Updated
-                </th>
-                <th className="px-3 py-2 text-right font-medium">Total</th>
-                <th className="px-3 py-2 text-left font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-t border-border hover:bg-accent/40">
-                  <td className="px-3 py-2 font-mono text-xs">
-                    <Link to={`/invoices/${inv.id}`} className="hover:underline">
-                      {inv.id.slice(0, 8).toUpperCase()}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">
-                    {inv.contact ? (
-                      <span className="block">
-                        <span className="block">{inv.contact.full_name}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {inv.contact.email}
-                        </span>
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
-                    {new Date(inv.updated_at).toLocaleDateString("en-GB")}
-                  </td>
-                  <td className="px-3 py-2 text-right font-medium">
-                    {formatPrice(inv.total_eur)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <InvoiceStatusPill status={inv.status} />
-                  </td>
+      ) : (() => {
+        const tableEl = (
+          <div className="overflow-hidden rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">No.</th>
+                  <th className="px-3 py-2 text-left font-medium">Contact</th>
+                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
+                    Updated
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium">Total</th>
+                  <th className="px-3 py-2 text-left font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {invoices.map((inv) => {
+                  const peeked = peek === inv.id;
+                  return (
+                    <tr
+                      key={inv.id}
+                      className={cn(
+                        "border-t border-border hover:bg-accent/40",
+                        peeked && "bg-accent/80",
+                      )}
+                    >
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {splitMode ? (
+                          <button
+                            type="button"
+                            onClick={() => selectInSplit(inv.id)}
+                            className="hover:underline"
+                          >
+                            {inv.id.slice(0, 8).toUpperCase()}
+                          </button>
+                        ) : (
+                          <Link to={`/invoices/${inv.id}`} className="hover:underline">
+                            {inv.id.slice(0, 8).toUpperCase()}
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {inv.contact ? (
+                          <span className="block">
+                            <span className="block">{inv.contact.full_name}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {inv.contact.email}
+                            </span>
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
+                        {new Date(inv.updated_at).toLocaleDateString("en-GB")}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        {formatPrice(inv.total_eur)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <InvoiceStatusPill status={inv.status} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+        if (splitMode) {
+          return (
+            <SplitViewLayout
+              selectedId={peek}
+              onClearSelection={clearSplitSelection}
+              list={tableEl}
+              detail={peek ? <InvoiceDetail id={peek} /> : null}
+              emptyState="Select an invoice from the list to see its details."
+            />
+          );
+        }
+        return tableEl;
+      })()}
 
       {creating ? <NewInvoiceModal onClose={() => setCreating(false)} /> : null}
     </div>

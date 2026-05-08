@@ -14,11 +14,18 @@ export function ArtworkRow({
   onQuickEdit,
   selected,
   onToggleSelect,
+  onSelect,
+  peeked,
 }: {
   artwork: ArtworkListItem;
   onQuickEdit?: (artwork: ArtworkListItem, x: number, y: number) => void;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  /** When provided, clicking the row calls this instead of navigating —
+   *  used by split-view to peek a record in the right pane. */
+  onSelect?: (id: string) => void;
+  /** Visual highlight when this row is the currently-peeked one. */
+  peeked?: boolean;
 }) {
   const url = imageUrl(artwork.primary_image?.storage_path);
   const size = formatSize(artwork.width_cm, artwork.height_cm, artwork.depth_cm);
@@ -28,19 +35,30 @@ export function ArtworkRow({
     const t = e.touches[0] ?? e.changedTouches[0];
     onQuickEdit(artwork, t?.clientX ?? 0, t?.clientY ?? 0);
   });
+  const { onClick: longPressOnClick, ...longPressTouch } = longPress;
 
   return (
     <Link
       to={`/inventory/${artwork.id}`}
+      {...longPressTouch}
+      onClick={(e) => {
+        // Compose: longPress.onClick swallows the click after a long-press.
+        longPressOnClick(e);
+        if (e.defaultPrevented) return;
+        if (onSelect) {
+          e.preventDefault();
+          onSelect(artwork.id);
+        }
+      }}
       onContextMenu={(e) => {
         if (!onQuickEdit) return;
         e.preventDefault();
         onQuickEdit(artwork, e.clientX, e.clientY);
       }}
-      {...longPress}
       className={cn(
         "flex items-center gap-4 border-b border-border px-3 py-3 hover:bg-accent/40",
         selected && "bg-accent/60",
+        peeked && "bg-accent/80 ring-1 ring-foreground/20",
       )}
     >
       {onToggleSelect ? (

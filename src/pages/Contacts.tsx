@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Camera, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { useLayoutMode } from "@/lib/layout/LayoutContext";
+import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
+import ContactDetail from "./ContactDetail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +36,20 @@ export default function Contacts() {
   const [newInterest, setNewInterest] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const { mode: layoutMode } = useLayoutMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const splitMode = layoutMode === "split";
+  const peek = splitMode ? searchParams.get("peek") : null;
+  function selectInSplit(id: string) {
+    const next = new URLSearchParams(searchParams);
+    next.set("peek", id);
+    setSearchParams(next, { replace: false });
+  }
+  function clearSplitSelection() {
+    const next = new URLSearchParams(searchParams);
+    next.delete("peek");
+    setSearchParams(next, { replace: true });
+  }
 
   const contacts = data ?? [];
   const filtered = useMemo(() => {
@@ -219,53 +236,86 @@ export default function Contacts() {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : (
-        <div className="overflow-hidden rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">Name</th>
-                <th className="px-3 py-2 text-left font-medium">Email</th>
-                <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-                  Interest
-                </th>
-                <th className="px-3 py-2 text-left font-medium">Newsletter</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((c) => (
-                <tr key={c.id} className="border-t border-border hover:bg-accent/40">
-                  <td className="px-3 py-2">
-                    <Link
-                      to={`/contacts/${c.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {c.full_name}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                      <Mail className="h-3 w-3" /> {c.email}
-                    </a>
-                  </td>
-                  <td className="hidden truncate px-3 py-2 text-muted-foreground md:table-cell">
-                    {c.interest ?? "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Checkbox
-                      checked={c.newsletter_opt_in}
-                      onCheckedChange={(v) =>
-                        update.mutate({ id: c.id, patch: { newsletter_opt_in: v } })
-                      }
-                      ariaLabel="Toggle newsletter"
-                    />
-                  </td>
+      ) : (() => {
+        const tableEl = (
+          <div className="overflow-hidden rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Name</th>
+                  <th className="px-3 py-2 text-left font-medium">Email</th>
+                  <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
+                    Interest
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium">Newsletter</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {filtered.map((c) => {
+                  const peeked = peek === c.id;
+                  return (
+                    <tr
+                      key={c.id}
+                      className={cn(
+                        "border-t border-border hover:bg-accent/40",
+                        peeked && "bg-accent/80",
+                      )}
+                    >
+                      <td className="px-3 py-2">
+                        {splitMode ? (
+                          <button
+                            type="button"
+                            onClick={() => selectInSplit(c.id)}
+                            className="text-left font-medium hover:underline"
+                          >
+                            {c.full_name}
+                          </button>
+                        ) : (
+                          <Link
+                            to={`/contacts/${c.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {c.full_name}
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                          <Mail className="h-3 w-3" /> {c.email}
+                        </a>
+                      </td>
+                      <td className="hidden truncate px-3 py-2 text-muted-foreground md:table-cell">
+                        {c.interest ?? "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Checkbox
+                          checked={c.newsletter_opt_in}
+                          onCheckedChange={(v) =>
+                            update.mutate({ id: c.id, patch: { newsletter_opt_in: v } })
+                          }
+                          ariaLabel="Toggle newsletter"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+        if (splitMode) {
+          return (
+            <SplitViewLayout
+              selectedId={peek}
+              onClearSelection={clearSplitSelection}
+              list={tableEl}
+              detail={peek ? <ContactDetail id={peek} /> : null}
+              emptyState="Select a contact from the list to see their profile."
+            />
+          );
+        }
+        return tableEl;
+      })()}
 
       {scanning ? (
         <ScanContactModal onClose={() => setScanning(false)} />

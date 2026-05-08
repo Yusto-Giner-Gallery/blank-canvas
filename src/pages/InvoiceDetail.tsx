@@ -45,8 +45,9 @@ function formatPrice(eur: number) {
   }).format(eur);
 }
 
-export default function InvoiceDetail() {
-  const { id = "" } = useParams<{ id: string }>();
+export default function InvoiceDetail({ id: idProp }: { id?: string } = {}) {
+  const params = useParams<{ id: string }>();
+  const id = idProp ?? params.id ?? "";
   const { data, isLoading } = useInvoice(id);
   const galleryName = useGallery().data?.name ?? "Gallery";
   const navigate = useNavigate();

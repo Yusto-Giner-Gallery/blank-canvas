@@ -14,11 +14,18 @@ export function ArtworkCard({
   onQuickEdit,
   selected,
   onToggleSelect,
+  onSelect,
+  peeked,
 }: {
   artwork: ArtworkListItem;
   onQuickEdit?: (artwork: ArtworkListItem, x: number, y: number) => void;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  /** When provided, clicking the card calls this instead of navigating —
+   *  used by split-view to peek a record in the right pane. */
+  onSelect?: (id: string) => void;
+  /** Visual highlight when this card is the currently-peeked one. */
+  peeked?: boolean;
 }) {
   const url = imageUrl(artwork.primary_image?.storage_path);
   const size = formatSize(artwork.width_cm, artwork.height_cm, artwork.depth_cm);
@@ -28,19 +35,29 @@ export function ArtworkCard({
     const t = e.touches[0] ?? e.changedTouches[0];
     onQuickEdit(artwork, t?.clientX ?? 0, t?.clientY ?? 0);
   });
+  const { onClick: longPressOnClick, ...longPressTouch } = longPress;
 
   return (
     <Link
       to={`/inventory/${artwork.id}`}
+      {...longPressTouch}
+      onClick={(e) => {
+        longPressOnClick(e);
+        if (e.defaultPrevented) return;
+        if (onSelect) {
+          e.preventDefault();
+          onSelect(artwork.id);
+        }
+      }}
       onContextMenu={(e) => {
         if (!onQuickEdit) return;
         e.preventDefault();
         onQuickEdit(artwork, e.clientX, e.clientY);
       }}
-      {...longPress}
       className={cn(
         "group flex flex-col overflow-hidden rounded-md border border-border bg-card transition-colors hover:border-foreground/40",
         selected && "border-foreground/80 ring-1 ring-foreground/40",
+        peeked && "border-foreground bg-accent/40",
       )}
     >
       <div className="relative aspect-square w-full bg-muted">

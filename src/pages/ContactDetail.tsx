@@ -25,8 +25,9 @@ const ACTIVITY_LABEL: Record<ContactActivityKind, string> = {
   purchase: "Purchase",
 };
 
-export default function ContactDetail() {
-  const { id = "" } = useParams<{ id: string }>();
+export default function ContactDetail({ id: idProp }: { id?: string } = {}) {
+  const params = useParams<{ id: string }>();
+  const id = idProp ?? params.id ?? "";
   const { data: contact, isLoading } = useContact(id);
   const tagsQuery = useTags();
   const activityQuery = useContactActivity(id);

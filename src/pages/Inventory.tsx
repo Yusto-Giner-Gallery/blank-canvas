@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Download, FileUp, LayoutGrid, List, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,9 @@ import { DossierFromSelectionPicker } from "@/components/inventory/DossierFromSe
 import { downloadCSV, exportArtworksCSV } from "@/lib/csv";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
+import { useLayoutMode } from "@/lib/layout/LayoutContext";
+import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
+import ArtworkDetail from "./ArtworkDetail";
 
 type View = "list" | "grid";
 
@@ -30,6 +33,21 @@ export default function Inventory() {
   const [pickingDossier, setPickingDossier] = useState(false);
   const { data, isLoading, error } = useArtworks();
   const { filters, activeCount } = useFilters();
+  const { mode } = useLayoutMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const peek = mode === "split" ? searchParams.get("peek") : null;
+  const splitMode = mode === "split";
+
+  function selectInSplit(id: string) {
+    const next = new URLSearchParams(searchParams);
+    next.set("peek", id);
+    setSearchParams(next, { replace: false });
+  }
+  function clearSplitSelection() {
+    const next = new URLSearchParams(searchParams);
+    next.delete("peek");
+    setSearchParams(next, { replace: true });
+  }
 
   const filtered = useMemo(
     () => applyFilters(data ?? [], filters),
@@ -142,6 +160,47 @@ export default function Inventory() {
             </CardDescription>
           </CardHeader>
         </Card>
+      ) : splitMode ? (
+        // Master-detail mode: list left, peeked record's detail right. The
+        // grid/list view toggle still works, but in split mode the grid
+        // collapses to a single column to fit the narrower list pane.
+        <SplitViewLayout
+          selectedId={peek}
+          onClearSelection={clearSplitSelection}
+          list={
+            view === "list" ? (
+              <div>
+                {filtered.map((a) => (
+                  <ArtworkRow
+                    key={a.id}
+                    artwork={a}
+                    onQuickEdit={onQuickEdit}
+                    selected={selected.has(a.id)}
+                    onToggleSelect={onToggleSelect}
+                    onSelect={selectInSplit}
+                    peeked={peek === a.id}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-3 p-3 sm:grid-cols-2">
+                {filtered.map((a) => (
+                  <ArtworkCard
+                    key={a.id}
+                    artwork={a}
+                    onQuickEdit={onQuickEdit}
+                    selected={selected.has(a.id)}
+                    onToggleSelect={onToggleSelect}
+                    onSelect={selectInSplit}
+                    peeked={peek === a.id}
+                  />
+                ))}
+              </div>
+            )
+          }
+          detail={peek ? <ArtworkDetail id={peek} /> : null}
+          emptyState={`Select an artwork from the ${filtered.length}-item list to see its details.`}
+        />
       ) : view === "list" ? (
         <div className="overflow-hidden rounded-md border border-border">
           {filtered.map((a) => (

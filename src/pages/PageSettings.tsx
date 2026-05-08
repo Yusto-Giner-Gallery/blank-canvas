@@ -1,5 +1,6 @@
 import { useT, useLocale } from "@/lib/i18n/LocaleContext";
 import { LOCALES } from "@/lib/i18n/translations";
+import { useLayoutMode, type LayoutMode } from "@/lib/layout/LayoutContext";
 
 // Page Settings — a dedicated area for language, layout, and visual-style
 // preferences. Layout + visual-style sections are placeholders pending the
@@ -8,6 +9,12 @@ import { LOCALES } from "@/lib/i18n/translations";
 export default function PageSettings() {
   const t = useT();
   const { locale, setLocale } = useLocale();
+  const { mode: layoutMode, setMode: setLayoutMode } = useLayoutMode();
+
+  const layoutOptions: Array<{ value: LayoutMode; titleKey: string; descKey: string }> = [
+    { value: "classic", titleKey: "settings.layout.classic", descKey: "settings.layout.classic.description" },
+    { value: "split", titleKey: "settings.layout.split", descKey: "settings.layout.split.description" },
+  ];
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -57,10 +64,51 @@ export default function PageSettings() {
         </div>
       </Section>
 
-      <Section title={t("settings.section.layout")} eyebrow={t("settings.comingSoon")}>
-        <p className="text-sm text-muted-foreground">
-          {t("settings.layout.placeholder")}
-        </p>
+      <Section title={t("settings.section.layout")}>
+        <div className="space-y-1">
+          <h3 className="text-xs font-medium text-foreground">
+            {t("settings.layout.mode")}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {t("settings.layout.mode.description")}
+          </p>
+        </div>
+        <div role="radiogroup" aria-label={t("settings.layout.mode")} className="flex flex-col gap-2">
+          {layoutOptions.map((opt) => {
+            const checked = layoutMode === opt.value;
+            return (
+              <label
+                key={opt.value}
+                className={
+                  "flex cursor-pointer flex-col gap-1 border px-3 py-3 text-sm transition-colors " +
+                  (checked
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-background hover:bg-muted")
+                }
+              >
+                <span className="flex items-center justify-between">
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="layoutMode"
+                      value={opt.value}
+                      checked={checked}
+                      onChange={() => setLayoutMode(opt.value)}
+                      className="sr-only"
+                    />
+                    <span className="font-medium">{t(opt.titleKey)}</span>
+                  </span>
+                  <span className="text-xs uppercase tracking-wider opacity-60">
+                    {opt.value}
+                  </span>
+                </span>
+                <span className={"text-xs " + (checked ? "text-background/80" : "text-muted-foreground")}>
+                  {t(opt.descKey)}
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </Section>
 
       <Section title={t("settings.section.visualStyle")} eyebrow={t("settings.comingSoon")}>
