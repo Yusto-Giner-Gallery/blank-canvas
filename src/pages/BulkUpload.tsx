@@ -21,7 +21,7 @@ import {
 import { parseFilename, type ParseResult } from "@/lib/filename-parser";
 import { cleanupFilenames } from "@/lib/ai/client";
 import type { ArtworkStatus } from "@/integrations/supabase/domain";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: ArtworkStatus; label: string }[] = [
   { value: "available", label: "Available" },
@@ -211,7 +211,7 @@ export default function BulkUpload() {
       toast.success(`Cleaned up ${cleaned.length} row${cleaned.length === 1 ? "" : "s"}.`);
     } catch (err) {
       toast.error(
-        `AI cleanup failed: ${err instanceof Error ? err.message : String(err)}`,
+        `AI cleanup failed: ${errorMessage(err)}`,
       );
     } finally {
       setAiCleaning(false);

@@ -16,7 +16,7 @@ import {
 import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
 import { SignupShare } from "@/components/crm/SignupShare";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 export default function Contacts() {
   const { data, isLoading, error } = useContacts();
@@ -75,7 +75,7 @@ export default function Contacts() {
       setAdding(false);
       toast.success("Contact added");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

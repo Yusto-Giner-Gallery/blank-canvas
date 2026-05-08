@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function DossierFromSelectionPicker({
       onClose();
       navigate(`/dossiers/${d.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

@@ -43,7 +43,7 @@ import { supabase } from "@/lib/supabase";
 import { parseMentions } from "@/lib/mentions";
 import { ALL_LABELS, LabelChip, LabelPill, labelBg } from "./LabelChips";
 import type { CardLabel } from "@/integrations/supabase/domain";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 type MentionedArtwork = { id: string; internal_id: string; title: string };
 
@@ -155,7 +155,7 @@ export function CardDetailModal({
       toast.success("Saved");
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -166,7 +166,7 @@ export function CardDetailModal({
       await del.mutateAsync({ board_id, id: card.id });
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { ImageOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export function ArtworkDescriptionEditor({
       const text = await generateText({ kind: "artwork_description", artwork: a });
       onChange({ ...descriptions, [a.id]: text });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     } finally {
       setGeneratingId(null);
     }

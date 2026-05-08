@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ export function CollectionPicker({
       onClose();
       navigate(`/collections/${c.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -64,7 +65,7 @@ export function CollectionPicker({
       toast.success(`Added ${artwork_ids.length} to collection`);
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

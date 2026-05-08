@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   DndContext,
@@ -167,7 +168,7 @@ export default function CollectionDetail() {
     try {
       await remove.mutateAsync({ collection_id: id, artwork_id });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -182,7 +183,7 @@ export default function CollectionDetail() {
       toast.success(`Dossier "${dossier.title}" created`);
       navigate(`/dossiers/${dossier.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -242,7 +243,7 @@ export default function CollectionDetail() {
                 toast.success("Collection deleted.");
                 navigate("/collections", { replace: true });
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : String(err));
+                toast.error(errorMessage(err));
               }
             }}
             disabled={deleteCollection.isPending}
