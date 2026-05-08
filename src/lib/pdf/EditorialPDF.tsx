@@ -2,8 +2,8 @@ import type React from "react";
 import {
   Document,
   Image,
-  Line,
   Page,
+  Path,
   StyleSheet,
   Svg,
   Text,
@@ -23,7 +23,9 @@ import { buildPageSequence } from "@/lib/dossier/editorial-order";
 // different content per show.
 
 const PAGE = { width: 792, height: 595 };
-const BAND_W = 320;
+// Coral band width matches the original PARALLELS dossier verbatim
+// (extracted from the source PDF: panel runs 0 → 341.2 pt).
+const BAND_W = 341.2;
 const MARGIN = 40;
 
 const FIXED_DISCLAIMER = "TAXES and transport excluded / IVA y Transporte no incluido";
@@ -272,29 +274,25 @@ function CoverPage({
   galleryName: string;
   accent: string;
 }) {
-  // Slash geometry — both segments share slope = (320-200)/(300-240) = 2.0
-  // and gap is centred at the band's right edge so the broken slash reads
-  // as one diagonal mark crossing into the white area.
-  const SLASH_W = 18;
-  const slashWhite = { x1: 240, y1: 200, x2: 300, y2: 320 };
-  const slashAccent = { x1: 320, y1: 360, x2: 380, y2: 480 };
+  // Slash geometry transcribed verbatim from the PARALLELS source PDF
+  // (extracted via pdftocairo). The full diagonal is one accent-coloured
+  // parallelogram running across the band edge; the portion that overlaps
+  // the coral panel is "punched out" by a matching white quadrilateral on
+  // top, producing the signature two-piece broken-slash look.
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={[local.coverBand, { backgroundColor: accent }]} />
       <Text style={local.coverTitle}>{(showTitle || "").toUpperCase()}</Text>
       <Svg style={local.coverSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
-        {/* Broken slash — colinear segments straddling the band edge. */}
-        <Line
-          {...slashWhite}
-          stroke="#ffffff"
-          strokeWidth={SLASH_W}
-          strokeLinecap="butt"
+        {/* Full coral slash parallelogram on the white area. */}
+        <Path
+          fill={accent}
+          d="M 375.9 226.06 L 286.4 399.43 L 306.56 399.43 L 396 226.06 Z"
         />
-        <Line
-          {...slashAccent}
-          stroke={accent}
-          strokeWidth={SLASH_W}
-          strokeLinecap="butt"
+        {/* White cut-out: the portion of the slash inside the coral panel. */}
+        <Path
+          fill="#ffffff"
+          d="M 341.2 293.22 L 286.4 399.43 L 306.56 399.43 L 341.2 332.29 Z"
         />
       </Svg>
       {artistNames.length > 0 ? (

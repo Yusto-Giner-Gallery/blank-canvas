@@ -93,24 +93,32 @@ export default function DossierEditor() {
 
   const artworks = useDossierArtworks(layout, artworksQuery.data);
 
-  // Unique artists in display order, used by the editorial-only intro panel.
+  // Unique artists for the editorial-only intro panel. Dedup is by
+  // case-insensitive trimmed *name* — not by artist.id — because the
+  // gallery often has multiple artist rows for the same person (legacy
+  // bulk-upload duplicates from before the lookup-first dedup landed in
+  // useUploadArtworks). The first artist row encountered with a given
+  // name wins as canonical; subsequent rows with the same name don't
+  // produce extra intro blocks. Mirrors the same dedup the PDF render
+  // does in lib/dossier/editorial-order.ts → groupArtists.
   const editorialArtists = useMemo(() => {
-    const seen = new Set<string>();
-    const out: Array<{ id: string; name: string; nationality: string | null; bio: string | null }> = [];
+    const byName = new Map<
+      string,
+      { id: string; name: string; nationality: string | null; bio: string | null }
+    >();
     for (const a of artworks) {
-      if (a.artist && !seen.has(a.artist.id)) {
-        seen.add(a.artist.id);
-        out.push({
+      if (!a.artist) continue;
+      const key = a.artist.name.trim().toLowerCase();
+      if (!byName.has(key)) {
+        byName.set(key, {
           id: a.artist.id,
           name: a.artist.name,
-          // ArtworkListItem only carries id+name; nationality/bio come from
-          // the artwork query's artist if expanded later. Safe defaults here.
           nationality: null,
           bio: null,
         });
       }
     }
-    return out;
+    return Array.from(byName.values());
   }, [artworks]);
 
   // Optimistic dossier object for the live preview.
