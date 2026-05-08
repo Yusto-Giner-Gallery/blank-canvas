@@ -65,6 +65,7 @@ export default function DossierEditor() {
   const [extra, setExtra] = useState("");
   const [showTitle, setShowTitle] = useState("");
   const [accentColor, setAccentColor] = useState("");
+  const [watermark, setWatermark] = useState("");
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
   const [pageLayouts, setPageLayouts] = useState<NonNullable<Dossier["body_blocks"]["page_layouts"]>>({});
   const [customPages, setCustomPages] = useState<NonNullable<Dossier["body_blocks"]["custom_pages"]>>([]);
@@ -85,6 +86,7 @@ export default function DossierEditor() {
     setExtra(d.body_blocks.extra ?? "");
     setShowTitle(d.body_blocks.show_title ?? "");
     setAccentColor(d.body_blocks.accent_color ?? "");
+    setWatermark(d.body_blocks.watermark ?? "");
     setArtistIntros(d.body_blocks.artist_intros ?? {});
     setPageLayouts(d.body_blocks.page_layouts ?? {});
     setCustomPages(d.body_blocks.custom_pages ?? []);
@@ -147,13 +149,15 @@ export default function DossierEditor() {
         show_title: kind === "editorial" ? showTitle : undefined,
         accent_color:
           kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
+        watermark:
+          kind === "editorial" ? (watermark.trim() || undefined) : undefined,
         artist_intros: kind === "editorial" ? artistIntros : undefined,
         page_layouts: kind === "editorial" ? pageLayouts : undefined,
         custom_pages: kind === "editorial" ? customPages : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, pageLayouts, customPages, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, watermark, artistIntros, pageLayouts, customPages, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -170,6 +174,8 @@ export default function DossierEditor() {
             show_title: kind === "editorial" ? showTitle : undefined,
             accent_color:
               kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
+            watermark:
+              kind === "editorial" ? (watermark.trim() || undefined) : undefined,
             artist_intros: kind === "editorial" ? artistIntros : undefined,
             page_layouts: kind === "editorial" ? pageLayouts : undefined,
             custom_pages: kind === "editorial" ? customPages : undefined,
@@ -190,6 +196,7 @@ export default function DossierEditor() {
     if ("intro" in patch) setIntro(patch.intro ?? "");
     if ("show_title" in patch) setShowTitle(patch.show_title ?? "");
     if ("accent_color" in patch) setAccentColor(patch.accent_color ?? "");
+    if ("watermark" in patch) setWatermark(patch.watermark ?? "");
     if ("artist_intros" in patch) setArtistIntros(patch.artist_intros ?? {});
     if ("page_layouts" in patch) setPageLayouts(patch.page_layouts ?? {});
     if ("custom_pages" in patch) setCustomPages(patch.custom_pages ?? []);
@@ -409,6 +416,37 @@ export default function DossierEditor() {
                       className="h-9 font-mono text-xs"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Watermark (stamps every page)
+                </Label>
+                <div className="flex h-9 items-center gap-2">
+                  <Input
+                    value={watermark}
+                    onChange={(e) => setWatermark(e.target.value)}
+                    placeholder="Leave empty for none"
+                    className="h-9"
+                    aria-label="Page watermark text"
+                  />
+                  {(["DRAFT", "CONFIDENTIAL", "RESERVED"] as const).map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setWatermark(watermark === preset ? "" : preset)}
+                      aria-pressed={watermark === preset}
+                      className={
+                        "h-9 whitespace-nowrap border px-2 text-[11px] uppercase tracking-wide transition-colors " +
+                        (watermark === preset
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background hover:bg-muted")
+                      }
+                    >
+                      {preset}
+                    </button>
+                  ))}
                 </div>
               </div>
 

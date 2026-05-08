@@ -47,6 +47,62 @@ const COLOR_SWATCHES = [
 
 type AnchorRect = { top: number; left: number; width: number };
 
+// Module-level cached selection range. Some toolbar controls (notably native
+// <select>) drop the contentEditable's focus when the dropdown opens; by the
+// time onChange fires, window.getSelection() is gone. Snapshotting on every
+// `selectionchange` lets exec()/applyInlineStyle() always restore the range
+// before mutating, so font size + family round-trip cleanly.
+let savedRange: Range | null = null;
+function saveSelectionIfRich() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  let n: Node | null = range.commonAncestorContainer;
+  while (n) {
+    if (
+      n.nodeType === 1 &&
+      (n as HTMLElement).dataset?.richEditor === "true"
+    ) {
+      savedRange = range.cloneRange();
+      return;
+    }
+    n = n.parentNode;
+  }
+}
+function restoreSelectionIfNeeded() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    // If the current selection is already inside a rich editable, keep it.
+    let n: Node | null = sel.getRangeAt(0).commonAncestorContainer;
+    while (n) {
+      if (
+        n.nodeType === 1 &&
+        (n as HTMLElement).dataset?.richEditor === "true"
+      ) {
+        return;
+      }
+      n = n.parentNode;
+    }
+  }
+  if (!savedRange) return;
+  // Re-focus the original editable, then re-install the saved range.
+  let host: Node | null = savedRange.commonAncestorContainer;
+  while (host && host.nodeType !== 1) host = host.parentNode;
+  while (host) {
+    if (
+      host.nodeType === 1 &&
+      (host as HTMLElement).dataset?.richEditor === "true"
+    ) {
+      (host as HTMLElement).focus();
+      const s = window.getSelection();
+      s?.removeAllRanges();
+      s?.addRange(savedRange);
+      return;
+    }
+    host = host.parentNode;
+  }
+}
+
 export function FormatToolbar() {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [counts, setCounts] = useState<{ words: number; chars: number }>({
@@ -92,6 +148,7 @@ export function FormatToolbar() {
       }, 0);
     }
     function onSelectionChange() {
+      saveSelectionIfRich();
       const el = document.activeElement as HTMLElement | null;
       if (!el || !isRichEditable(el)) return;
       const rect = el.getBoundingClientRect();
@@ -210,8 +267,8 @@ export function FormatToolbar() {
 
       <Select
         ariaLabel="Font family"
-        defaultValue="Helvetica"
-        onChange={(v) => exec("fontName", v)}
+        placeholder="Font"
+        onChange={(v) => applyInlineStyle(`font-family: ${v}`)}
       >
         {FONTS.map((f) => (
           <option key={f.value} value={f.value}>
@@ -222,7 +279,7 @@ export function FormatToolbar() {
 
       <Select
         ariaLabel="Font size"
-        defaultValue="12"
+        placeholder="Size"
         onChange={(v) => applyInlineStyle(`font-size: ${v}pt`)}
       >
         {SIZES.map((s) => (
@@ -326,24 +383,37 @@ function Separator() {
   return <div className="mx-0.5 h-5 w-px bg-border" />;
 }
 
+// Controlled select that always shows its placeholder option. Each pick fires
+// onChange and immediately resets the selected value so the user can pick the
+// same size/family again (a defaultValue uncontrolled select silently swallows
+// repeats). The placeholder option carries the visible label.
 function Select({
   children,
-  defaultValue,
+  placeholder,
   ariaLabel,
   onChange,
 }: {
   children: React.ReactNode;
-  defaultValue: string;
+  placeholder: string;
   ariaLabel: string;
   onChange: (v: string) => void;
 }) {
   return (
     <select
       aria-label={ariaLabel}
-      defaultValue={defaultValue}
-      onChange={(e) => onChange(e.target.value)}
+      value=""
+      onChange={(e) => {
+        const v = e.target.value;
+        if (!v) return;
+        onChange(v);
+        // Reset to the placeholder so re-picking the same value works.
+        e.currentTarget.value = "";
+      }}
       className="h-7 border border-border bg-background px-1 text-xs"
     >
+      <option value="" disabled hidden>
+        {placeholder}
+      </option>
       {children}
     </select>
   );
@@ -351,23 +421,46 @@ function Select({
 
 function exec(command: string, value?: string) {
   // execCommand needs the editable to still own the selection.
+  restoreSelectionIfNeeded();
   document.execCommand(command, false, value);
+  saveSelectionIfRich();
 }
 
-// fontSize via execCommand only accepts 1-7 (legacy), which is useless.
-// Wrap the selection in a <span style="font-size: Xpt"> instead.
+// fontSize / fontFamily via execCommand are unreliable: fontSize takes a
+// legacy 1-7 scale; fontName produces deprecated `<font face>` tags that
+// our sanitiser strips on next blur. Both go through this helper, which
+// wraps the selection in `<span style="...">` (allowed by the sanitiser
+// and translated to PDF runs by parseHtmlToRuns).
+//
+// When the selection is collapsed (caret only, no text), we still insert
+// a styled span containing a zero-width space and place the caret inside
+// — that way subsequent typing inherits the style. Standard rich-editor
+// behaviour. The ZWSP is dropped on blur sanitise.
 function applyInlineStyle(decl: string) {
+  restoreSelectionIfNeeded();
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
   const span = document.createElement("span");
   span.setAttribute("style", decl);
   try {
+    if (range.collapsed) {
+      span.appendChild(document.createTextNode("​"));
+      range.insertNode(span);
+      const caret = document.createRange();
+      caret.selectNodeContents(span);
+      caret.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(caret);
+      saveSelectionIfRich();
+      return;
+    }
     span.appendChild(range.extractContents());
     range.insertNode(span);
     range.selectNodeContents(span);
     sel.removeAllRanges();
     sel.addRange(range);
+    saveSelectionIfRich();
   } catch {
     /* extractContents throws on cross-block selections; ignore */
   }

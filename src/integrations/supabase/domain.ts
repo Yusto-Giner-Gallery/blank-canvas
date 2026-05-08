@@ -86,6 +86,10 @@ export type DossierBodyBlocks = {
   // template reads from the same map and applies the offsets on render
   // so preview + export never diverge.
   text_offsets?: Record<string, { x: number; y: number }>;
+  // Optional diagonal watermark stamped over every page (DRAFT, RESERVED,
+  // CONFIDENTIAL, etc.). Custom strings are accepted; sets to undefined
+  // when cleared. Per-dossier — toggled in the editor.
+  watermark?: string;
   // Editorial-only fields. Stored in JSON so we don't need a schema change;
   // when Lovable adds dedicated columns later the shape can move out.
   show_title?: string;

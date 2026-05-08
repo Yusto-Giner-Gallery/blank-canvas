@@ -172,6 +172,8 @@ export function EditorialHtml({
   );
   const customSpecs = sequence.filter((s) => s.type === "custom");
 
+  const watermark = dossier.body_blocks.watermark?.trim() || "";
+
   return (
     <div className="space-y-4">
       {coverSpec ? (
@@ -179,6 +181,9 @@ export function EditorialHtml({
           accent={accent}
           showTitle={(showTitle || dossier.title || "").toUpperCase()}
           artistNames={artistNamesFor(sequence)}
+          textOffsets={textOffsets}
+          setOffset={setOffset}
+          watermark={watermark}
           onTitleChange={(v) => onUpdate({ show_title: v })}
         />
       ) : null}
@@ -203,6 +208,7 @@ export function EditorialHtml({
                   accent={accent}
                   textOffsets={textOffsets}
                   setOffset={setOffset}
+                  watermark={watermark}
                   onPatch={(p) => patchIntro(spec.artist.id, p)}
                 />
               );
@@ -217,6 +223,9 @@ export function EditorialHtml({
                 galleryName={galleryName}
                 accent={accent}
                 siblingArtworks={artworks.filter((x) => x.id !== aw.id)}
+                textOffsets={textOffsets}
+                setOffset={setOffset}
+                watermark={watermark}
                 onChangeVariant={(variant, extra) => setVariant(aw.id, variant, extra)}
                 onClearPair={() => spec.paired_with && clearPair(spec.paired_with.id)}
                 detailImageUrl={imageUrl(layouts[aw.id]?.detail_image_path)}
@@ -244,6 +253,7 @@ export function EditorialHtml({
                   dossierId={dossier.id}
                   galleryName={galleryName}
                   accent={accent}
+                  watermark={watermark}
                   onPatch={(p) => patchCustomPage(spec.page.id, p)}
                   onDelete={() => deleteCustomPage(spec.page.id)}
                 />
@@ -329,7 +339,13 @@ function artistNamesFor(sequence: ReturnType<typeof buildPageSequence>) {
 
 // ---- page blocks ---------------------------------------------------------
 
-function Page({ children }: { children: React.ReactNode }) {
+function Page({
+  children,
+  watermark,
+}: {
+  children: React.ReactNode;
+  watermark?: string;
+}) {
   // ResizeObserver-driven scale wrapper so PDF coords (792×595) render at any
   // preview width without divergent positioning logic.
   const outerRef = useRef<HTMLDivElement>(null);
@@ -364,7 +380,36 @@ function Page({ children }: { children: React.ReactNode }) {
       >
         <PageScaleContext.Provider value={scale}>
           {children}
+          {watermark ? <WatermarkOverlay text={watermark} /> : null}
         </PageScaleContext.Provider>
+      </div>
+    </div>
+  );
+}
+
+// Diagonal watermark stamped on every page when set. Sits above content but
+// pointer-events:none so it never blocks edit affordances. Single-line, scaled
+// to the page diagonal so DRAFT / CONFIDENTIAL / RESERVED all read clearly.
+function WatermarkOverlay({ text }: { text: string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center overflow-hidden"
+    >
+      <div
+        style={{
+          transform: "rotate(-30deg)",
+          color: "rgba(0,0,0,0.10)",
+          fontSize: 110,
+          fontWeight: 700,
+          letterSpacing: 12,
+          whiteSpace: "nowrap",
+          textTransform: "uppercase",
+          userSelect: "none",
+          fontFamily: "Helvetica, Arial, sans-serif",
+        }}
+      >
+        {text}
       </div>
     </div>
   );
@@ -374,83 +419,111 @@ function CoverPage({
   accent,
   showTitle,
   artistNames,
+  textOffsets,
+  setOffset,
+  watermark,
   onTitleChange,
 }: {
   accent: string;
   showTitle: string;
   artistNames: string[];
+  textOffsets: Record<string, { x: number; y: number }>;
+  setOffset: (key: string, next: { x: number; y: number }) => void;
+  watermark: string;
   onTitleChange: (next: string) => void;
 }) {
+  const titleKey = "cover.title";
+  const artistsKey = "cover.artists";
+  const titleOffset = textOffsets[titleKey] ?? { x: 0, y: 0 };
+  const artistsOffset = textOffsets[artistsKey] ?? { x: 0, y: 0 };
   return (
-    <Page>
+    <Page watermark={watermark}>
       <div
         className="absolute inset-y-0 left-0"
         style={{ width: BAND_W, backgroundColor: accent }}
       />
-      {/* Outlined-stroke title. Browser SVG supports text stroke natively
-          (unlike @react-pdf), so this matches PARALLELS exactly in the
-          editor preview; the PDF export uses opentype.js glyph paths to
-          achieve the same effect. */}
-      <svg
-        className="pointer-events-none absolute"
-        style={{ top: 56, left: MARGIN, width: BAND_W - MARGIN, height: 60 }}
-        viewBox={`0 0 ${BAND_W - MARGIN} 60`}
-        preserveAspectRatio="xMinYMin meet"
+      {/* Title block — SVG outline + editable text overlay share one
+          DraggableTextBlock wrapper so they translate as a single unit. The
+          PDF export reads the same `cover.title` offset to stay in sync. */}
+      <DraggableTextBlock
+        blockKey={titleKey}
+        offset={titleOffset}
+        onCommit={(next) => setOffset(titleKey, next)}
+        onReset={() => setOffset(titleKey, { x: 0, y: 0 })}
       >
-        <text
-          x={0}
-          y={45}
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth={1.6}
-          fontSize={42}
-          fontWeight={700}
-          fontFamily="Inter, Helvetica, Arial, sans-serif"
-          letterSpacing={3}
+        <div
+          className="absolute"
+          style={{ top: 56, left: MARGIN, width: BAND_W - MARGIN, height: 60 }}
         >
-          {showTitle}
-        </text>
-      </svg>
-      {/* Editable title overlay (transparent text) so the user can still
-          click and type — the SVG above provides the visible glyphs. */}
-      <EditableText
-        value={showTitle}
-        onChange={onTitleChange}
-        placeholder="UPPERCASE COVER TITLE"
-        ariaLabel="Show title"
-        className="absolute font-bold uppercase tracking-[0.18em]"
-        style={{
-          top: 56,
-          left: MARGIN,
-          width: BAND_W - MARGIN,
-          fontSize: 42,
-          lineHeight: 1.1,
-          color: "transparent",
-          caretColor: "white",
-        }}
-      />
-      <Slash accent={accent} />
-      <div
-        className="absolute flex flex-col items-end"
-        style={{ right: MARGIN, bottom: 60 }}
-      >
-        {artistNames.map((name) => (
-          <div
-            key={name}
-            style={{
-              color: accent,
-              fontSize: 16,
-              marginTop: 2,
-              fontWeight: 700,
-              lineHeight: 1,
-              textDecoration: "underline",
-              textTransform: "uppercase",
-            }}
+          {/* Outlined-stroke title. Browser SVG supports text stroke natively
+              (unlike @react-pdf), so this matches PARALLELS exactly in the
+              editor preview; the PDF export uses opentype.js glyph paths to
+              achieve the same effect. */}
+          <svg
+            className="pointer-events-none absolute inset-0"
+            viewBox={`0 0 ${BAND_W - MARGIN} 60`}
+            preserveAspectRatio="xMinYMin meet"
           >
-            {name}
-          </div>
-        ))}
-      </div>
+            <text
+              x={0}
+              y={45}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={1.6}
+              fontSize={42}
+              fontWeight={700}
+              fontFamily="Inter, Helvetica, Arial, sans-serif"
+              letterSpacing={3}
+            >
+              {showTitle}
+            </text>
+          </svg>
+          {/* Editable title overlay (transparent text) so the user can still
+              click and type — the SVG above provides the visible glyphs. */}
+          <EditableText
+            value={showTitle}
+            onChange={onTitleChange}
+            placeholder="UPPERCASE COVER TITLE"
+            ariaLabel="Show title"
+            className="absolute inset-0 font-bold uppercase tracking-[0.18em]"
+            style={{
+              fontSize: 42,
+              lineHeight: 1.1,
+              color: "transparent",
+              caretColor: "white",
+            }}
+          />
+        </div>
+      </DraggableTextBlock>
+      <Slash accent={accent} />
+      <DraggableTextBlock
+        blockKey={artistsKey}
+        offset={artistsOffset}
+        onCommit={(next) => setOffset(artistsKey, next)}
+        onReset={() => setOffset(artistsKey, { x: 0, y: 0 })}
+      >
+        <div
+          className="absolute flex flex-col items-end"
+          style={{ right: MARGIN, bottom: 60 }}
+        >
+          {artistNames.map((name) => (
+            <div
+              key={name}
+              style={{
+                color: accent,
+                fontSize: 16,
+                marginTop: 2,
+                fontWeight: 700,
+                lineHeight: 1,
+                textDecoration: "underline",
+                textTransform: "uppercase",
+              }}
+            >
+              {name}
+            </div>
+          ))}
+        </div>
+      </DraggableTextBlock>
     </Page>
   );
 }
@@ -539,6 +612,7 @@ function ArtistIntroPage({
   accent,
   textOffsets,
   setOffset,
+  watermark,
   onPatch,
 }: {
   artistId: string;
@@ -549,6 +623,7 @@ function ArtistIntroPage({
   accent: string;
   textOffsets: Record<string, { x: number; y: number }>;
   setOffset: (key: string, next: { x: number; y: number }) => void;
+  watermark: string;
   onPatch: (p: Partial<DossierArtistIntro>) => void;
 }) {
   // Stable slot keys + their saved offsets. Read once per render.
@@ -562,7 +637,7 @@ function ArtistIntroPage({
   const bioEsOffset = textOffsets[bioEsKey] ?? { x: 0, y: 0 };
 
   return (
-    <Page>
+    <Page watermark={watermark}>
       <div className="absolute inset-0 bg-neutral-900">
         <EditableImageSlot
           storagePath={intro.photo_path}
@@ -709,6 +784,9 @@ function ArtworkPageBlock({
   galleryName,
   accent,
   siblingArtworks,
+  textOffsets,
+  setOffset,
+  watermark,
   onChangeVariant,
   onClearPair,
   detailImageUrl,
@@ -720,12 +798,23 @@ function ArtworkPageBlock({
   galleryName: string;
   accent: string;
   siblingArtworks: ArtworkListItem[];
+  textOffsets: Record<string, { x: number; y: number }>;
+  setOffset: (key: string, next: { x: number; y: number }) => void;
+  watermark: string;
   onChangeVariant: (variant: PageLayoutVariant, extra?: Partial<EditorialPageLayout>) => void;
   onClearPair: () => void;
   detailImageUrl: string | null;
   onDetailUpload: (path: string) => void;
 }) {
   const [pairPickerOpen, setPairPickerOpen] = useState(false);
+  // Each artwork's meta block has one stable slot keyed by artwork id; the
+  // same key lands wherever the artwork's meta is rendered (image_right or
+  // pair_with). PDF reads it from the same map, so preview and export move
+  // in lockstep.
+  const metaKey = `artwork.${artwork.id}.meta`;
+  const metaOffset = textOffsets[metaKey] ?? { x: 0, y: 0 };
+  const pairedMetaKey = paired ? `artwork.${paired.id}.meta` : null;
+  const pairedMetaOffset = pairedMetaKey ? textOffsets[pairedMetaKey] ?? { x: 0, y: 0 } : { x: 0, y: 0 };
   return (
     <div className="relative">
       <div className="absolute right-2 top-2 z-30 flex items-center gap-2">
@@ -762,7 +851,7 @@ function ArtworkPageBlock({
       ) : null}
 
       {variant === "image_right" ? (
-        <Page>
+        <Page watermark={watermark}>
           <Wordmark galleryName={galleryName} accent={accent} />
           <div
             className="absolute flex items-center justify-center"
@@ -775,17 +864,24 @@ function ArtworkPageBlock({
           >
             <ArtworkImage path={artwork.primary_image?.storage_path} />
           </div>
-          <div
-            className="absolute"
-            style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN * 2 }}
+          <DraggableTextBlock
+            blockKey={metaKey}
+            offset={metaOffset}
+            onCommit={(next) => setOffset(metaKey, next)}
+            onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
           >
-            <ArtworkMetaBlock artwork={artwork} />
-          </div>
+            <div
+              className="absolute"
+              style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN * 2 }}
+            >
+              <ArtworkMetaBlock artwork={artwork} />
+            </div>
+          </DraggableTextBlock>
         </Page>
       ) : null}
 
       {variant === "full_image" ? (
-        <Page>
+        <Page watermark={watermark}>
           <div className="absolute inset-0 bg-neutral-900">
             <FullImage path={artwork.primary_image?.storage_path} />
           </div>
@@ -801,7 +897,7 @@ function ArtworkPageBlock({
       ) : null}
 
       {variant === "detail_zoom" ? (
-        <Page>
+        <Page watermark={watermark}>
           <div className="absolute inset-0 bg-neutral-950" />
           <div className="absolute" style={{ top: 30, left: 30, right: 30, bottom: 30 }}>
             {detailImageUrl ? (
@@ -829,7 +925,7 @@ function ArtworkPageBlock({
       ) : null}
 
       {variant === "pair_with" && paired ? (
-        <Page>
+        <Page watermark={watermark}>
           <Wordmark galleryName={galleryName} accent={accent} />
           <div
             className="absolute flex items-center justify-center"
@@ -843,23 +939,39 @@ function ArtworkPageBlock({
           >
             <ArtworkImage path={paired.primary_image?.storage_path} />
           </div>
-          <div
-            className="absolute"
-            style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
+          <DraggableTextBlock
+            blockKey={metaKey}
+            offset={metaOffset}
+            onCommit={(next) => setOffset(metaKey, next)}
+            onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
           >
-            <ArtworkMetaBlock artwork={artwork} />
-          </div>
-          <div
-            className="absolute"
-            style={{ right: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
-          >
-            <ArtworkMetaBlock artwork={paired} alignRight />
-          </div>
+            <div
+              className="absolute"
+              style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
+            >
+              <ArtworkMetaBlock artwork={artwork} />
+            </div>
+          </DraggableTextBlock>
+          {pairedMetaKey ? (
+            <DraggableTextBlock
+              blockKey={pairedMetaKey}
+              offset={pairedMetaOffset}
+              onCommit={(next) => setOffset(pairedMetaKey, next)}
+              onReset={() => setOffset(pairedMetaKey, { x: 0, y: 0 })}
+            >
+              <div
+                className="absolute"
+                style={{ right: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
+              >
+                <ArtworkMetaBlock artwork={paired} alignRight />
+              </div>
+            </DraggableTextBlock>
+          ) : null}
         </Page>
       ) : null}
 
       {variant === "pair_with" && !paired ? (
-        <Page>
+        <Page watermark={watermark}>
           <Wordmark galleryName={galleryName} accent={accent} />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-sm text-muted-foreground">
@@ -877,6 +989,7 @@ function CustomPageBlock({
   dossierId,
   galleryName,
   accent,
+  watermark,
   onPatch,
   onDelete,
 }: {
@@ -884,6 +997,7 @@ function CustomPageBlock({
   dossierId: string;
   galleryName: string;
   accent: string;
+  watermark: string;
   onPatch: (p: Partial<DossierCustomPage>) => void;
   onDelete: () => void;
 }) {
@@ -900,7 +1014,7 @@ function CustomPageBlock({
           Delete
         </button>
       </div>
-      <Page>
+      <Page watermark={watermark}>
         <div className="absolute inset-0 bg-neutral-900">
           <EditableImageSlot
             storagePath={page.image_path || null}

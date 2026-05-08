@@ -271,12 +271,16 @@ function CoverPage({
   galleryName,
   accent,
   titlePath,
+  textOffsets,
+  watermark,
 }: {
   showTitle: string;
   artistNames: string[];
   galleryName: string;
   accent: string;
   titlePath?: import("./shared").TitlePathData | null;
+  textOffsets: Record<string, { x: number; y: number }>;
+  watermark: string;
 }) {
   // Slash geometry transcribed verbatim from the PARALLELS source PDF
   // (extracted via pdftocairo). The full diagonal is one accent-coloured
@@ -286,12 +290,21 @@ function CoverPage({
   // Outlined title placement — opentype's path is drawn from baseline.
   // Top of the cap aligns to y=56+offset where the original solid <Text>
   // sat; the path's baseline = 56 + cap_height.
+  const titleOff = textOffsets["cover.title"] ?? { x: 0, y: 0 };
+  const artistsOff = textOffsets["cover.artists"] ?? { x: 0, y: 0 };
   const titleY = titlePath ? 56 + titlePath.cap_height : 0;
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={[local.coverBand, { backgroundColor: accent }]} />
       {titlePath ? null : (
-        <Text style={local.coverTitle}>{(showTitle || "").toUpperCase()}</Text>
+        <Text
+          style={[
+            local.coverTitle,
+            { top: 56 + titleOff.y, left: MARGIN + titleOff.x },
+          ]}
+        >
+          {(showTitle || "").toUpperCase()}
+        </Text>
       )}
       <Svg style={local.coverSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
         {/* Outlined-stroke title via opentype.js glyph paths — @react-pdf
@@ -304,7 +317,7 @@ function CoverPage({
             stroke="#ffffff"
             strokeWidth={1.6}
             fill="none"
-            transform={`translate(${MARGIN}, ${titleY})`}
+            transform={`translate(${MARGIN + titleOff.x}, ${titleY + titleOff.y})`}
           />
         ) : null}
         {/* Full coral slash parallelogram on the white area. */}
@@ -319,7 +332,14 @@ function CoverPage({
         />
       </Svg>
       {artistNames.length > 0 ? (
-        <View style={local.coverArtists}>
+        <View
+          style={[
+            local.coverArtists,
+            // Right-anchored: positive x in editor (rightward) shrinks the
+            // right gutter; positive y (downward) raises the bottom anchor.
+            { right: MARGIN - artistsOff.x, bottom: 60 - artistsOff.y },
+          ]}
+        >
           {artistNames.map((name) => (
             <Text key={name} style={[local.coverArtistName, { color: accent }]}>
               {name}
@@ -329,7 +349,44 @@ function CoverPage({
       ) : null}
       {/* Hidden gallery anchor for accessibility / metadata */}
       <Text style={{ position: "absolute", opacity: 0 }}>{galleryName}</Text>
+      <PdfWatermark text={watermark} />
     </Page>
+  );
+}
+
+// Diagonal watermark overlay. @react-pdf supports `transform: rotate(...)`
+// on Text. Rendered as the last child of every Page so it sits above other
+// content; effectively a faint stamp at ~10% black.
+function PdfWatermark({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <View
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        style={{
+          color: "rgba(0,0,0,0.10)",
+          fontSize: 110,
+          fontWeight: 700,
+          letterSpacing: 12,
+          textTransform: "uppercase",
+          transform: "rotate(-30deg)",
+          // @react-pdf needs an explicit fontFamily for the page-level
+          // default to win even though we set it in `local.page`.
+          fontFamily: "Helvetica",
+        }}
+      >
+        {text.toUpperCase()}
+      </Text>
+    </View>
   );
 }
 
@@ -340,6 +397,7 @@ function ArtistIntroPage({
   photoUrl,
   galleryName,
   textOffsets,
+  watermark,
 }: {
   artistId: string;
   artistName: string;
@@ -347,6 +405,7 @@ function ArtistIntroPage({
   photoUrl: string | null;
   galleryName: string;
   textOffsets: Record<string, { x: number; y: number }>;
+  watermark: string;
 }) {
   // Per-block draggable offsets in PDF pt — applied as inline overrides on
   // the matching styles so the export mirrors the editor preview exactly.
@@ -424,24 +483,36 @@ function ArtistIntroPage({
           />
         </View>
       ) : null}
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
 
 // Compact meta block (artist / title+year / medium / dimensions / price)
-// reused across artwork-page variants.
+// reused across artwork-page variants. The optional `offsetStyle` override
+// is computed by the caller from the editor's saved drag offset and is
+// pushed onto the style array so it wins over the anchor in `style`.
+type MetaStyle = NonNullable<React.ComponentProps<typeof View>["style"]>;
 function ArtworkMeta({
   artwork,
   style,
+  offsetStyle,
 }: {
   artwork: ArtworkListItem;
-  style?: React.ComponentProps<typeof View>["style"];
+  style?: MetaStyle;
+  offsetStyle?: { left?: number; right?: number; bottom?: number };
 }) {
   const size = formatSize(artwork);
   const dims = size ? size.replace(/×/g, "x") : "";
   const price = formatPrice(artwork.price_eur);
+  const base: MetaStyle = style ?? local.artworkMeta;
+  // Flat spread keeps the value an object (not an array) so the union
+  // resolves to Style for @react-pdf's typing.
+  const merged: MetaStyle = offsetStyle
+    ? Object.assign({}, base, offsetStyle)
+    : base;
   return (
-    <View style={style ?? local.artworkMeta}>
+    <View style={merged}>
       {artwork.artist?.name ? (
         <Text style={local.metaArtist}>{artwork.artist.name}</Text>
       ) : null}
@@ -460,12 +531,27 @@ function ArtworkMeta({
   );
 }
 
+// Build a style override that translates a left- or right-anchored block by
+// (off.x, off.y) in PDF pt. Mirrors the editor preview's translate(x,y).
+// Returns undefined when the offset is zero so the caller can skip pushing
+// it onto the style array (@react-pdf rejects null entries).
+function leftOffsetStyle(off: { x: number; y: number }, baseLeft: number) {
+  if (off.x === 0 && off.y === 0) return undefined;
+  return { left: baseLeft + off.x, bottom: 50 - off.y };
+}
+function rightOffsetStyle(off: { x: number; y: number }, baseRight: number) {
+  if (off.x === 0 && off.y === 0) return undefined;
+  return { right: baseRight - off.x, bottom: 50 - off.y };
+}
+
 function FullImagePage({
   artwork,
   imageUrl,
+  watermark,
 }: {
   artwork: ArtworkListItem;
   imageUrl: string | null;
+  watermark: string;
 }) {
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
@@ -475,14 +561,17 @@ function FullImagePage({
         {artwork.title}
         {artwork.year ? `, ${artwork.year}` : ""}
       </Text>
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
 
 function DetailZoomPage({
   imageUrl,
+  watermark,
 }: {
   imageUrl: string | null;
+  watermark: string;
 }) {
   // Cropped/zoom variant: dark canvas, image contained without crop, no
   // meta block. Mirrors PARALLELS' page-8/page-21 detail spreads.
@@ -490,6 +579,7 @@ function DetailZoomPage({
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={local.detailBg} />
       {imageUrl ? <Image src={imageUrl} style={local.detailImage} /> : null}
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
@@ -500,13 +590,19 @@ function PairPage({
   leftUrl,
   rightUrl,
   galleryName,
+  textOffsets,
+  watermark,
 }: {
   left: ArtworkListItem;
   right: ArtworkListItem;
   leftUrl: string | null;
   rightUrl: string | null;
   galleryName: string;
+  textOffsets: Record<string, { x: number; y: number }>;
+  watermark: string;
 }) {
+  const leftOff = textOffsets[`artwork.${left.id}.meta`] ?? { x: 0, y: 0 };
+  const rightOff = textOffsets[`artwork.${right.id}.meta`] ?? { x: 0, y: 0 };
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <Wordmark galleryName={galleryName} />
@@ -516,8 +612,17 @@ function PairPage({
       <View style={local.pairRight}>
         {rightUrl ? <Image src={rightUrl} style={local.artworkImage} /> : null}
       </View>
-      <ArtworkMeta artwork={left} style={local.pairMetaLeft} />
-      <ArtworkMeta artwork={right} style={local.pairMetaRight} />
+      <ArtworkMeta
+        artwork={left}
+        style={local.pairMetaLeft}
+        offsetStyle={leftOffsetStyle(leftOff, MARGIN)}
+      />
+      <ArtworkMeta
+        artwork={right}
+        style={local.pairMetaRight}
+        offsetStyle={rightOffsetStyle(rightOff, MARGIN)}
+      />
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
@@ -526,10 +631,12 @@ function CustomImagePage({
   page,
   imageUrl,
   galleryName,
+  watermark,
 }: {
   page: DossierCustomPage;
   imageUrl: string | null;
   galleryName: string;
+  watermark: string;
 }) {
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
@@ -540,6 +647,7 @@ function CustomImagePage({
       {page.caption ? (
         <Text style={local.fullImageCaption}>{page.caption}</Text>
       ) : null}
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
@@ -548,18 +656,24 @@ function ArtworkPage({
   artwork,
   imageUrl,
   galleryName,
+  textOffsets,
+  watermark,
 }: {
   artwork: ArtworkListItem;
   imageUrl: string | null;
   galleryName: string;
+  textOffsets: Record<string, { x: number; y: number }>;
+  watermark: string;
 }) {
+  const off = textOffsets[`artwork.${artwork.id}.meta`] ?? { x: 0, y: 0 };
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <Wordmark galleryName={galleryName} />
       <View style={local.artworkImageBox}>
         {imageUrl ? <Image src={imageUrl} style={local.artworkImage} /> : null}
       </View>
-      <ArtworkMeta artwork={artwork} />
+      <ArtworkMeta artwork={artwork} offsetStyle={leftOffsetStyle(off, MARGIN)} />
+      <PdfWatermark text={watermark} />
     </Page>
   );
 }
@@ -582,6 +696,9 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
     .filter((p): p is Extract<typeof sequence[number], { type: "artist_intro" }> => p.type === "artist_intro")
     .map((p) => p.artist.name);
 
+  const textOffsets = dossier.body_blocks.text_offsets ?? {};
+  const watermark = dossier.body_blocks.watermark?.trim() || "";
+
   const pages: React.ReactNode[] = sequence.map((spec, i) => {
     if (spec.type === "cover") {
       return (
@@ -592,6 +709,8 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
           galleryName={galleryName}
           accent={accent}
           titlePath={titlePath}
+          textOffsets={textOffsets}
+          watermark={watermark}
         />
       );
     }
@@ -605,7 +724,8 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
           intro={intro}
           photoUrl={imageUrlFor(intro?.photo_path)}
           galleryName={galleryName}
-          textOffsets={dossier.body_blocks.text_offsets ?? {}}
+          textOffsets={textOffsets}
+          watermark={watermark}
         />
       );
     }
@@ -616,6 +736,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
           page={spec.page}
           imageUrl={imageUrlFor(spec.page.image_path)}
           galleryName={galleryName}
+          watermark={watermark}
         />
       );
     }
@@ -623,14 +744,14 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
     const aw = spec.artwork;
     const imgUrl = imageUrlFor(aw.primary_image?.storage_path);
     if (spec.variant === "full_image") {
-      return <FullImagePage key={`aw-${aw.id}`} artwork={aw} imageUrl={imgUrl} />;
+      return <FullImagePage key={`aw-${aw.id}`} artwork={aw} imageUrl={imgUrl} watermark={watermark} />;
     }
     if (spec.variant === "detail_zoom") {
       const layout = dossier.body_blocks.page_layouts?.[aw.id];
       const detailUrl = layout?.detail_image_path
         ? imageUrlFor(layout.detail_image_path)
         : imgUrl;
-      return <DetailZoomPage key={`aw-${aw.id}`} imageUrl={detailUrl} />;
+      return <DetailZoomPage key={`aw-${aw.id}`} imageUrl={detailUrl} watermark={watermark} />;
     }
     if (spec.variant === "pair_with" && spec.paired_with) {
       const right = spec.paired_with;
@@ -642,6 +763,8 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
           leftUrl={imgUrl}
           rightUrl={imageUrlFor(right.primary_image?.storage_path)}
           galleryName={galleryName}
+          textOffsets={textOffsets}
+          watermark={watermark}
         />
       );
     }
@@ -651,6 +774,8 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
         artwork={aw}
         imageUrl={imgUrl}
         galleryName={galleryName}
+        textOffsets={textOffsets}
+        watermark={watermark}
       />
     );
   });
