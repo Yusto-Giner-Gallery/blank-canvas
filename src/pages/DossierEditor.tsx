@@ -22,8 +22,17 @@ import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
 import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescriptionEditor";
 import { EditorialIntrosEditor } from "@/components/dossiers/EditorialIntrosEditor";
 import { SendToContactsModal } from "@/components/dossiers/SendToContactsModal";
+import {
+  HtmlEditorPreview,
+  hasHtmlEditor,
+} from "@/components/dossiers/editor/HtmlEditorPreview";
 import { generateText, generateEditorialDossier } from "@/lib/ai/client";
-import type { DossierArtistIntro, DossierKind } from "@/integrations/supabase/domain";
+import { errorMessage } from "@/lib/error";
+import type {
+  Dossier,
+  DossierArtistIntro,
+  DossierKind,
+} from "@/integrations/supabase/domain";
 
 const PdfPanel = lazy(() => import("@/components/dossiers/PdfPanel"));
 
@@ -57,6 +66,7 @@ export default function DossierEditor() {
   const [fillingHardcoded, setFillingHardcoded] = useState(false);
   const [fillingAi, setFillingAi] = useState(false);
   const [sending, setSending] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"edit" | "pdf">("edit");
 
   // Hydrate local state from server data once.
   useEffect(() => {
@@ -138,8 +148,21 @@ export default function DossierEditor() {
       });
       toast.success("Dossier saved");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errorMessage(e));
     }
+  }
+
+  // The HTML editor preview emits whole-block patches; we fan-out into the
+  // editor's individual setters so the existing form panel + the live PDF
+  // export both see the same source of truth (no shadow state).
+  function applyBodyBlocksPatch(patch: Partial<Dossier["body_blocks"]>) {
+    if ("intro" in patch) setIntro(patch.intro ?? "");
+    if ("show_title" in patch) setShowTitle(patch.show_title ?? "");
+    if ("accent_color" in patch) setAccentColor(patch.accent_color ?? "");
+    if ("artist_intros" in patch) setArtistIntros(patch.artist_intros ?? {});
+    if ("artwork_descriptions" in patch)
+      setDescriptions(patch.artwork_descriptions ?? {});
+    if ("extra" in patch) setExtra(patch.extra ?? "");
   }
 
   async function onGenerateIntro() {
@@ -154,7 +177,7 @@ export default function DossierEditor() {
       });
       setIntro(text);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errorMessage(e));
     } finally {
       setGenerating(false);
     }
@@ -218,7 +241,7 @@ export default function DossierEditor() {
       });
       toast.success("AI filled the dossier");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errorMessage(e));
     } finally {
       setFillingAi(false);
     }
@@ -422,8 +445,40 @@ export default function DossierEditor() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Live preview</Label>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground">Preview</Label>
+              {hasHtmlEditor(kind) ? (
+                <div className="ml-2 inline-flex items-center border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("edit")}
+                    className={
+                      "px-2 py-1 text-xs uppercase tracking-wide transition-colors " +
+                      (previewMode === "edit"
+                        ? "bg-foreground text-background"
+                        : "bg-background hover:bg-muted")
+                    }
+                    aria-pressed={previewMode === "edit"}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("pdf")}
+                    className={
+                      "px-2 py-1 text-xs uppercase tracking-wide transition-colors " +
+                      (previewMode === "pdf"
+                        ? "bg-foreground text-background"
+                        : "bg-background hover:bg-muted")
+                    }
+                    aria-pressed={previewMode === "pdf"}
+                  >
+                    PDF
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <Suspense
               fallback={
                 <Button size="sm" variant="outline" disabled>
@@ -438,22 +493,33 @@ export default function DossierEditor() {
               />
             </Suspense>
           </div>
-          <div className="h-[80vh] overflow-hidden rounded-md border border-border bg-muted">
+          <div className="h-[80vh] overflow-auto rounded-md border border-border bg-muted">
             {previewDossier ? (
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    Loading preview…
-                  </div>
-                }
-              >
-                <PdfPanel
-                  dossier={previewDossier}
-                  artworks={artworks}
-                  galleryName={galleryName}
-                  imageUrlFor={imageUrl}
-                />
-              </Suspense>
+              hasHtmlEditor(kind) && previewMode === "edit" ? (
+                <div className="p-4">
+                  <HtmlEditorPreview
+                    dossier={previewDossier}
+                    artworks={artworks}
+                    galleryName={galleryName}
+                    onUpdate={(patch) => applyBodyBlocksPatch(patch)}
+                  />
+                </div>
+              ) : (
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                      Loading preview…
+                    </div>
+                  }
+                >
+                  <PdfPanel
+                    dossier={previewDossier}
+                    artworks={artworks}
+                    galleryName={galleryName}
+                    imageUrlFor={imageUrl}
+                  />
+                </Suspense>
+              )
             ) : null}
           </div>
         </div>

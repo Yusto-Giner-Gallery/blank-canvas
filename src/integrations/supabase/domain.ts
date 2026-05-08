@@ -42,6 +42,27 @@ export type DossierArtistIntro = {
   photo_path?: string;
 };
 
+export type PageLayoutVariant =
+  | "image_right" // default — image right, meta block bottom-left
+  | "full_image" // full-bleed image, meta as small footer
+  | "detail_zoom" // cropped detail view, no meta
+  | "pair_with"; // two artworks side-by-side on one page
+
+export type EditorialPageLayout = {
+  variant: PageLayoutVariant;
+  pair_artwork_id?: string; // for pair_with
+  detail_image_path?: string; // for detail_zoom (optional alt image)
+};
+
+export type DossierCustomPage = {
+  id: string;
+  image_path: string;
+  caption?: string;
+  // Position is an opaque sort key — string so insertion between two
+  // existing pages is cheap (Notion-style fractional index).
+  position: string;
+};
+
 export type DossierBodyBlocks = {
   intro?: string;
   extra?: string;
@@ -54,6 +75,10 @@ export type DossierBodyBlocks = {
   // CLAUDE.md §3 4th approved color exception. Defaults to palette.accent.
   accent_color?: string;
   artist_intros?: Record<string, DossierArtistIntro>;
+  // Per-artwork layout variant for the editorial template.
+  page_layouts?: Record<string /* artwork_id */, EditorialPageLayout>;
+  // Non-artwork image pages (installation shots, exhibition views, etc).
+  custom_pages?: DossierCustomPage[];
 };
 export type Dossier = Omit<T["dossiers"]["Row"], "body_blocks" | "image_layout"> & {
   body_blocks: DossierBodyBlocks;

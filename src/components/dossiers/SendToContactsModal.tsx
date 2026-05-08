@@ -10,6 +10,7 @@ import { useTags } from "@/hooks/useTags";
 import { useLogContactActivity } from "@/hooks/useLogContactActivity";
 import { generateText } from "@/lib/ai/client";
 import { buildMailto } from "@/lib/email";
+import { errorMessage } from "@/lib/error";
 import type { ArtworkListItem, Dossier } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +76,7 @@ export function SendToContactsModal({
         note: dossier.title,
       });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errorMessage(e));
     } finally {
       setPendingId(null);
     }

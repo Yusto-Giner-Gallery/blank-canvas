@@ -32,6 +32,7 @@ import {
   useReorderCollection,
 } from "@/hooks/useCollections";
 import { useCreateDossier } from "@/hooks/useDossiers";
+import { errorMessage } from "@/lib/error";
 import type {
   ArtworkListItem,
   DossierKind,
@@ -163,7 +164,7 @@ export default function CollectionDetail() {
     try {
       await remove.mutateAsync({ collection_id: id, artwork_id });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -178,7 +179,7 @@ export default function CollectionDetail() {
       toast.success(`Dossier "${dossier.title}" created`);
       navigate(`/dossiers/${dossier.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

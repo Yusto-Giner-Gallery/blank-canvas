@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { generateText } from "@/lib/ai/client";
+import { errorMessage } from "@/lib/error";
 import { imageUrl } from "@/hooks/useArtworks";
 
 export function ArtworkDescriptionEditor({
@@ -23,7 +24,7 @@ export function ArtworkDescriptionEditor({
       const text = await generateText({ kind: "artwork_description", artwork: a });
       onChange({ ...descriptions, [a.id]: text });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     } finally {
       setGeneratingId(null);
     }
