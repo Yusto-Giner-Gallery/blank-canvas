@@ -272,7 +272,8 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
                   <img
                     src={url}
                     alt=""
-                    className="block max-h-[70vh] w-full object-contain"
+                    onClick={() => openLightbox()}
+                    className="block max-h-[70vh] w-full cursor-zoom-in object-contain"
                   />
                 ) : (
                   <div className="flex h-64 w-full items-center justify-center">
@@ -291,7 +292,12 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
                         className="group relative aspect-square overflow-hidden rounded-sm border border-border bg-muted"
                       >
                         {thumb ? (
-                          <img src={thumb} alt="" className="h-full w-full object-contain" />
+                          <img
+                            src={thumb}
+                            alt=""
+                            onClick={() => openLightbox(img.id)}
+                            className="h-full w-full cursor-zoom-in object-contain"
+                          />
                         ) : null}
                         {img.is_primary ? (
                           <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-sm bg-background/90 px-1 py-0.5 text-[10px] font-medium">
