@@ -33,6 +33,19 @@ export type CleanedRow = {
   price_eur: number | null;
 };
 
+export type EditorialArtistInput = {
+  id: string;
+  name: string;
+  nationality: string | null;
+  bio: string | null;
+};
+
+export type EditorialDossierResponse = {
+  show_title?: string;
+  intro?: string;
+  artist_intros: Record<string, { bio_en?: string; bio_es?: string }>;
+};
+
 export type AIRequest =
   | {
       kind: "exhibition_blurb";
@@ -53,6 +66,12 @@ export type AIRequest =
       kind: "cleanup_filenames";
       rows: CleanupRow[];
       known_artists: string[];
+    }
+  | {
+      kind: "editorial_dossier";
+      title: string;
+      artists: EditorialArtistInput[];
+      artwork_count: number;
     };
 
 const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
@@ -103,6 +122,24 @@ function stubResponse(req: AIRequest): string {
         `I thought of you when looking at "${req.artwork.title}" by ${req.artwork.artist?.name ?? "the artist"}. Replace this body with a personalised note.`,
       ].join("\n");
     }
+    case "editorial_dossier": {
+      const intros: Record<string, { bio_en?: string; bio_es?: string }> = {};
+      for (const a of req.artists) {
+        intros[a.id] = {
+          bio_en: a.bio
+            ? a.bio
+            : `[stub EN bio] ${a.name}${a.nationality ? ` (${a.nationality})` : ""}.`,
+          bio_es: `[stub ES bio] ${a.name}${a.nationality ? ` (${a.nationality})` : ""}.`,
+        };
+      }
+      return JSON.stringify({
+        show_title: req.title || "Untitled",
+        intro: `[stub editorial intro] A presentation of ${req.artwork_count} works by ${req.artists
+          .map((a) => a.name)
+          .join(", ")}.`,
+        artist_intros: intros,
+      } satisfies EditorialDossierResponse);
+    }
   }
 }
 
@@ -131,6 +168,17 @@ function parseJsonResponse(text: string): unknown {
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "");
   return JSON.parse(cleaned);
+}
+
+export async function generateEditorialDossier(
+  req: Extract<AIRequest, { kind: "editorial_dossier" }>,
+): Promise<EditorialDossierResponse> {
+  const text = await generateText(req);
+  const parsed = parseJsonResponse(text) as EditorialDossierResponse;
+  if (!parsed || typeof parsed !== "object" || !parsed.artist_intros) {
+    throw new Error("AI editorial dossier returned an unexpected shape");
+  }
+  return parsed;
 }
 
 export async function cleanupFilenames(

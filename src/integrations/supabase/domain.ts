@@ -35,11 +35,22 @@ export type Contact = T["contacts"]["Row"];
 export type ContactTag = T["contact_tags"]["Row"];
 export type ContactActivity = T["contact_activity"]["Row"];
 
+export type DossierArtistIntro = {
+  bio_en?: string;
+  bio_es?: string;
+  instagram?: string;
+  photo_path?: string;
+};
+
 export type DossierBodyBlocks = {
   intro?: string;
   extra?: string;
   artwork_descriptions?: Record<string, string>;
   collector_pitch?: string;
+  // Editorial-only fields. Stored in JSON so we don't need a schema change;
+  // when Lovable adds dedicated columns later the shape can move out.
+  show_title?: string;
+  artist_intros?: Record<string, DossierArtistIntro>;
 };
 export type Dossier = Omit<T["dossiers"]["Row"], "body_blocks" | "image_layout"> & {
   body_blocks: DossierBodyBlocks;

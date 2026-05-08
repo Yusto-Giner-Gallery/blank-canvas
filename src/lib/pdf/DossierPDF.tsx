@@ -3,10 +3,11 @@ import { GroupShowPDF } from "./GroupShowPDF";
 import { SpecialPDF } from "./SpecialPDF";
 import { ArtFairPDF } from "./ArtFairPDF";
 import { CollectorOfferPDF } from "./CollectorOfferPDF";
+import { EditorialPDF } from "./EditorialPDF";
 import type { CommonProps } from "./shared";
 
-// Dispatcher: each kind has its own visual layout. Adding a sixth kind
-// means writing a sixth template and adding a case here.
+// Dispatcher: each kind has its own visual layout. Adding a new kind
+// means writing a new template and adding a case here.
 export function DossierPDF(props: CommonProps) {
   switch (props.dossier.kind) {
     case "solo_show":
@@ -19,6 +20,8 @@ export function DossierPDF(props: CommonProps) {
       return <ArtFairPDF {...props} />;
     case "collector_offer":
       return <CollectorOfferPDF {...props} />;
+    case "editorial":
+      return <EditorialPDF {...props} />;
   }
 }
 
