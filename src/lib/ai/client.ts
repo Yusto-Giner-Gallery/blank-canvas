@@ -72,6 +72,11 @@ export type AIRequest =
       title: string;
       artists: EditorialArtistInput[];
       artwork_count: number;
+    }
+  | {
+      kind: "text_review";
+      context: string;
+      text: string;
     };
 
 const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
@@ -120,6 +125,15 @@ function stubResponse(req: AIRequest): string {
         lead,
         ``,
         `I thought of you when looking at "${req.artwork.title}" by ${req.artwork.artist?.name ?? "the artist"}. Replace this body with a personalised note.`,
+      ].join("\n");
+    }
+    case "text_review": {
+      return [
+        `[stub editorial feedback — ${req.context}]`,
+        `- The opening sentence could lead with the most concrete claim about the work.`,
+        `- Consider tightening any phrase using "very", "really", or "interesting" — they tend to dilute.`,
+        `- Watch for repeated nouns within the same paragraph; vary or pronoun where possible.`,
+        `- A single specific detail (a year, a location, a technique) usually anchors a blurb better than a general adjective.`,
       ].join("\n");
     }
     case "editorial_dossier": {
@@ -179,6 +193,19 @@ export async function generateEditorialDossier(
     throw new Error("AI editorial dossier returned an unexpected shape");
   }
   return parsed;
+}
+
+// Editorial-feedback request: returns plain prose / bullet list of
+// suggestions about the user's text. Never rewrites — just critiques.
+export async function reviewText(
+  context: string,
+  text: string,
+): Promise<string> {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) {
+    throw new Error("Add some text before requesting feedback.");
+  }
+  return generateText({ kind: "text_review", context, text: trimmed });
 }
 
 export async function cleanupFilenames(

@@ -61,6 +61,11 @@ type AIRequest =
       kind: "cleanup_filenames";
       rows: CleanupRow[];
       known_artists: string[];
+    }
+  | {
+      kind: "text_review";
+      context: string;
+      text: string;
     };
 
 function buildMessages(req: AIRequest): {
@@ -122,6 +127,18 @@ function buildMessages(req: AIRequest): {
           "Every row in the input must appear in the output, keyed by the same id.",
         ].join("\n"),
         user: `Known artists:\n${known}\n\nRows to clean:\n${rowsBlock}`,
+      };
+    }
+    case "text_review": {
+      return {
+        system: [
+          "You are a careful copy editor for a contemporary art gallery's communications.",
+          "Read the text the user has written and give brief, specific editorial feedback — what works, what could be tightened, what is unclear, what could be restructured.",
+          "Never rewrite the text. Never produce alternative versions. Just point out what to improve so the user can edit it themselves.",
+          "Return 3 to 7 short bullet points. Use a leading '-' for each bullet, one observation per bullet, plain prose. Total under 200 words.",
+          "Be concrete: cite specific phrases, not abstract critiques.",
+        ].join("\n"),
+        user: `Context: ${req.context}\n\nText:\n"""\n${req.text}\n"""\n\nGive editorial feedback.`,
       };
     }
   }

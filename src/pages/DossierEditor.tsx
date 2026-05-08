@@ -25,7 +25,7 @@ import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
 import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescriptionEditor";
 import { EditorialIntrosEditor } from "@/components/dossiers/EditorialIntrosEditor";
 import { SendToContactsModal } from "@/components/dossiers/SendToContactsModal";
-import { generateText, generateEditorialDossier } from "@/lib/ai/client";
+import { AICorrectionOverlay } from "@/components/dossiers/AICorrectionOverlay";
 import type { DossierArtistIntro, DossierKind } from "@/integrations/supabase/domain";
 
 const PdfPanel = lazy(() => import("@/components/dossiers/PdfPanel"));
@@ -58,10 +58,9 @@ export default function DossierEditor() {
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string[]>([]);
-  const [generating, setGenerating] = useState(false);
   const [fillingHardcoded, setFillingHardcoded] = useState(false);
-  const [fillingAi, setFillingAi] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reviewing, setReviewing] = useState<{ context: string; text: string } | null>(null);
 
   // Hydrate local state from server data once.
   useEffect(() => {
@@ -142,24 +141,6 @@ export default function DossierEditor() {
     }
   }
 
-  async function onGenerateIntro() {
-    if (!previewDossier) return;
-    setGenerating(true);
-    try {
-      const text = await generateText({
-        kind: "exhibition_blurb",
-        dossier_kind: kind,
-        title: title || "Untitled dossier",
-        artworks,
-      });
-      setIntro(text);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    } finally {
-      setGenerating(false);
-    }
-  }
-
   // Editorial — Option 1: Hard-coded fill. Pulls existing fields verbatim,
   // makes no AI calls. Existing `artist_intros` entries are preserved; missing
   // ones are seeded with empty strings + the dossier title as the show title.
@@ -184,43 +165,6 @@ export default function DossierEditor() {
       toast.success("Filled from existing data");
     } finally {
       setFillingHardcoded(false);
-    }
-  }
-
-  // Editorial — Option 2: AI fill. Single call returns show_title, intro, and
-  // EN/ES bios per artist. User-edited fields are preserved (no overwrite).
-  async function onFillAi() {
-    if (editorialArtists.length === 0) {
-      toast.error("Add artworks with artists before generating");
-      return;
-    }
-    setFillingAi(true);
-    try {
-      const resp = await generateEditorialDossier({
-        kind: "editorial_dossier",
-        title: title || "Untitled dossier",
-        artists: editorialArtists,
-        artwork_count: artworks.length,
-      });
-      if (!showTitle && resp.show_title) setShowTitle(resp.show_title);
-      if (!intro && resp.intro) setIntro(resp.intro);
-      setArtistIntros((prev) => {
-        const next = { ...prev };
-        for (const [artistId, bios] of Object.entries(resp.artist_intros)) {
-          const existing = next[artistId] ?? {};
-          next[artistId] = {
-            ...existing,
-            bio_en: existing.bio_en?.trim() ? existing.bio_en : bios.bio_en ?? "",
-            bio_es: existing.bio_es?.trim() ? existing.bio_es : bios.bio_es ?? "",
-          };
-        }
-        return next;
-      });
-      toast.success("AI filled the dossier");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    } finally {
-      setFillingAi(false);
     }
   }
 
@@ -321,11 +265,19 @@ export default function DossierEditor() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={onGenerateIntro}
-                disabled={generating}
+                onClick={() => {
+                  if (!intro.trim()) {
+                    toast.error("Write some text first, then ask the AI for feedback.");
+                    return;
+                  }
+                  setReviewing({
+                    context: `${KIND_OPTIONS.find((k) => k.value === kind)?.label ?? "Dossier"} · intro / blurb`,
+                    text: intro,
+                  });
+                }}
               >
                 <Sparkles className="h-4 w-4" />
-                {generating ? "Generating…" : "Generate with AI"}
+                Correct with AI
               </Button>
             </div>
             <textarea
@@ -365,15 +317,6 @@ export default function DossierEditor() {
                     disabled={fillingHardcoded}
                   >
                     {fillingHardcoded ? "Filling…" : "Fill from data"}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={onFillAi}
-                    disabled={fillingAi}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {fillingAi ? "Generating…" : "Generate with AI"}
                   </Button>
                 </div>
               </div>
@@ -469,6 +412,13 @@ export default function DossierEditor() {
           artworks={artworks}
           galleryName={galleryName}
           onClose={() => setSending(false)}
+        />
+      ) : null}
+      {reviewing ? (
+        <AICorrectionOverlay
+          context={reviewing.context}
+          text={reviewing.text}
+          onClose={() => setReviewing(null)}
         />
       ) : null}
     </div>
