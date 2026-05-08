@@ -414,13 +414,20 @@ function CoverPage({
       <Slash accent={accent} />
       <div
         className="absolute flex flex-col items-end"
-        style={{ right: MARGIN, bottom: 56 }}
+        style={{ right: MARGIN, bottom: 60 }}
       >
         {artistNames.map((name) => (
           <div
             key={name}
-            className="font-bold underline"
-            style={{ color: accent, fontSize: 14, marginTop: 2 }}
+            style={{
+              color: accent,
+              fontSize: 16,
+              marginTop: 2,
+              fontWeight: 700,
+              lineHeight: 1,
+              textDecoration: "underline",
+              textTransform: "uppercase",
+            }}
           >
             {name}
           </div>
@@ -431,18 +438,8 @@ function CoverPage({
 }
 
 function Slash({ accent }: { accent: string }) {
-  // One continuous slash that color-inverts at the band edge (x=BAND_W):
-  // white where it crosses the coral panel, coral where it crosses the
-  // white panel. Mirrors the PDF cover geometry.
-  // Equidistant: midpoint sits exactly on the band edge (x = BAND_W),
-  // so the coral and white halves have identical length.
-  // Match PARALLELS reference: short slash, lower on the page, centered
-  // on the band edge so coral and white halves are equal length.
-  const x1 = BAND_W + 36;
-  const y1 = 320;
-  const x2 = BAND_W - 36;
-  const y2 = 500;
-  const sw = 14;
+  // Exact PARALLELS cover geometry from the PDF template so the live HTML
+  // preview and exported dossier show the same centered broken slash.
   return (
     <svg
       className="pointer-events-none absolute inset-0"
@@ -450,23 +447,13 @@ function Slash({ accent }: { accent: string }) {
       width={PAGE_W}
       height={PAGE_H}
     >
-      <defs>
-        <clipPath id="slash-band-clip">
-          <rect x={0} y={0} width={BAND_W} height={PAGE_H} />
-        </clipPath>
-        <clipPath id="slash-white-clip">
-          <rect x={BAND_W} y={0} width={PAGE_W - BAND_W} height={PAGE_H} />
-        </clipPath>
-      </defs>
-      <line
-        x1={x1} y1={y1} x2={x2} y2={y2}
-        stroke="#ffffff" strokeWidth={sw} strokeLinecap="butt"
-        clipPath="url(#slash-band-clip)"
+      <path
+        fill={accent}
+        d="M 375.9 226.06 L 286.4 399.43 L 306.56 399.43 L 396 226.06 Z"
       />
-      <line
-        x1={x1} y1={y1} x2={x2} y2={y2}
-        stroke={accent} strokeWidth={sw} strokeLinecap="butt"
-        clipPath="url(#slash-white-clip)"
+      <path
+        fill="#ffffff"
+        d="M 341.2 293.22 L 286.4 399.43 L 306.56 399.43 L 341.2 332.29 Z"
       />
     </svg>
   );

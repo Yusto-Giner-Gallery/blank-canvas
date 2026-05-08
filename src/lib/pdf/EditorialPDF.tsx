@@ -73,10 +73,11 @@ const local = StyleSheet.create({
     alignItems: "flex-end",
   },
   coverArtistName: {
-    fontSize: 14,
+    fontSize: 16,
     textDecoration: "underline",
     marginTop: 2,
     fontWeight: 700,
+    textTransform: "uppercase",
   },
 
   // Wordmark used on every interior page
