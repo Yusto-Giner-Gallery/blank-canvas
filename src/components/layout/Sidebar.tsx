@@ -10,29 +10,32 @@ import {
   KanbanSquare,
   Shield,
   Inbox,
+  Settings,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
+import { useT } from "@/lib/i18n/LocaleContext";
 
 type Item = {
   to: string;
-  label: string;
+  // translation key under "nav.<id>"; UI resolves via useT()
+  i18nKey: string;
   icon: typeof LayoutDashboard;
   adminOnly?: boolean;
 };
 
 const items: Item[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/inventory", label: "Inventory", icon: Frame },
-  { to: "/collections", label: "Collections", icon: Folder },
-  { to: "/dossiers", label: "Dossiers", icon: FileText },
-  { to: "/contacts", label: "Contacts", icon: Users },
-  { to: "/invoices", label: "Invoices", icon: Receipt },
-  { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
-  { to: "/kanban", label: "Shirika", icon: KanbanSquare },
-  { to: "/team", label: "Team", icon: Shield, adminOnly: true },
-  { to: "/feedback", label: "Feedback", icon: Inbox, adminOnly: true },
+  { to: "/", i18nKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/inventory", i18nKey: "nav.inventory", icon: Frame },
+  { to: "/collections", i18nKey: "nav.collections", icon: Folder },
+  { to: "/dossiers", i18nKey: "nav.dossiers", icon: FileText },
+  { to: "/contacts", i18nKey: "nav.contacts", icon: Users },
+  { to: "/invoices", i18nKey: "nav.invoices", icon: Receipt },
+  { to: "/pipeline", i18nKey: "nav.pipeline", icon: TrendingUp },
+  { to: "/kanban", i18nKey: "nav.shirika", icon: KanbanSquare },
+  { to: "/team", i18nKey: "nav.team", icon: Shield, adminOnly: true },
+  { to: "/feedback", i18nKey: "nav.feedback", icon: Inbox, adminOnly: true },
 ];
 
 function Wordmark() {
@@ -47,10 +50,11 @@ function Wordmark() {
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { isAdmin } = useProfile();
+  const t = useT();
   const visible = items.filter((i) => !i.adminOnly || isAdmin);
   return (
     <nav className="flex-1 space-y-px px-0 pb-4 pt-2">
-      {visible.map(({ to, label, icon: Icon }) => (
+      {visible.map(({ to, i18nKey, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
@@ -66,10 +70,35 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           }
         >
           <Icon className="h-4 w-4" />
-          {label}
+          {t(i18nKey)}
         </NavLink>
       ))}
     </nav>
+  );
+}
+
+// Page settings entry — anchors to the bottom-left of the sidebar. Sits
+// below the nav list (which has flex-1) so it's pinned to the bottom on
+// any sidebar height. Same styling as a nav item but with a top hairline
+// to mark it as a separate "preferences" zone, not a content area.
+function SettingsEntry({ onNavigate }: { onNavigate?: () => void }) {
+  const t = useT();
+  return (
+    <NavLink
+      to="/settings"
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-3 border-l-2 border-t border-t-border px-3 py-3 text-sm font-medium uppercase tracking-wider transition-colors",
+          isActive
+            ? "border-l-accent-red bg-accent text-accent-foreground"
+            : "border-l-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+        )
+      }
+    >
+      <Settings className="h-4 w-4" />
+      {t("settings.page")}
+    </NavLink>
   );
 }
 
@@ -78,6 +107,7 @@ export function Sidebar() {
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
       <Wordmark />
       <NavList />
+      <SettingsEntry />
     </aside>
   );
 }
@@ -104,6 +134,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           </button>
         </div>
         <NavList onNavigate={onClose} />
+        <SettingsEntry onNavigate={onClose} />
       </aside>
     </div>
   );

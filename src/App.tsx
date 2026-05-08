@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { RequireAuth } from "@/components/layout/RequireAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import Login from "@/pages/Login";
 import Index from "@/pages/Index";
 import Inventory from "@/pages/Inventory";
@@ -23,11 +24,12 @@ import BoardDetail from "@/pages/BoardDetail";
 import Team from "@/pages/Team";
 import AcceptInvite from "@/pages/AcceptInvite";
 import Feedback from "@/pages/Feedback";
+import PageSettings from "@/pages/PageSettings";
 import NotFound from "@/pages/NotFound";
 
 export default function App() {
   return (
-    <>
+    <LocaleProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup-contact" element={<PublicSignup />} />
@@ -57,10 +59,11 @@ export default function App() {
           <Route path="/kanban/:id" element={<BoardDetail />} />
           <Route path="/team" element={<Team />} />
           <Route path="/feedback" element={<Feedback />} />
+          <Route path="/settings" element={<PageSettings />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
       <Toaster />
-    </>
+    </LocaleProvider>
   );
 }
