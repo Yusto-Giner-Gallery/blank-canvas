@@ -17,6 +17,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ImageOff } from "lucide-react";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
+import { useLightbox } from "@/components/shared/Lightbox";
 
 function Tile({ artwork }: { artwork: ArtworkListItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -27,6 +28,7 @@ function Tile({ artwork }: { artwork: ArtworkListItem }) {
     opacity: isDragging ? 0.6 : 1,
   };
   const url = imageUrl(artwork.primary_image?.storage_path);
+  const lightbox = useLightbox();
   return (
     <button
       ref={setNodeRef}
@@ -34,8 +36,14 @@ function Tile({ artwork }: { artwork: ArtworkListItem }) {
       {...attributes}
       {...listeners}
       type="button"
-      className="group relative block aspect-square w-full overflow-hidden rounded-md border border-border bg-muted"
-      title={`Drag to swap — ${artwork.title}`}
+      onClick={(e) => {
+        if (!url) return;
+        e.preventDefault();
+        e.stopPropagation();
+        lightbox.open({ src: url, alt: artwork.title });
+      }}
+      className="group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-md border border-border bg-muted"
+      title={`Click to zoom — drag to swap — ${artwork.title}`}
     >
       {url ? (
         <img src={url} alt="" className="h-full w-full object-contain" />
