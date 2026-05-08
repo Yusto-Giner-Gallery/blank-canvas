@@ -253,6 +253,7 @@ export const STRINGS: Record<string, Entry> = {
     es: "{n} factura{plural} · EUR.",
   },
   "invoices.newInvoice": { en: "New invoice", es: "Nueva factura" },
+  "invoices.scan": { en: "Scan", es: "Escanear" },
   "invoices.empty.title": { en: "No invoices yet", es: "Aún no hay facturas" },
   "invoices.empty.description": {
     en: "Click 'New invoice' to start a draft. Add line items, then generate a Stripe payment link or download the PDF.",

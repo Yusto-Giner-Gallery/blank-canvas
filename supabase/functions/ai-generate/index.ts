@@ -71,6 +71,10 @@ type AIRequest =
       kind: "extract_business_card";
       // "data:image/jpeg;base64,…" — already resized client-side.
       image_data_url: string;
+    }
+  | {
+      kind: "extract_invoice";
+      image_data_url: string;
     };
 
 function buildMessages(req: AIRequest): {
@@ -196,6 +200,26 @@ Deno.serve(async (req) => {
           role: "user",
           content: [
             { type: "text", text: "Extract the contact details from this business card." },
+            { type: "image_url", image_url: { url: body.image_data_url } },
+          ],
+        },
+      ];
+    } else if (body.kind === "extract_invoice") {
+      const system = [
+        "You read paper invoices and receipts and extract structured fields for an art-gallery accounting system.",
+        "Pull out: vendor_name (the supplier billing the gallery), invoice_number (their reference), issue_date (ISO date YYYY-MM-DD), subtotal_eur, tax_eur, total_eur, currency (3-letter code), notes (anything useful that doesn't fit elsewhere — payment terms, IBAN, VAT number).",
+        "Also extract a `lines` array — one entry per line item — each with description (string), amount_eur (number, the line's total before tax if visible, otherwise the line total), and quantity (number or null).",
+        "All monetary values must be numbers in the invoice's currency. If the invoice is not in EUR, still put numbers in the *_eur fields (the user will reconcile) and set currency to whatever the invoice shows.",
+        "Use null (not 0, not empty string) for any field genuinely missing from the document. Do not invent or guess.",
+        "Return STRICT JSON only — no markdown fences, no commentary — with this exact shape:",
+        '{"vendor_name":"<string|null>","invoice_number":"<string|null>","issue_date":"<string|null>","subtotal_eur":<number|null>,"tax_eur":<number|null>,"total_eur":<number|null>,"currency":"<string|null>","lines":[{"description":"<string>","amount_eur":<number>,"quantity":<number|null>}],"notes":"<string|null>"}',
+      ].join("\n");
+      messages = [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract the structured fields from this invoice or receipt." },
             { type: "image_url", image_url: { url: body.image_data_url } },
           ],
         },

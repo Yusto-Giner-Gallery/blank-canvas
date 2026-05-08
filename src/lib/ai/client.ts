@@ -81,6 +81,10 @@ export type AIRequest =
   | {
       kind: "extract_business_card";
       image_data_url: string;
+    }
+  | {
+      kind: "extract_invoice";
+      image_data_url: string;
     };
 
 export type ExtractedCard = {
@@ -91,6 +95,24 @@ export type ExtractedCard = {
   role: string | null;
   website: string | null;
   address: string | null;
+  notes: string | null;
+};
+
+export type ExtractedInvoiceLine = {
+  description: string;
+  amount_eur: number;
+  quantity: number | null;
+};
+
+export type ExtractedInvoice = {
+  vendor_name: string | null;
+  invoice_number: string | null;
+  issue_date: string | null; // ISO date string
+  subtotal_eur: number | null;
+  tax_eur: number | null;
+  total_eur: number | null;
+  currency: string | null;
+  lines: ExtractedInvoiceLine[];
   notes: string | null;
 };
 
@@ -155,6 +177,20 @@ function stubResponse(req: AIRequest): string {
         address: null,
         notes: null,
       } satisfies ExtractedCard);
+    }
+    case "extract_invoice": {
+      // Stub: empty result. Same UX rationale as extract_business_card.
+      return JSON.stringify({
+        vendor_name: null,
+        invoice_number: null,
+        issue_date: null,
+        subtotal_eur: null,
+        tax_eur: null,
+        total_eur: null,
+        currency: null,
+        lines: [],
+        notes: null,
+      } satisfies ExtractedInvoice);
     }
     case "text_review": {
       return [
@@ -250,6 +286,60 @@ export async function extractBusinessCard(
     role: parsed.role ?? null,
     website: parsed.website ?? null,
     address: parsed.address ?? null,
+    notes: parsed.notes ?? null,
+  };
+}
+
+// Vision: extract structured invoice/receipt fields from an image.
+// Same shape contract as extractBusinessCard — `image_data_url` must
+// be a "data:image/*;base64,…" URL, resized client-side.
+//
+// Numeric fields are normalised: empty strings, the literal "null", and
+// non-finite numbers all collapse to null. Lines default to [].
+export async function extractInvoice(
+  image_data_url: string,
+): Promise<ExtractedInvoice> {
+  if (!image_data_url.startsWith("data:image/")) {
+    throw new Error("Expected a data:image/* URL");
+  }
+  const text = await generateText({
+    kind: "extract_invoice",
+    image_data_url,
+  });
+  const parsed = parseJsonResponse(text) as Partial<ExtractedInvoice>;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI extract returned an unexpected shape");
+  }
+  const num = (v: unknown): number | null => {
+    if (v == null || v === "") return null;
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    return Number.isFinite(n) ? n : null;
+  };
+  const linesIn = Array.isArray(parsed.lines) ? parsed.lines : [];
+  const lines: ExtractedInvoiceLine[] = linesIn
+    .map((l) => {
+      const description = String(
+        (l as { description?: unknown }).description ?? "",
+      ).trim();
+      const amount = num((l as { amount_eur?: unknown }).amount_eur);
+      const quantity = num((l as { quantity?: unknown }).quantity);
+      if (!description && amount == null) return null;
+      return {
+        description,
+        amount_eur: amount ?? 0,
+        quantity,
+      };
+    })
+    .filter((l): l is ExtractedInvoiceLine => l != null);
+  return {
+    vendor_name: parsed.vendor_name ?? null,
+    invoice_number: parsed.invoice_number ?? null,
+    issue_date: parsed.issue_date ?? null,
+    subtotal_eur: num(parsed.subtotal_eur),
+    tax_eur: num(parsed.tax_eur),
+    total_eur: num(parsed.total_eur),
+    currency: parsed.currency ?? null,
+    lines,
     notes: parsed.notes ?? null,
   };
 }

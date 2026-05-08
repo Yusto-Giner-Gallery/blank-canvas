@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Camera, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +11,7 @@ import {
 import { useInvoices } from "@/hooks/useInvoices";
 import { InvoiceStatusPill } from "@/components/invoicing/StatusPill";
 import { NewInvoiceModal } from "@/components/invoicing/NewInvoiceModal";
+import { ScanInvoiceModal } from "@/components/invoicing/ScanInvoiceModal";
 import { useLayoutMode } from "@/lib/layout/LayoutContext";
 import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
 import { cn } from "@/lib/utils";
@@ -178,6 +179,7 @@ export default function Invoices() {
   const { data, isLoading, error } = useInvoices();
   const invoices = data ?? [];
   const [creating, setCreating] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const { mode: layoutMode } = useLayoutMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const splitMode = layoutMode === "split";
@@ -205,10 +207,20 @@ export default function Invoices() {
             })}
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("invoices.newInvoice")}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setScanning(true)}
+          >
+            <Camera className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("invoices.scan")}</span>
+          </Button>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("invoices.newInvoice")}</span>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -237,6 +249,7 @@ export default function Invoices() {
       )}
 
       {creating ? <NewInvoiceModal onClose={() => setCreating(false)} /> : null}
+      {scanning ? <ScanInvoiceModal onClose={() => setScanning(false)} /> : null}
     </div>
   );
 }
