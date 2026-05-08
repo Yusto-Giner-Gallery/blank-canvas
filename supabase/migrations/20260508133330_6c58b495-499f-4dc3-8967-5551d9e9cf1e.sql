@@ -1,0 +1,1 @@
+UPDATE public.galleries SET name='Yusto / Giner' WHERE name='YGManager';
