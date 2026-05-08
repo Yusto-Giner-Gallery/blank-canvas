@@ -49,10 +49,7 @@ import { formatSize } from "@/components/inventory/sizeFormat";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 import { DossierFromSelectionPicker } from "@/components/inventory/DossierFromSelectionPicker";
 import { CollectionPicker } from "@/components/inventory/CollectionPicker";
-import type {
-  ArtworkStatus,
-  Artwork,
-} from "@/integrations/supabase/domain";
+import type { ArtworkStatus } from "@/integrations/supabase/domain";
 
 const STATUS_OPTIONS: Array<{ value: ArtworkStatus; label: string }> = [
   { value: "available", label: "Available" },
