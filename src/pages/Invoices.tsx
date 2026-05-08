@@ -25,6 +25,64 @@ function formatPrice(eur: number) {
   }).format(eur);
 }
 
+// Stacked-row compact list — used as the master pane of split view.
+// Two-line layout: ID + total on top, contact + date + status on the
+// subtitle row. No table chrome; fits the narrow pane without truncation.
+function renderInvoicesCompactList({
+  invoices,
+  peek,
+  selectInSplit,
+}: {
+  invoices: Array<{
+    id: string;
+    updated_at: string;
+    total_eur: number;
+    status: import("@/integrations/supabase/domain").InvoiceStatus;
+    contact: { full_name: string; email: string } | null;
+  }>;
+  peek: string | null;
+  selectInSplit: (id: string) => void;
+}) {
+  return (
+    <div>
+      {invoices.map((inv) => {
+        const peeked = peek === inv.id;
+        return (
+          <button
+            key={inv.id}
+            type="button"
+            onClick={() => selectInSplit(inv.id)}
+            className={cn(
+              "flex w-full flex-col items-stretch gap-1 border-b border-border px-3 py-2.5 text-left hover:bg-accent/40",
+              peeked && "bg-accent/80 ring-1 ring-foreground/20",
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate font-mono text-xs font-medium">
+                {inv.id.slice(0, 8).toUpperCase()}
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">
+                {formatPrice(inv.total_eur)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="truncate">
+                {inv.contact?.full_name ?? "—"}
+                <span className="hidden sm:inline">
+                  {" "}· {new Date(inv.updated_at).toLocaleDateString("en-GB")}
+                </span>
+              </span>
+              <span className="shrink-0">
+                <InvoiceStatusPill status={inv.status} />
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Table extracted so it can be used standalone (classic) and as the `list`
 // slot of SplitViewLayout (split mode), without an IIFE that hid control
 // flow inside the JSX.
@@ -170,7 +228,7 @@ export default function Invoices() {
         <SplitViewLayout
           selectedId={peek}
           onClearSelection={clearSplitSelection}
-          list={renderInvoicesTable({ invoices, splitMode, peek, selectInSplit })}
+          list={renderInvoicesCompactList({ invoices, peek, selectInSplit })}
           detail={peek ? <InvoiceDetail id={peek} /> : null}
           emptyState="Select an invoice from the list to see its details."
         />

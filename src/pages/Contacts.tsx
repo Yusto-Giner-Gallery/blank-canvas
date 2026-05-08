@@ -24,21 +24,22 @@ import { ScanContactModal } from "@/components/crm/ScanContactModal";
 import { cn, errorMessage } from "@/lib/utils";
 import type { ContactWithTags } from "@/hooks/useContacts";
 
-// Table render extracted so it can be used both standalone (classic mode)
-// and as the `list` slot of SplitViewLayout (split mode), without an IIFE
-// in the JSX that obscured the control flow.
+// Table render — used in classic (full-width) mode. Multi-column layout
+// fits when there's room; squeezed into the narrow split-view pane it
+// truncates names to two lines and clips emails, so split mode renders
+// the stacked-list version below.
 function renderContactsTable({
   filtered,
-  splitMode,
   peek,
   selectInSplit,
   update,
+  splitMode,
 }: {
   filtered: ContactWithTags[];
-  splitMode: boolean;
   peek: string | null;
   selectInSplit: (id: string) => void;
   update: ReturnType<typeof useUpdateContact>;
+  splitMode: boolean;
 }) {
   return (
     <div className="overflow-hidden rounded-md border border-border">
@@ -104,6 +105,62 @@ function renderContactsTable({
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// Stacked-row list — used as the master pane of split view. Mirrors the
+// pattern used by Linear / Front / Apple Mail / Stripe master-detail
+// lists: name on the first line at full width, secondary info (email,
+// interest) wrapped beneath in muted text. Newsletter checkbox aligns
+// to the right edge so it never collides with the name.
+function renderContactsCompactList({
+  filtered,
+  peek,
+  selectInSplit,
+  update,
+}: {
+  filtered: ContactWithTags[];
+  peek: string | null;
+  selectInSplit: (id: string) => void;
+  update: ReturnType<typeof useUpdateContact>;
+}) {
+  return (
+    <div>
+      {filtered.map((c) => {
+        const peeked = peek === c.id;
+        return (
+          <div
+            key={c.id}
+            className={cn(
+              "flex items-center gap-2 border-b border-border px-3 py-2.5 hover:bg-accent/40",
+              peeked && "bg-accent/80 ring-1 ring-foreground/20",
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => selectInSplit(c.id)}
+              className="min-w-0 flex-1 text-left"
+            >
+              <div className="truncate text-sm font-medium">{c.full_name}</div>
+              <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="truncate">{c.email}</span>
+                {c.interest ? (
+                  <span className="hidden truncate sm:inline">· {c.interest}</span>
+                ) : null}
+              </div>
+            </button>
+            <Checkbox
+              checked={c.newsletter_opt_in}
+              onCheckedChange={(v) =>
+                update.mutate({ id: c.id, patch: { newsletter_opt_in: v } })
+              }
+              ariaLabel="Toggle newsletter"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -328,9 +385,8 @@ export default function Contacts() {
         <SplitViewLayout
           selectedId={peek}
           onClearSelection={clearSplitSelection}
-          list={renderContactsTable({
+          list={renderContactsCompactList({
             filtered,
-            splitMode,
             peek,
             selectInSplit,
             update,

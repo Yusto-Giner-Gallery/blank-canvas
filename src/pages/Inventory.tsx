@@ -189,6 +189,7 @@ export default function Inventory() {
                     onToggleSelect={onToggleSelect}
                     onSelect={selectInSplit}
                     peeked={peek === a.id}
+                    compact
                   />
                 ))}
               </div>
