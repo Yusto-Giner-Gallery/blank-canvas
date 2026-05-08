@@ -11,7 +11,7 @@ import {
   type BoardWithCount,
 } from "@/hooks/useKanban";
 import { labelBg } from "./LabelChips";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 const COVER_OPTIONS: BoardCover[] = [
   "red",
@@ -46,7 +46,7 @@ export function EditBoardModal({
       toast.success("Board updated");
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -62,7 +62,7 @@ export function EditBoardModal({
       toast.success("Board deleted");
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

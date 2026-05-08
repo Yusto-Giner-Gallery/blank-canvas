@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ export default function PublicSignup() {
       if (error) throw error;
       setDone(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     } finally {
       setSubmitting(false);
     }

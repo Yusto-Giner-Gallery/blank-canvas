@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Ban, Copy, CreditCard, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -114,7 +115,7 @@ export default function InvoiceDetail() {
       setDirty(false);
       toast.success("Saved");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -126,7 +127,7 @@ export default function InvoiceDetail() {
       toast.success("Invoice cancelled");
       navigate("/invoices");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -136,7 +137,7 @@ export default function InvoiceDetail() {
       toast.success("Stripe link ready");
       navigator.clipboard.writeText(url).catch(() => undefined);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

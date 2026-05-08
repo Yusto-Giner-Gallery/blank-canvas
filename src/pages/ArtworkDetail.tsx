@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ImageOff, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -86,7 +87,7 @@ export default function ArtworkDetail() {
       await createAndAttach.mutateAsync({ artwork_id: artwork.id, name });
       setNewTag("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -103,7 +104,7 @@ export default function ArtworkDetail() {
       toast.success(`Deleted "${artwork.title}".`);
       navigate("/inventory", { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

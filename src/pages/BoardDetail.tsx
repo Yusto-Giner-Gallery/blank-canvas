@@ -52,7 +52,7 @@ import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
 import { LabelPill, labelBg } from "@/components/kanban/LabelChips";
 import { AvatarStack } from "@/components/kanban/Avatar";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 type DueState = "overdue" | "soon" | "ok";
 function classifyDue(due: string | null): DueState | null {
@@ -523,7 +523,7 @@ export default function BoardDetail() {
     try {
       await createList.mutateAsync({ board_id: id, name });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -531,7 +531,7 @@ export default function BoardDetail() {
     try {
       await createCard.mutateAsync({ board_id: id, list_id, title });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -539,7 +539,7 @@ export default function BoardDetail() {
     try {
       await deleteList.mutateAsync({ board_id: id, id: list_id });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -547,7 +547,7 @@ export default function BoardDetail() {
     try {
       await renameList.mutateAsync({ board_id: id, id: list_id, name });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

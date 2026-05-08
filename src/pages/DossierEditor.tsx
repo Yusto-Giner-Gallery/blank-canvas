@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Download, Send, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -278,7 +279,7 @@ export default function DossierEditor() {
                   toast.success("Dossier deleted.");
                   navigate("/dossiers", { replace: true });
                 } catch (err) {
-                  toast.error(err instanceof Error ? err.message : String(err));
+                  toast.error(errorMessage(err));
                 }
               }}
               disabled={del.isPending}

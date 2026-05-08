@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
@@ -39,7 +40,7 @@ export default function Team() {
         `${m.full_name || m.email} is now ${role === "admin" ? "an admin" : "staff"}.`,
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -49,7 +50,7 @@ export default function Team() {
       toast.success(`Removed ${m.full_name || m.email}.`);
       setConfirmRemove(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

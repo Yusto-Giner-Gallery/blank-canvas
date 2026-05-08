@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -81,7 +82,7 @@ export default function ContactDetail() {
       });
       toast.success("Saved");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -93,7 +94,7 @@ export default function ContactDetail() {
       await createAndAttach.mutateAsync({ contact_id: id, name: trimmed });
       setNewTag("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

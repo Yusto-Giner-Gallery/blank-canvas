@@ -21,7 +21,7 @@ import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
 import { AvatarStack } from "@/components/kanban/Avatar";
 import { EditBoardModal } from "@/components/kanban/EditBoardModal";
 import { labelBg } from "@/components/kanban/LabelChips";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 export default function Kanban() {
   const { data, isLoading, error } = useBoards();
@@ -49,7 +49,7 @@ export default function Kanban() {
       setAdding(false);
       toast.success("Board created");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
@@ -60,7 +60,7 @@ export default function Kanban() {
         patch: { starred: !b.starred },
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 

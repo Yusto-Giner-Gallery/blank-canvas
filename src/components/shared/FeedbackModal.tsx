@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,7 @@ export function FeedbackModal({ kind, page_path, onClose }: Props) {
       );
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(errorMessage(err));
     }
   }
 
