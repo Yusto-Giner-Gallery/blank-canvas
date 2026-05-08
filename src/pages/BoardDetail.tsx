@@ -113,14 +113,15 @@ function CardFooter({
   card: CardWithMeta;
   due: DueState | null;
 }) {
+  const members = card.member_profiles ?? [];
   const meta = [
     card.has_description,
-    card.checklist_total > 0,
-    card.comment_count > 0,
-    card.attachment_count > 0,
+    (card.checklist_total ?? 0) > 0,
+    (card.comment_count ?? 0) > 0,
+    (card.attachment_count ?? 0) > 0,
     !!due,
   ].some(Boolean);
-  if (!meta && card.member_profiles.length === 0) return null;
+  if (!meta && members.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
