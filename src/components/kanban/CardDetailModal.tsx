@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Paperclip, Plus, Trash2, X } from "lucide-react";
+import {
+  AlignLeft,
+  CalendarDays,
+  CheckSquare,
+  MessageSquare,
+  Paperclip,
+  Plus,
+  Tag,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +37,9 @@ import {
 import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
 import { supabase } from "@/lib/supabase";
 import { parseMentions } from "@/lib/mentions";
-import { ALL_LABELS, LabelChip } from "./LabelChips";
+import { ALL_LABELS, LabelChip, LabelPill, labelBg } from "./LabelChips";
 import type { CardLabel } from "@/integrations/supabase/domain";
+import { cn } from "@/lib/utils";
 
 type MentionedArtwork = { id: string; internal_id: string; title: string };
 
@@ -56,14 +68,16 @@ export function CardDetailModal({
   onClose: () => void;
 }) {
   const { data: board } = useBoard(board_id);
-  const card = useMemo(() => {
+  const located = useMemo(() => {
     if (!board) return null;
     for (const l of board.lists) {
       const c = l.cards.find((cc) => cc.id === card_id);
-      if (c) return c;
+      if (c) return { card: c, list: l };
     }
     return null;
   }, [board, card_id]);
+  const card = located?.card ?? null;
+  const list = located?.list ?? null;
 
   const update = useUpdateCard();
   const del = useDeleteCard();
@@ -150,6 +164,11 @@ export function CardDetailModal({
 
   if (!card) return null;
 
+  const cover = labels[0];
+  const checklistDone = checklist.filter((c) => c.done).length;
+  const checklistPct =
+    checklist.length === 0 ? 0 : Math.round((checklistDone / checklist.length) * 100);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 sm:items-center"
@@ -157,301 +176,405 @@ export function CardDetailModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="my-auto w-full max-w-2xl space-y-4 rounded-md border border-border bg-popover p-5 shadow-lg">
-        <div className="flex items-start justify-between gap-2">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="h-10 text-base font-semibold"
-          />
+      <div className="my-auto w-full max-w-4xl border border-border bg-popover">
+        {cover ? <div className={cn("h-3", labelBg(cover))} /> : null}
+        <div className="flex items-start justify-between gap-2 px-5 pt-4">
+          <div className="min-w-0 flex-1 space-y-1">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-10 border-0 px-0 text-base font-semibold focus-visible:border focus-visible:px-2"
+            />
+            {list ? (
+              <p className="text-xs text-muted-foreground">
+                in list <span className="text-foreground">{list.name}</span>
+              </p>
+            ) : null}
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Due date</Label>
-            <Input
-              type="date"
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-              className="h-9"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Labels</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_LABELS.map((l) => (
-                <LabelChip
-                  key={l}
-                  label={l}
-                  active={labels.includes(l)}
-                  onClick={() => toggleLabel(l)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className="grid gap-6 px-5 pb-5 pt-4 md:grid-cols-[minmax(0,1fr)_15rem]">
+          {/* MAIN COLUMN */}
+          <div className="space-y-5">
+            {labels.length > 0 ? (
+              <div>
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Labels
+                </Label>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {labels.map((l) => (
+                    <LabelPill key={l} label={l} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">
-            Description — mention artworks with{" "}
-            <code>@artwork:YG-0042</code>
-          </Label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={6}
-            className="w-full resize-y rounded-md border border-input bg-background p-2 text-sm"
-          />
-        </div>
+            <section>
+              <div className="mb-1.5 flex items-center gap-2">
+                <AlignLeft className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Description</Label>
+              </div>
+              <p className="mb-1 text-xs text-muted-foreground">
+                Mention artworks with <code>@artwork:YG-0042</code>.
+              </p>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={6}
+                placeholder="Add a more detailed description…"
+                className="w-full resize-y border border-input bg-background p-2 text-sm"
+              />
+            </section>
 
-        {mentioned.length > 0 ? (
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">
-              Mentioned artworks
-            </Label>
-            <ul className="flex flex-wrap gap-2">
-              {mentioned.map((a) => (
-                <li key={a.id}>
-                  <Link
-                    to={`/inventory/${a.id}`}
-                    className="inline-flex items-center gap-1 rounded-sm border border-border bg-accent px-2 py-1 text-xs hover:border-foreground/40"
-                  >
-                    {a.internal_id} · {a.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+            {mentioned.length > 0 ? (
+              <section>
+                <Label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Mentioned artworks
+                </Label>
+                <ul className="mt-1.5 flex flex-wrap gap-2">
+                  {mentioned.map((a) => (
+                    <li key={a.id}>
+                      <Link
+                        to={`/inventory/${a.id}`}
+                        className="inline-flex items-center gap-1 border border-border bg-accent px-2 py-1 text-xs hover:border-foreground/40"
+                      >
+                        {a.internal_id} · {a.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
-        <div className="space-y-2 border-t border-border pt-3">
-          <Label className="text-xs text-muted-foreground">Members</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {members.length === 0 ? (
-              <p className="text-sm text-muted-foreground">None.</p>
-            ) : (
-              members.map((m) => (
-                <span
-                  key={m.profile_id}
-                  className="inline-flex items-center gap-1 rounded-sm border border-border bg-accent px-2 py-1 text-xs"
-                >
-                  {m.profile?.full_name ?? m.profile?.email ?? "—"}
-                  <button
-                    type="button"
-                    aria-label="Remove member"
-                    onClick={() =>
-                      removeMember.mutate({
-                        card_id: card.id,
-                        profile_id: m.profile_id,
-                      })
-                    }
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))
-            )}
-          </div>
-          {profiles.filter((p) => !members.some((m) => m.profile_id === p.id))
-            .length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {profiles
-                .filter((p) => !members.some((m) => m.profile_id === p.id))
-                .map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() =>
-                      addMember.mutate({
-                        card_id: card.id,
-                        profile_id: p.id,
-                      })
-                    }
-                    className="inline-flex items-center gap-1 rounded-sm border border-dashed border-border px-2 py-1 text-xs text-muted-foreground hover:border-foreground hover:text-foreground"
-                  >
-                    <Plus className="h-3 w-3" />
-                    {p.full_name || p.email}
-                  </button>
+            <section>
+              <div className="mb-2 flex items-center gap-2">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Checklist</Label>
+                {checklist.length > 0 ? (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {checklistDone}/{checklist.length}
+                  </span>
+                ) : null}
+              </div>
+              {checklist.length > 0 ? (
+                <div className="mb-2 h-1 w-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-1 transition-all",
+                      checklistPct === 100 ? "bg-foreground" : "bg-muted-foreground",
+                    )}
+                    style={{ width: `${checklistPct}%` }}
+                  />
+                </div>
+              ) : null}
+              <ul className="space-y-1.5">
+                {checklist.map((it) => (
+                  <li key={it.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={it.done}
+                      onCheckedChange={(v) =>
+                        toggleItem.mutate({
+                          card_id: card.id,
+                          id: it.id,
+                          done: v,
+                        })
+                      }
+                      ariaLabel={it.text}
+                    />
+                    <span
+                      className={
+                        it.done ? "line-through text-muted-foreground" : ""
+                      }
+                    >
+                      {it.text}
+                    </span>
+                    <button
+                      type="button"
+                      className="ml-auto text-muted-foreground hover:text-destructive"
+                      aria-label="Delete item"
+                      onClick={() =>
+                        deleteItem.mutate({ card_id: card.id, id: it.id })
+                      }
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </li>
                 ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-2 border-t border-border pt-3">
-          <Label className="text-xs text-muted-foreground">Checklist</Label>
-          <ul className="space-y-1.5">
-            {checklist.map((it) => (
-              <li key={it.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={it.done}
-                  onCheckedChange={(v) =>
-                    toggleItem.mutate({
-                      card_id: card.id,
-                      id: it.id,
-                      done: v,
-                    })
-                  }
-                  ariaLabel={it.text}
+              </ul>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const t = newItem.trim();
+                  if (!t) return;
+                  addItem.mutate(
+                    { card_id: card.id, text: t },
+                    {
+                      onSuccess: () => setNewItem(""),
+                      onError: (err) => toast.error(err.message),
+                    },
+                  );
+                }}
+                className="mt-2 flex gap-2"
+              >
+                <Input
+                  value={newItem}
+                  onChange={(e) => setNewItem(e.target.value)}
+                  placeholder="Add a checklist item"
+                  className="h-9"
                 />
-                <span
-                  className={
-                    it.done ? "line-through text-muted-foreground" : ""
-                  }
-                >
-                  {it.text}
-                </span>
-                <button
-                  type="button"
-                  className="ml-auto text-muted-foreground hover:text-destructive"
-                  aria-label="Delete item"
-                  onClick={() =>
-                    deleteItem.mutate({ card_id: card.id, id: it.id })
-                  }
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const t = newItem.trim();
-              if (!t) return;
-              addItem.mutate(
-                { card_id: card.id, text: t },
-                {
-                  onSuccess: () => setNewItem(""),
-                  onError: (err) => toast.error(err.message),
-                },
-              );
-            }}
-            className="flex gap-2"
-          >
-            <Input
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              placeholder="Add a checklist item"
-              className="h-9"
-            />
-            <Button type="submit" size="sm" disabled={!newItem.trim()}>
-              Add
-            </Button>
-          </form>
-        </div>
+                <Button type="submit" size="sm" disabled={!newItem.trim()}>
+                  Add
+                </Button>
+              </form>
+            </section>
 
-        <div className="space-y-2 border-t border-border pt-3">
-          <Label className="text-xs text-muted-foreground">Attachments</Label>
-          {attachments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">None.</p>
-          ) : (
-            <ul className="space-y-1">
-              {attachments.map((a) => (
-                <AttachmentRow
-                  key={a.id}
-                  attachment={a}
-                  onDelete={() => {
-                    if (!window.confirm(`Remove "${a.name}"?`)) return;
-                    deleteAttachment.mutate({
-                      card_id: card.id,
-                      id: a.id,
-                      storage_path: a.storage_path,
-                    });
+            <section>
+              <div className="mb-2 flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Attachments</Label>
+              </div>
+              {attachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">None.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {attachments.map((a) => (
+                    <AttachmentRow
+                      key={a.id}
+                      attachment={a}
+                      onDelete={() => {
+                        if (!window.confirm(`Remove "${a.name}"?`)) return;
+                        deleteAttachment.mutate({
+                          card_id: card.id,
+                          id: a.id,
+                          storage_path: a.storage_path,
+                        });
+                      }}
+                    />
+                  ))}
+                </ul>
+              )}
+              <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground">
+                <input
+                  type="file"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.currentTarget.value = "";
+                    if (!f) return;
+                    uploadAttachment.mutate(
+                      { card_id: card.id, file: f },
+                      { onError: (err) => toast.error(err.message) },
+                    );
                   }}
                 />
-              ))}
-            </ul>
-          )}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground">
-            <input
-              type="file"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.currentTarget.value = "";
-                if (!f) return;
-                uploadAttachment.mutate(
-                  { card_id: card.id, file: f },
-                  { onError: (err) => toast.error(err.message) },
-                );
-              }}
-            />
-            <Paperclip className="h-3.5 w-3.5" />
-            {uploadAttachment.isPending ? "Uploading…" : "Upload file"}
-          </label>
-        </div>
+                <Paperclip className="h-3.5 w-3.5" />
+                {uploadAttachment.isPending ? "Uploading…" : "Upload file"}
+              </label>
+            </section>
 
-        <div className="space-y-2 border-t border-border pt-3">
-          <Label className="text-xs text-muted-foreground">Comments</Label>
-          <ul className="space-y-2">
-            {comments.length === 0 ? (
-              <li className="text-sm text-muted-foreground">No comments.</li>
-            ) : (
-              comments.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-md border border-border bg-card p-2 text-sm"
-                >
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{c.author?.full_name ?? c.author?.email ?? "—"}</span>
-                    <span>{new Date(c.created_at).toLocaleString()}</span>
-                  </div>
-                  <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
-                </li>
-              ))
-            )}
-          </ul>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const b = newComment.trim();
-              if (!b) return;
-              addComment.mutate(
-                { card_id: card.id, body: b },
-                {
-                  onSuccess: () => setNewComment(""),
-                  onError: (err) => toast.error(err.message),
-                },
-              );
-            }}
-            className="space-y-2"
-          >
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              rows={2}
-              placeholder="Write a comment…"
-              className="w-full resize-y rounded-md border border-input bg-background p-2 text-sm"
-            />
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!newComment.trim() || addComment.isPending}
+            <section>
+              <div className="mb-2 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Activity</Label>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const b = newComment.trim();
+                  if (!b) return;
+                  addComment.mutate(
+                    { card_id: card.id, body: b },
+                    {
+                      onSuccess: () => setNewComment(""),
+                      onError: (err) => toast.error(err.message),
+                    },
+                  );
+                }}
+                className="mb-3 space-y-2"
               >
-                {addComment.isPending ? "Posting…" : "Post"}
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  rows={2}
+                  placeholder="Write a comment…"
+                  className="w-full resize-y border border-input bg-background p-2 text-sm"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!newComment.trim() || addComment.isPending}
+                  >
+                    {addComment.isPending ? "Posting…" : "Post"}
+                  </Button>
+                </div>
+              </form>
+              <ul className="space-y-2">
+                {comments.length === 0 ? (
+                  <li className="text-sm text-muted-foreground">No comments yet.</li>
+                ) : (
+                  comments.map((c) => (
+                    <li
+                      key={c.id}
+                      className="border border-border bg-card p-2 text-sm"
+                    >
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{c.author?.full_name ?? c.author?.email ?? "—"}</span>
+                        <span>{new Date(c.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+
+          {/* SIDEBAR */}
+          <aside className="space-y-5">
+            <div>
+              <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Add to card
+              </h3>
+              <div className="space-y-1">
+                {/* Members */}
+                <details className="group border border-border bg-background">
+                  <summary className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent">
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                    Members
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {members.length}
+                    </span>
+                  </summary>
+                  <div className="space-y-2 border-t border-border px-2.5 py-2">
+                    {members.length > 0 ? (
+                      <ul className="space-y-1">
+                        {members.map((m) => (
+                          <li
+                            key={m.profile_id}
+                            className="flex items-center justify-between gap-1 text-xs"
+                          >
+                            <span className="truncate">
+                              {m.profile?.full_name ?? m.profile?.email ?? "—"}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label="Remove member"
+                              onClick={() =>
+                                removeMember.mutate({
+                                  card_id: card.id,
+                                  profile_id: m.profile_id,
+                                })
+                              }
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {profiles.filter(
+                      (p) => !members.some((m) => m.profile_id === p.id),
+                    ).length > 0 ? (
+                      <div className="space-y-1">
+                        {profiles
+                          .filter(
+                            (p) => !members.some((m) => m.profile_id === p.id),
+                          )
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() =>
+                                addMember.mutate({
+                                  card_id: card.id,
+                                  profile_id: p.id,
+                                })
+                              }
+                              className="flex w-full items-center gap-1 px-1 py-1 text-left text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              <Plus className="h-3 w-3" />
+                              {p.full_name || p.email}
+                            </button>
+                          ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
+
+                {/* Labels */}
+                <details className="group border border-border bg-background">
+                  <summary className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent">
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                    Labels
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {labels.length}
+                    </span>
+                  </summary>
+                  <div className="flex flex-wrap gap-1.5 border-t border-border px-2.5 py-2">
+                    {ALL_LABELS.map((l) => (
+                      <LabelChip
+                        key={l}
+                        label={l}
+                        active={labels.includes(l)}
+                        onClick={() => toggleLabel(l)}
+                      />
+                    ))}
+                  </div>
+                </details>
+
+                {/* Due date */}
+                <details className="group border border-border bg-background">
+                  <summary className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent">
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    Dates
+                    {due ? (
+                      <span className="ml-auto text-[10px] text-foreground">
+                        {new Date(due).toLocaleDateString("en-GB")}
+                      </span>
+                    ) : null}
+                  </summary>
+                  <div className="border-t border-border px-2.5 py-2">
+                    <Input
+                      type="date"
+                      value={due}
+                      onChange={(e) => setDue(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Actions
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDelete}
+                disabled={del.isPending}
+                className="w-full justify-start"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {del.isPending ? "Deleting…" : "Delete card"}
               </Button>
             </div>
-          </form>
+          </aside>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-3">
-          <Button variant="ghost" size="sm" onClick={onDelete} disabled={del.isPending}>
-            <Trash2 className="h-4 w-4" />
-            {del.isPending ? "Deleting…" : "Delete card"}
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
           </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={onSave} disabled={update.isPending}>
-              {update.isPending ? "Saving…" : "Save"}
-            </Button>
-          </div>
+          <Button size="sm" onClick={onSave} disabled={update.isPending}>
+            {update.isPending ? "Saving…" : "Save"}
+          </Button>
         </div>
       </div>
     </div>
