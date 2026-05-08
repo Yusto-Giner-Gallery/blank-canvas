@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Frame,
@@ -11,11 +12,14 @@ import {
   Shield,
   Inbox,
   Settings,
+  Bug,
+  Plus,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
 import { useT } from "@/lib/i18n/LocaleContext";
+import { FeedbackModal } from "@/components/shared/FeedbackModal";
 
 type Item = {
   to: string;
@@ -102,11 +106,52 @@ function SettingsEntry({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function FeedbackEntries({ onNavigate }: { onNavigate?: () => void }) {
+  const location = useLocation();
+  const [open, setOpen] = useState<null | "bug" | "feature">(null);
+  const baseClass =
+    "flex w-full items-center gap-3 border-l-2 border-l-transparent px-3 py-3 text-sm font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.();
+          setOpen("bug");
+        }}
+        className={cn(baseClass, "border-t border-t-border")}
+      >
+        <Bug className="h-4 w-4" />
+        Report a bug
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.();
+          setOpen("feature");
+        }}
+        className={baseClass}
+      >
+        <Plus className="h-4 w-4" />
+        Request a feature
+      </button>
+      {open ? (
+        <FeedbackModal
+          kind={open}
+          page_path={location.pathname}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
       <Wordmark />
       <NavList />
+      <FeedbackEntries />
       <SettingsEntry />
     </aside>
   );
@@ -134,6 +179,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           </button>
         </div>
         <NavList onNavigate={onClose} />
+        <FeedbackEntries onNavigate={onClose} />
         <SettingsEntry onNavigate={onClose} />
       </aside>
     </div>
