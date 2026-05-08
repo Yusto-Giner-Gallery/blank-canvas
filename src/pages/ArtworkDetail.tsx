@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useArtworks, imageUrl } from "@/hooks/useArtworks";
+import { useLightbox } from "@/components/shared/Lightbox";
 import { useUpdateArtwork, useDeleteArtwork } from "@/hooks/useUpdateArtwork";
 import { useTags } from "@/hooks/useTags";
 import {
