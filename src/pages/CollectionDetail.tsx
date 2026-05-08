@@ -103,7 +103,10 @@ function SortableTile({
 
 // Map collection.kind → a sensible default dossier kind.
 const COLLECTION_KIND_TO_DOSSIER_KIND: Record<string, DossierKind> = {
-  exhibition: "group_show",
+  // Exhibitions default to the editorial (PARALLELS) layout — house style
+  // for solo / duo / group shows. Switch the dossier kind in the editor if
+  // you want the older `group_show` grid.
+  exhibition: "editorial",
   fair: "art_fair",
   viewing_room: "collector_offer",
   other: "special",

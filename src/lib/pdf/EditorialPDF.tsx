@@ -1,4 +1,14 @@
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import type React from "react";
+import {
+  Document,
+  Image,
+  Line,
+  Page,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 import { formatPrice, formatSize, palette, type CommonProps } from "./shared";
 import type { ArtworkListItem, DossierArtistIntro } from "@/integrations/supabase/domain";
 
@@ -29,33 +39,23 @@ const local = StyleSheet.create({
     position: "absolute",
     top: 56,
     left: MARGIN,
-    width: BAND_W - MARGIN * 2,
+    width: BAND_W - MARGIN,
     color: "#ffffff",
-    fontSize: 36,
-    letterSpacing: 4,
+    fontSize: 28,
+    letterSpacing: 2,
     fontWeight: 700,
     textTransform: "uppercase",
   },
-  // Bicolor broken slash. Two rotated rectangles straddle the band's right
-  // edge: white on the coloured side, accent on the white side, with a gap
-  // between them (the gap reads as the broken-slash detail in the original).
-  slashWhite: {
+  // Bicolor broken slash drawn as two colinear SVG line segments along a
+  // single diagonal axis, with a gap centred on the band's right edge:
+  // upper segment is white (sits on the coloured band), lower segment is
+  // the accent colour (sits on the white area).
+  slashSvg: {
     position: "absolute",
-    top: 220,
-    left: BAND_W - 70,
-    width: 14,
-    height: 110,
-    backgroundColor: "#ffffff",
-    transform: "rotate(-18deg)",
-  },
-  slashAccent: {
-    position: "absolute",
-    top: 320,
-    left: BAND_W + 30,
-    width: 14,
-    height: 110,
-    backgroundColor: palette.accent,
-    transform: "rotate(-18deg)",
+    top: 0,
+    left: 0,
+    width: PAGE.width,
+    height: PAGE.height,
   },
   coverArtists: {
     position: "absolute",
@@ -86,7 +86,10 @@ const local = StyleSheet.create({
   // Artist intro page
   introPhoto: {
     position: "absolute",
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
     height: "100%",
     objectFit: "cover",
@@ -94,8 +97,11 @@ const local = StyleSheet.create({
   },
   introScrim: {
     position: "absolute",
-    inset: 0,
-    backgroundColor: "rgba(0,0,0,0.18)",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   introWordmark: {
     position: "absolute",
@@ -192,8 +198,28 @@ function CoverPage({
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={local.coverBand} />
       <Text style={local.coverTitle}>{showTitle}</Text>
-      <View style={local.slashWhite} />
-      <View style={local.slashAccent} />
+      {/* Colinear broken slash. Both segments sit on the same diagonal line
+          y = m * x + c with a gap centred at the band edge (x = BAND_W). */}
+      <Svg style={local.slashSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
+        <Line
+          x1={BAND_W - 120}
+          y1={180}
+          x2={BAND_W - 10}
+          y2={340}
+          stroke="#ffffff"
+          strokeWidth={16}
+          strokeLinecap="butt"
+        />
+        <Line
+          x1={BAND_W + 5}
+          y1={362}
+          x2={BAND_W + 115}
+          y2={522}
+          stroke={palette.accent}
+          strokeWidth={16}
+          strokeLinecap="butt"
+        />
+      </Svg>
       {artistNames.length > 0 ? (
         <View style={local.coverArtists}>
           {artistNames.map((name) => (
@@ -305,47 +331,50 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
     }
   }
 
-  return (
-    <Document title={dossier.title}>
-      <CoverPage
-        showTitle={showTitle}
-        artistNames={artists.map((a) => a.name)}
+  // Flatten into a single page array — @react-pdf requires <Page> elements to
+  // be direct children of <Document>. Wrapping in <View> silently fails.
+  const pages: React.ReactNode[] = [
+    <CoverPage
+      key="cover"
+      showTitle={showTitle}
+      artistNames={artists.map((a) => a.name)}
+      galleryName={galleryName}
+    />,
+  ];
+  for (const artist of artists) {
+    const intro = intros[artist.id];
+    const photoUrl = imageUrlFor(intro?.photo_path);
+    pages.push(
+      <ArtistIntroPage
+        key={`intro-${artist.id}`}
+        artistName={artist.name}
+        intro={intro}
+        photoUrl={photoUrl}
         galleryName={galleryName}
-      />
-      {artists.map((artist) => {
-        const intro = intros[artist.id];
-        const photoUrl = imageUrlFor(intro?.photo_path);
-        const artistArtworks = artworks.filter((a) => a.artist?.id === artist.id);
-        return (
-          <View key={artist.id}>
-            <ArtistIntroPage
-              artistName={artist.name}
-              intro={intro}
-              photoUrl={photoUrl}
-              galleryName={galleryName}
-            />
-            {artistArtworks.map((aw) => (
-              <ArtworkPage
-                key={aw.id}
-                artwork={aw}
-                imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
-                galleryName={galleryName}
-              />
-            ))}
-          </View>
-        );
-      })}
-      {/* Artworks with no artist still render so nothing silently disappears. */}
-      {artworks
-        .filter((a) => !a.artist)
-        .map((aw) => (
-          <ArtworkPage
-            key={aw.id}
-            artwork={aw}
-            imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
-            galleryName={galleryName}
-          />
-        ))}
-    </Document>
-  );
+      />,
+    );
+    for (const aw of artworks.filter((a) => a.artist?.id === artist.id)) {
+      pages.push(
+        <ArtworkPage
+          key={`aw-${aw.id}`}
+          artwork={aw}
+          imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
+          galleryName={galleryName}
+        />,
+      );
+    }
+  }
+  // Artworks with no artist still render so nothing silently disappears.
+  for (const aw of artworks.filter((a) => !a.artist)) {
+    pages.push(
+      <ArtworkPage
+        key={`aw-${aw.id}`}
+        artwork={aw}
+        imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
+        galleryName={galleryName}
+      />,
+    );
+  }
+
+  return <Document title={dossier.title}>{pages}</Document>;
 }
