@@ -76,6 +76,16 @@ export function ActivityStream({ limit = 30 }: { limit?: number }) {
   const t = useT();
   const { locale } = useLocale();
   const { data, isLoading, error } = useGlobalActivity(limit);
+  // Filter noisy rows BEFORE the empty check, so a feed of nothing-but-
+  // sort_order changes correctly renders as "No activity yet."
+  const rows = (data ?? []).filter(
+    (r) => !r.field || !SKIP_FIELDS.has(r.field),
+  );
+  // Resolve names + parent context for the rows we're about to show.
+  // Rows render with the unnamed phrasing while context loads, then
+  // upgrade to "Shirika card 'Ship feet'" once names land.
+  const ctx = useActivityContext(rows);
+  const ctxMap = ctx.data;
 
   if (isLoading) {
     return (
@@ -89,16 +99,6 @@ export function ActivityStream({ limit = 30 }: { limit?: number }) {
       </p>
     );
   }
-  // Filter noisy rows BEFORE the empty check, so a feed of nothing-but-
-  // sort_order changes correctly renders as "No activity yet."
-  const rows = (data ?? []).filter(
-    (r) => !r.field || !SKIP_FIELDS.has(r.field),
-  );
-  // Resolve names + parent context for the rows we're about to show.
-  // Rows render with the unnamed phrasing while context loads, then
-  // upgrade to "Shirika card 'Ship feet'" once names land.
-  const ctx = useActivityContext(rows);
-  const ctxMap = ctx.data;
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">{t("activity.empty")}</p>
