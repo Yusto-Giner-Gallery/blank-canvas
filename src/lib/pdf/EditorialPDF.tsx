@@ -267,18 +267,18 @@ function Wordmark({ galleryName, white = false }: { galleryName: string; white?:
 
 function CoverPage({
   showTitle,
+  showTitleHtml,
   artistNames,
   galleryName,
   accent,
-  titlePath,
   textOffsets,
   watermark,
 }: {
   showTitle: string;
+  showTitleHtml: string;
   artistNames: string[];
   galleryName: string;
   accent: string;
-  titlePath?: import("./shared").TitlePathData | null;
   textOffsets: Record<string, { x: number; y: number }>;
   watermark: string;
 }) {
@@ -292,11 +292,37 @@ function CoverPage({
   // sat; the path's baseline = 56 + cap_height.
   const titleOff = textOffsets["cover.title"] ?? { x: 0, y: 0 };
   const artistsOff = textOffsets["cover.artists"] ?? { x: 0, y: 0 };
-  const titleY = titlePath ? 56 + titlePath.cap_height : 0;
+  // Title is always rendered as rich/plain Text now — drop the outlined
+  // opentype path render so the editor preview and the export match. The
+  // user's font-family / size / color picks from the toolbar make it onto
+  // the page (the rich path) instead of being ignored by a hard-coded
+  // 42pt Inter Bold SVG.
+  const richTitle = (showTitleHtml ?? "").trim();
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={[local.coverBand, { backgroundColor: accent }]} />
-      {titlePath ? null : (
+      {richTitle ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 56 + titleOff.y,
+            left: MARGIN + titleOff.x,
+            width: BAND_W - MARGIN,
+          }}
+        >
+          <RichText
+            html={richTitle}
+            baseStyle={{
+              color: "#ffffff",
+              fontSize: 42,
+              fontWeight: 700,
+              letterSpacing: 3,
+              textTransform: "uppercase",
+              fontFamily: "Helvetica",
+            }}
+          />
+        </View>
+      ) : (
         <Text
           style={[
             local.coverTitle,
@@ -307,19 +333,6 @@ function CoverPage({
         </Text>
       )}
       <Svg style={local.coverSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
-        {/* Outlined-stroke title via opentype.js glyph paths — @react-pdf
-            <Text> has no stroke pass, so PARALLELS-style hollow type
-            requires a <Path stroke fill="none">. Falls through to the
-            solid <Text> above when titlePath isn't ready. */}
-        {titlePath ? (
-          <Path
-            d={titlePath.d}
-            stroke="#ffffff"
-            strokeWidth={1.6}
-            fill="none"
-            transform={`translate(${MARGIN + titleOff.x}, ${titleY + titleOff.y})`}
-          />
-        ) : null}
         {/* Full coral slash parallelogram on the white area. */}
         <Path
           fill={accent}
@@ -458,7 +471,11 @@ function ArtistIntroPage({
             width: colWidth,
           }}
         >
-          <Text style={local.introLangLabel}>EN</Text>
+          {(intro?.bio_en_label ?? "EN").trim() ? (
+            <Text style={local.introLangLabel}>
+              {intro?.bio_en_label ?? "EN"}
+            </Text>
+          ) : null}
           <RichText
             html={intro?.bio_en_html}
             fallback={intro?.bio_en}
@@ -475,7 +492,11 @@ function ArtistIntroPage({
             width: colWidth,
           }}
         >
-          <Text style={local.introLangLabel}>ES</Text>
+          {(intro?.bio_es_label ?? "ES").trim() ? (
+            <Text style={local.introLangLabel}>
+              {intro?.bio_es_label ?? "ES"}
+            </Text>
+          ) : null}
           <RichText
             html={intro?.bio_es_html}
             fallback={intro?.bio_es}
@@ -497,10 +518,12 @@ function ArtworkMeta({
   artwork,
   style,
   offsetStyle,
+  disclaimer,
 }: {
   artwork: ArtworkListItem;
   style?: MetaStyle;
   offsetStyle?: { left?: number; right?: number; bottom?: number };
+  disclaimer: string;
 }) {
   const size = formatSize(artwork);
   const dims = size ? size.replace(/×/g, "x") : "";
@@ -511,6 +534,7 @@ function ArtworkMeta({
   const merged: MetaStyle = offsetStyle
     ? Object.assign({}, base, offsetStyle)
     : base;
+  const showDisclaimer = disclaimer.trim().length > 0;
   return (
     <View style={merged}>
       {artwork.artist?.name ? (
@@ -524,7 +548,10 @@ function ArtworkMeta({
       {dims ? <Text style={local.metaLine}>{dims}</Text> : null}
       {price ? (
         <Text style={local.metaPrice}>
-          {price} <Text style={local.metaDisclaimer}>| {FIXED_DISCLAIMER}</Text>
+          {price}
+          {showDisclaimer ? (
+            <Text style={local.metaDisclaimer}> | {disclaimer}</Text>
+          ) : null}
         </Text>
       ) : null}
     </View>
@@ -592,6 +619,7 @@ function PairPage({
   galleryName,
   textOffsets,
   watermark,
+  disclaimer,
 }: {
   left: ArtworkListItem;
   right: ArtworkListItem;
@@ -600,6 +628,7 @@ function PairPage({
   galleryName: string;
   textOffsets: Record<string, { x: number; y: number }>;
   watermark: string;
+  disclaimer: string;
 }) {
   const leftOff = textOffsets[`artwork.${left.id}.meta`] ?? { x: 0, y: 0 };
   const rightOff = textOffsets[`artwork.${right.id}.meta`] ?? { x: 0, y: 0 };
@@ -616,11 +645,13 @@ function PairPage({
         artwork={left}
         style={local.pairMetaLeft}
         offsetStyle={leftOffsetStyle(leftOff, MARGIN)}
+        disclaimer={disclaimer}
       />
       <ArtworkMeta
         artwork={right}
         style={local.pairMetaRight}
         offsetStyle={rightOffsetStyle(rightOff, MARGIN)}
+        disclaimer={disclaimer}
       />
       <PdfWatermark text={watermark} />
     </Page>
@@ -658,12 +689,14 @@ function ArtworkPage({
   galleryName,
   textOffsets,
   watermark,
+  disclaimer,
 }: {
   artwork: ArtworkListItem;
   imageUrl: string | null;
   galleryName: string;
   textOffsets: Record<string, { x: number; y: number }>;
   watermark: string;
+  disclaimer: string;
 }) {
   const off = textOffsets[`artwork.${artwork.id}.meta`] ?? { x: 0, y: 0 };
   return (
@@ -672,13 +705,17 @@ function ArtworkPage({
       <View style={local.artworkImageBox}>
         {imageUrl ? <Image src={imageUrl} style={local.artworkImage} /> : null}
       </View>
-      <ArtworkMeta artwork={artwork} offsetStyle={leftOffsetStyle(off, MARGIN)} />
+      <ArtworkMeta
+        artwork={artwork}
+        offsetStyle={leftOffsetStyle(off, MARGIN)}
+        disclaimer={disclaimer}
+      />
       <PdfWatermark text={watermark} />
     </Page>
   );
 }
 
-export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titlePath }: CommonProps) {
+export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: CommonProps) {
   const showTitle = dossier.body_blocks.show_title?.trim() || dossier.title;
   const intros = dossier.body_blocks.artist_intros ?? {};
   // Per-dossier accent override (CLAUDE.md §3 4th color exception). Defaults
@@ -698,6 +735,11 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
 
   const textOffsets = dossier.body_blocks.text_offsets ?? {};
   const watermark = dossier.body_blocks.watermark?.trim() || "";
+  // Per-dossier disclaimer (editable in the meta block of the HTML preview).
+  // `undefined` falls back to the historical default; empty string hides
+  // the disclaimer entirely.
+  const disclaimer = dossier.body_blocks.disclaimer ?? FIXED_DISCLAIMER;
+  const showTitleHtml = dossier.body_blocks.show_title_html ?? "";
 
   const pages: React.ReactNode[] = sequence.map((spec, i) => {
     if (spec.type === "cover") {
@@ -705,10 +747,10 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
         <CoverPage
           key={`cover-${i}`}
           showTitle={showTitle}
+          showTitleHtml={showTitleHtml}
           artistNames={artistNamesForCover}
           galleryName={galleryName}
           accent={accent}
-          titlePath={titlePath}
           textOffsets={textOffsets}
           watermark={watermark}
         />
@@ -765,6 +807,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
           galleryName={galleryName}
           textOffsets={textOffsets}
           watermark={watermark}
+          disclaimer={disclaimer}
         />
       );
     }
@@ -776,6 +819,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
         galleryName={galleryName}
         textOffsets={textOffsets}
         watermark={watermark}
+        disclaimer={disclaimer}
       />
     );
   });

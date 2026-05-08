@@ -64,8 +64,14 @@ export default function DossierEditor() {
   const [intro, setIntro] = useState("");
   const [extra, setExtra] = useState("");
   const [showTitle, setShowTitle] = useState("");
+  const [showTitleHtml, setShowTitleHtml] = useState("");
   const [accentColor, setAccentColor] = useState("");
   const [watermark, setWatermark] = useState("");
+  // `undefined` lets the renderer fall back to the default
+  // "TAXES and transport excluded …" string. Once the user touches the
+  // disclaimer (including deleting it) we persist the value as-is, even
+  // an empty string, so the PDF reflects their intent.
+  const [disclaimer, setDisclaimer] = useState<string | undefined>(undefined);
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
   const [pageLayouts, setPageLayouts] = useState<NonNullable<Dossier["body_blocks"]["page_layouts"]>>({});
   const [customPages, setCustomPages] = useState<NonNullable<Dossier["body_blocks"]["custom_pages"]>>([]);
@@ -85,8 +91,10 @@ export default function DossierEditor() {
     setIntro(d.body_blocks.intro ?? "");
     setExtra(d.body_blocks.extra ?? "");
     setShowTitle(d.body_blocks.show_title ?? "");
+    setShowTitleHtml(d.body_blocks.show_title_html ?? "");
     setAccentColor(d.body_blocks.accent_color ?? "");
     setWatermark(d.body_blocks.watermark ?? "");
+    setDisclaimer(d.body_blocks.disclaimer);
     setArtistIntros(d.body_blocks.artist_intros ?? {});
     setPageLayouts(d.body_blocks.page_layouts ?? {});
     setCustomPages(d.body_blocks.custom_pages ?? []);
@@ -151,13 +159,15 @@ export default function DossierEditor() {
           kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
         watermark:
           kind === "editorial" ? (watermark.trim() || undefined) : undefined,
+        show_title_html: kind === "editorial" ? showTitleHtml : undefined,
+        disclaimer: kind === "editorial" ? disclaimer : undefined,
         artist_intros: kind === "editorial" ? artistIntros : undefined,
         page_layouts: kind === "editorial" ? pageLayouts : undefined,
         custom_pages: kind === "editorial" ? customPages : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, watermark, artistIntros, pageLayouts, customPages, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, showTitleHtml, accentColor, watermark, disclaimer, artistIntros, pageLayouts, customPages, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -176,6 +186,8 @@ export default function DossierEditor() {
               kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
             watermark:
               kind === "editorial" ? (watermark.trim() || undefined) : undefined,
+            show_title_html: kind === "editorial" ? showTitleHtml : undefined,
+            disclaimer: kind === "editorial" ? disclaimer : undefined,
             artist_intros: kind === "editorial" ? artistIntros : undefined,
             page_layouts: kind === "editorial" ? pageLayouts : undefined,
             custom_pages: kind === "editorial" ? customPages : undefined,
@@ -197,6 +209,8 @@ export default function DossierEditor() {
     if ("show_title" in patch) setShowTitle(patch.show_title ?? "");
     if ("accent_color" in patch) setAccentColor(patch.accent_color ?? "");
     if ("watermark" in patch) setWatermark(patch.watermark ?? "");
+    if ("show_title_html" in patch) setShowTitleHtml(patch.show_title_html ?? "");
+    if ("disclaimer" in patch) setDisclaimer(patch.disclaimer);
     if ("artist_intros" in patch) setArtistIntros(patch.artist_intros ?? {});
     if ("page_layouts" in patch) setPageLayouts(patch.page_layouts ?? {});
     if ("custom_pages" in patch) setCustomPages(patch.custom_pages ?? []);

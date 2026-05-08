@@ -173,6 +173,10 @@ export function EditorialHtml({
   const customSpecs = sequence.filter((s) => s.type === "custom");
 
   const watermark = dossier.body_blocks.watermark?.trim() || "";
+  const disclaimer = dossier.body_blocks.disclaimer ?? FIXED_DISCLAIMER;
+  function onDisclaimerChange(next: string) {
+    onUpdate({ disclaimer: next });
+  }
 
   return (
     <div className="space-y-4">
@@ -180,11 +184,14 @@ export function EditorialHtml({
         <CoverPage
           accent={accent}
           showTitle={(showTitle || dossier.title || "").toUpperCase()}
+          showTitleHtml={dossier.body_blocks.show_title_html ?? ""}
           artistNames={artistNamesFor(sequence)}
           textOffsets={textOffsets}
           setOffset={setOffset}
           watermark={watermark}
-          onTitleChange={(v) => onUpdate({ show_title: v })}
+          onTitleChange={(plain, html) =>
+            onUpdate({ show_title: plain, show_title_html: html })
+          }
         />
       ) : null}
 
@@ -226,6 +233,8 @@ export function EditorialHtml({
                 textOffsets={textOffsets}
                 setOffset={setOffset}
                 watermark={watermark}
+                disclaimer={disclaimer}
+                onDisclaimerChange={onDisclaimerChange}
                 onChangeVariant={(variant, extra) => setVariant(aw.id, variant, extra)}
                 onClearPair={() => spec.paired_with && clearPair(spec.paired_with.id)}
                 detailImageUrl={imageUrl(layouts[aw.id]?.detail_image_path)}
@@ -418,6 +427,7 @@ function WatermarkOverlay({ text }: { text: string }) {
 function CoverPage({
   accent,
   showTitle,
+  showTitleHtml,
   artistNames,
   textOffsets,
   setOffset,
@@ -426,85 +436,68 @@ function CoverPage({
 }: {
   accent: string;
   showTitle: string;
+  showTitleHtml: string;
   artistNames: string[];
   textOffsets: Record<string, { x: number; y: number }>;
   setOffset: (key: string, next: { x: number; y: number }) => void;
   watermark: string;
-  onTitleChange: (next: string) => void;
+  onTitleChange: (plain: string, html: string) => void;
 }) {
   const titleKey = "cover.title";
   const artistsKey = "cover.artists";
   const titleOffset = textOffsets[titleKey] ?? { x: 0, y: 0 };
   const artistsOffset = textOffsets[artistsKey] ?? { x: 0, y: 0 };
+  // Rich-mode title: the toolbar's font-family / size / color / B / I / U
+  // controls all act on the same contentEditable, so the user can finally
+  // change the title's appearance. The previous outlined-SVG render had
+  // the glyphs hard-coded at 42pt Inter Bold and ignored the toolbar.
   return (
     <Page watermark={watermark}>
       <div
         className="absolute inset-y-0 left-0"
         style={{ width: BAND_W, backgroundColor: accent }}
       />
-      {/* Title block — SVG outline + editable text overlay share one
-          DraggableTextBlock wrapper so they translate as a single unit. The
-          PDF export reads the same `cover.title` offset to stay in sync. */}
-      <DraggableTextBlock
-        blockKey={titleKey}
-        offset={titleOffset}
-        onCommit={(next) => setOffset(titleKey, next)}
-        onReset={() => setOffset(titleKey, { x: 0, y: 0 })}
+      {/* Outer wrapper carries the absolute page-level positioning so the
+          DraggableTextBlock inside can stay in normal flow (its translate
+          transform applies on top of where the outer puts it). Critical:
+          flipping the order breaks the layout because DraggableTextBlock
+          has zero height when its only child is absolute, so bottom:N
+          renders at -N of the page. */}
+      <div
+        className="absolute"
+        style={{ top: 56, left: MARGIN, width: BAND_W - MARGIN, minHeight: 60 }}
       >
-        <div
-          className="absolute"
-          style={{ top: 56, left: MARGIN, width: BAND_W - MARGIN, height: 60 }}
+        <DraggableTextBlock
+          blockKey={titleKey}
+          offset={titleOffset}
+          onCommit={(next) => setOffset(titleKey, next)}
+          onReset={() => setOffset(titleKey, { x: 0, y: 0 })}
         >
-          {/* Outlined-stroke title. Browser SVG supports text stroke natively
-              (unlike @react-pdf), so this matches PARALLELS exactly in the
-              editor preview; the PDF export uses opentype.js glyph paths to
-              achieve the same effect. */}
-          <svg
-            className="pointer-events-none absolute inset-0"
-            viewBox={`0 0 ${BAND_W - MARGIN} 60`}
-            preserveAspectRatio="xMinYMin meet"
-          >
-            <text
-              x={0}
-              y={45}
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth={1.6}
-              fontSize={42}
-              fontWeight={700}
-              fontFamily="Inter, Helvetica, Arial, sans-serif"
-              letterSpacing={3}
-            >
-              {showTitle}
-            </text>
-          </svg>
-          {/* Editable title overlay (transparent text) so the user can still
-              click and type — the SVG above provides the visible glyphs. */}
           <EditableText
-            value={showTitle}
-            onChange={onTitleChange}
+            value={showTitleHtml || plainToHtml(showTitle)}
+            onChange={(v) => onTitleChange(htmlToPlain(v), v)}
             placeholder="UPPERCASE COVER TITLE"
             ariaLabel="Show title"
-            className="absolute inset-0 font-bold uppercase tracking-[0.18em]"
+            multiline
+            rich
+            className="block font-bold uppercase tracking-[0.18em] text-white"
             style={{
               fontSize: 42,
               lineHeight: 1.1,
-              color: "transparent",
-              caretColor: "white",
             }}
           />
-        </div>
-      </DraggableTextBlock>
+        </DraggableTextBlock>
+      </div>
       <Slash accent={accent} />
-      <DraggableTextBlock
-        blockKey={artistsKey}
-        offset={artistsOffset}
-        onCommit={(next) => setOffset(artistsKey, next)}
-        onReset={() => setOffset(artistsKey, { x: 0, y: 0 })}
+      <div
+        className="absolute flex flex-col items-end"
+        style={{ right: MARGIN, bottom: 60 }}
       >
-        <div
-          className="absolute flex flex-col items-end"
-          style={{ right: MARGIN, bottom: 60 }}
+        <DraggableTextBlock
+          blockKey={artistsKey}
+          offset={artistsOffset}
+          onCommit={(next) => setOffset(artistsKey, next)}
+          onReset={() => setOffset(artistsKey, { x: 0, y: 0 })}
         >
           {artistNames.map((name) => (
             <div
@@ -522,8 +515,8 @@ function CoverPage({
               {name}
             </div>
           ))}
-        </div>
-      </DraggableTextBlock>
+        </DraggableTextBlock>
+      </div>
     </Page>
   );
 }
@@ -603,6 +596,45 @@ function Wordmark({
   );
 }
 
+// Single-line editable language label (default "EN" / "ES"). Empty value
+// hides the label entirely — the user deletes it by selecting + backspace,
+// blur, gone. The block above the bio also collapses so the bio reflows
+// naturally to the top of its column.
+function BioLangLabel({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  ariaLabel: string;
+}) {
+  if (value.trim() === "") {
+    // Render an invisible-but-clickable click target so the user can put
+    // the label back. 1-character height keeps the layout stable.
+    return (
+      <EditableText
+        value=""
+        onChange={onChange}
+        placeholder="+ label"
+        ariaLabel={ariaLabel}
+        className="mb-2 block uppercase tracking-wider text-white/40"
+        style={{ fontSize: 9, minHeight: 11 }}
+      />
+    );
+  }
+  return (
+    <EditableText
+      value={value}
+      onChange={onChange}
+      placeholder="EN"
+      ariaLabel={ariaLabel}
+      className="mb-2 block uppercase tracking-wider"
+      style={{ fontSize: 9 }}
+    />
+  );
+}
+
 function ArtistIntroPage({
   artistId,
   artistName,
@@ -650,39 +682,35 @@ function ArtistIntroPage({
         <div className="pointer-events-none absolute inset-0 bg-black/35" />
       </div>
       <Wordmark galleryName={galleryName} white accent={accent} />
-      <DraggableTextBlock
-        blockKey={nameKey}
-        offset={nameOffset}
-        onCommit={(next) => setOffset(nameKey, next)}
-        onReset={() => setOffset(nameKey, { x: 0, y: 0 })}
+      <div
         className="absolute flex flex-col items-end text-white"
+        style={{ top: 28, right: MARGIN }}
       >
-        <div
-          // The draggable wrapper supplies the position; we keep the
-          // template's "top: 28, right: MARGIN" placement here so the
-          // drag is relative to the default.
-          className="flex flex-col items-end"
-          style={{ position: "absolute", top: 28, right: MARGIN }}
+        <DraggableTextBlock
+          blockKey={nameKey}
+          offset={nameOffset}
+          onCommit={(next) => setOffset(nameKey, next)}
+          onReset={() => setOffset(nameKey, { x: 0, y: 0 })}
         >
           <div className="font-bold uppercase tracking-wide" style={{ fontSize: 16 }}>
             {artistName.toUpperCase()}
           </div>
-          <DraggableTextBlock
-            blockKey={handleKey}
-            offset={handleOffset}
-            onCommit={(next) => setOffset(handleKey, next)}
-            onReset={() => setOffset(handleKey, { x: 0, y: 0 })}
-          >
-            <EditableText
-              value={intro.instagram ?? ""}
-              onChange={(v) => onPatch({ instagram: v })}
-              placeholder="@handle"
-              ariaLabel={`${artistName} Instagram`}
-              className="text-xs"
-            />
-          </DraggableTextBlock>
-        </div>
-      </DraggableTextBlock>
+        </DraggableTextBlock>
+        <DraggableTextBlock
+          blockKey={handleKey}
+          offset={handleOffset}
+          onCommit={(next) => setOffset(handleKey, next)}
+          onReset={() => setOffset(handleKey, { x: 0, y: 0 })}
+        >
+          <EditableText
+            value={intro.instagram ?? ""}
+            onChange={(v) => onPatch({ instagram: v })}
+            placeholder="@handle"
+            ariaLabel={`${artistName} Instagram`}
+            className="text-xs"
+          />
+        </DraggableTextBlock>
+      </div>
       <div
         className="absolute grid grid-cols-2 gap-6 text-white"
         style={{ left: MARGIN, right: MARGIN, bottom: 56 }}
@@ -693,7 +721,11 @@ function ArtistIntroPage({
           onCommit={(next) => setOffset(bioEnKey, next)}
           onReset={() => setOffset(bioEnKey, { x: 0, y: 0 })}
         >
-          <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>EN</div>
+          <BioLangLabel
+            value={intro.bio_en_label ?? "EN"}
+            onChange={(v) => onPatch({ bio_en_label: v })}
+            ariaLabel={`${artistName} EN label`}
+          />
           <EditableText
             value={intro.bio_en_html ?? plainToHtml(intro.bio_en ?? "")}
             onChange={(v) => onPatch({ bio_en_html: v, bio_en: htmlToPlain(v) })}
@@ -711,7 +743,11 @@ function ArtistIntroPage({
           onCommit={(next) => setOffset(bioEsKey, next)}
           onReset={() => setOffset(bioEsKey, { x: 0, y: 0 })}
         >
-          <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>ES</div>
+          <BioLangLabel
+            value={intro.bio_es_label ?? "ES"}
+            onChange={(v) => onPatch({ bio_es_label: v })}
+            ariaLabel={`${artistName} ES label`}
+          />
           <EditableText
             value={intro.bio_es_html ?? plainToHtml(intro.bio_es ?? "")}
             onChange={(v) => onPatch({ bio_es_html: v, bio_es: htmlToPlain(v) })}
@@ -731,9 +767,13 @@ function ArtistIntroPage({
 function ArtworkMetaBlock({
   artwork,
   alignRight = false,
+  disclaimer,
+  onDisclaimerChange,
 }: {
   artwork: ArtworkListItem;
   alignRight?: boolean;
+  disclaimer: string;
+  onDisclaimerChange: (next: string) => void;
 }) {
   const dims = [artwork.width_cm, artwork.height_cm, artwork.depth_cm]
     .filter((n): n is number => typeof n === "number")
@@ -767,10 +807,18 @@ function ArtworkMetaBlock({
       ) : null}
       {price ? (
         <div className="font-bold" style={{ fontSize: 10, marginTop: 14 }}>
-          {price}{" "}
-          <span className="font-normal" style={{ fontSize: 8 }}>
-            | {FIXED_DISCLAIMER}
-          </span>
+          <span>{price}</span>
+          {disclaimer.trim() ? <span className="font-normal" style={{ fontSize: 8 }}> | </span> : null}
+          {/* Editable disclaimer — shared across meta blocks. Empty hides
+              both the leading pipe and the trailing chip. */}
+          <EditableText
+            value={disclaimer}
+            onChange={onDisclaimerChange}
+            placeholder="+ disclaimer"
+            ariaLabel="Price disclaimer"
+            className="font-normal"
+            style={{ fontSize: 8, display: "inline-block", verticalAlign: "baseline" }}
+          />
         </div>
       ) : null}
     </div>
@@ -787,6 +835,8 @@ function ArtworkPageBlock({
   textOffsets,
   setOffset,
   watermark,
+  disclaimer,
+  onDisclaimerChange,
   onChangeVariant,
   onClearPair,
   detailImageUrl,
@@ -801,6 +851,8 @@ function ArtworkPageBlock({
   textOffsets: Record<string, { x: number; y: number }>;
   setOffset: (key: string, next: { x: number; y: number }) => void;
   watermark: string;
+  disclaimer: string;
+  onDisclaimerChange: (next: string) => void;
   onChangeVariant: (variant: PageLayoutVariant, extra?: Partial<EditorialPageLayout>) => void;
   onClearPair: () => void;
   detailImageUrl: string | null;
@@ -864,19 +916,23 @@ function ArtworkPageBlock({
           >
             <ArtworkImage path={artwork.primary_image?.storage_path} />
           </div>
-          <DraggableTextBlock
-            blockKey={metaKey}
-            offset={metaOffset}
-            onCommit={(next) => setOffset(metaKey, next)}
-            onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
+          <div
+            className="absolute"
+            style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN * 2 }}
           >
-            <div
-              className="absolute"
-              style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN * 2 }}
+            <DraggableTextBlock
+              blockKey={metaKey}
+              offset={metaOffset}
+              onCommit={(next) => setOffset(metaKey, next)}
+              onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
             >
-              <ArtworkMetaBlock artwork={artwork} />
-            </div>
-          </DraggableTextBlock>
+              <ArtworkMetaBlock
+                artwork={artwork}
+                disclaimer={disclaimer}
+                onDisclaimerChange={onDisclaimerChange}
+              />
+            </DraggableTextBlock>
+          </div>
         </Page>
       ) : null}
 
@@ -939,33 +995,42 @@ function ArtworkPageBlock({
           >
             <ArtworkImage path={paired.primary_image?.storage_path} />
           </div>
-          <DraggableTextBlock
-            blockKey={metaKey}
-            offset={metaOffset}
-            onCommit={(next) => setOffset(metaKey, next)}
-            onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
+          <div
+            className="absolute"
+            style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
           >
+            <DraggableTextBlock
+              blockKey={metaKey}
+              offset={metaOffset}
+              onCommit={(next) => setOffset(metaKey, next)}
+              onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
+            >
+              <ArtworkMetaBlock
+                artwork={artwork}
+                disclaimer={disclaimer}
+                onDisclaimerChange={onDisclaimerChange}
+              />
+            </DraggableTextBlock>
+          </div>
+          {pairedMetaKey ? (
             <div
               className="absolute"
-              style={{ left: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
+              style={{ right: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
             >
-              <ArtworkMetaBlock artwork={artwork} />
-            </div>
-          </DraggableTextBlock>
-          {pairedMetaKey ? (
-            <DraggableTextBlock
-              blockKey={pairedMetaKey}
-              offset={pairedMetaOffset}
-              onCommit={(next) => setOffset(pairedMetaKey, next)}
-              onReset={() => setOffset(pairedMetaKey, { x: 0, y: 0 })}
-            >
-              <div
-                className="absolute"
-                style={{ right: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN - 8 }}
+              <DraggableTextBlock
+                blockKey={pairedMetaKey}
+                offset={pairedMetaOffset}
+                onCommit={(next) => setOffset(pairedMetaKey, next)}
+                onReset={() => setOffset(pairedMetaKey, { x: 0, y: 0 })}
               >
-                <ArtworkMetaBlock artwork={paired} alignRight />
-              </div>
-            </DraggableTextBlock>
+                <ArtworkMetaBlock
+                  artwork={paired}
+                  alignRight
+                  disclaimer={disclaimer}
+                  onDisclaimerChange={onDisclaimerChange}
+                />
+              </DraggableTextBlock>
+            </div>
           ) : null}
         </Page>
       ) : null}

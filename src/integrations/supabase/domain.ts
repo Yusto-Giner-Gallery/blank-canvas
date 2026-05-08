@@ -46,6 +46,11 @@ export type DossierArtistIntro = {
   // email composer) don't lose access.
   bio_en_html?: string;
   bio_es_html?: string;
+  // Editable column labels above each bio. Default "EN" / "ES" when
+  // undefined. Empty string hides the label entirely (the user deletes it
+  // by selecting + backspace).
+  bio_en_label?: string;
+  bio_es_label?: string;
 };
 
 export type PageLayoutVariant =
@@ -93,6 +98,16 @@ export type DossierBodyBlocks = {
   // Editorial-only fields. Stored in JSON so we don't need a schema change;
   // when Lovable adds dedicated columns later the shape can move out.
   show_title?: string;
+  // Rich (HTML) sibling for the cover title. When present the editor +
+  // PDF render via parseHtmlToRuns so font-family / size / color picks
+  // from the toolbar apply to the cover title. Falls back to the plain
+  // `show_title` outlined-stroke render when undefined.
+  show_title_html?: string;
+  // Per-dossier disclaimer that follows the price line in every meta
+  // block. Defaults to the historical
+  // "TAXES and transport excluded / IVA y Transporte no incluido"
+  // string when undefined; empty string hides it entirely.
+  disclaimer?: string;
   // Per-dossier accent color (hex string, e.g. "#EC6660"). User-editable;
   // CLAUDE.md §3 4th approved color exception. Defaults to palette.accent.
   accent_color?: string;
