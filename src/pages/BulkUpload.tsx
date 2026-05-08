@@ -321,7 +321,7 @@ export default function BulkUpload() {
                       <img
                         src={d.preview_url}
                         alt=""
-                        className="h-12 w-12 rounded-sm object-cover"
+                        className="h-12 w-12 rounded-sm bg-muted object-contain"
                       />
                     </td>
                     <td className="px-3 py-2">

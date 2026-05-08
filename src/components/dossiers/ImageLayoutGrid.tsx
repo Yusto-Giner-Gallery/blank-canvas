@@ -38,7 +38,7 @@ function Tile({ artwork }: { artwork: ArtworkListItem }) {
       title={`Drag to swap — ${artwork.title}`}
     >
       {url ? (
-        <img src={url} alt="" className="h-full w-full object-cover" />
+        <img src={url} alt="" className="h-full w-full object-contain" />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
           <ImageOff className="h-5 w-5 text-muted-foreground" />

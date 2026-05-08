@@ -90,7 +90,7 @@ export function ArtFairHtml({
                 }}
               >
                 {url ? (
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img src={url} alt="" className="h-full w-full object-contain" />
                 ) : null}
               </div>
               <div className="flex items-start justify-between gap-2">

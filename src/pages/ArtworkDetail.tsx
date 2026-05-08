@@ -245,11 +245,19 @@ export default function ArtworkDetail() {
         <div className="min-w-0 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
-              <div className="aspect-square w-full overflow-hidden rounded-md border border-border bg-muted">
+              {/* Detail-page hero: render the artwork at its natural
+                  aspect ratio, capped at 70vh so very tall pieces stay
+                  on screen. Forcing a square crop here misled gallery
+                  staff about the actual shape of the work. */}
+              <div className="flex w-full items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
                 {url ? (
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={url}
+                    alt=""
+                    className="block max-h-[70vh] w-full object-contain"
+                  />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center">
+                  <div className="flex h-64 w-full items-center justify-center">
                     <ImageOff className="h-8 w-8 text-muted-foreground" />
                   </div>
                 )}
@@ -265,7 +273,7 @@ export default function ArtworkDetail() {
                         className="group relative aspect-square overflow-hidden rounded-sm border border-border bg-muted"
                       >
                         {thumb ? (
-                          <img src={thumb} alt="" className="h-full w-full object-cover" />
+                          <img src={thumb} alt="" className="h-full w-full object-contain" />
                         ) : null}
                         {img.is_primary ? (
                           <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-sm bg-background/90 px-1 py-0.5 text-[10px] font-medium">

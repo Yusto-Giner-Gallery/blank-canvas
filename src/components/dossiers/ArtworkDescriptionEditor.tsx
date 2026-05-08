@@ -43,7 +43,7 @@ export function ArtworkDescriptionEditor({
           >
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border bg-muted">
               {url ? (
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <img src={url} alt="" className="h-full w-full object-contain" />
               ) : (
                 <ImageOff className="h-5 w-5 text-muted-foreground" />
               )}

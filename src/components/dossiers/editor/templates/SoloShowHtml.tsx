@@ -52,7 +52,7 @@ export function SoloShowHtml({
         <img
           src={heroUrl}
           alt=""
-          className="w-full object-cover"
+          className="w-full object-contain"
           style={{ height: 280, marginBottom: 14, border: "1px solid #e5e5e5" }}
         />
       ) : null}
@@ -82,7 +82,7 @@ export function SoloShowHtml({
                 }}
               >
                 {url ? (
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img src={url} alt="" className="h-full w-full object-contain" />
                 ) : null}
               </div>
               <div className="text-muted-foreground" style={{ fontSize: 9 }}>

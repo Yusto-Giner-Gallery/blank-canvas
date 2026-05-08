@@ -85,7 +85,7 @@ export function SpecialHtml({
                 }}
               >
                 {url ? (
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img src={url} alt="" className="h-full w-full object-contain" />
                 ) : null}
               </div>
               <div className="font-bold" style={{ fontSize: 10 }}>
