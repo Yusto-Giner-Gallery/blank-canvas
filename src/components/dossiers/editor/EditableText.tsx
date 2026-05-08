@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from "react";
+import { sanitizeHtml } from "@/lib/dossier/rich-text";
 import { cn } from "@/lib/utils";
 
 // contentEditable wrapper. Renders inline as a span/div, lets the user click
 // to edit, commits on blur. The component is uncontrolled inside but
 // surfaces value via onChange — so the parent owns the source of truth.
 //
-// Usage notes:
-// - We DON'T use defaultValue+onBlur and call setValue from the inside,
-//   because that would lose external updates (e.g. AI fill).
-// - Re-syncs from `value` on prop change ONLY when the editor isn't focused,
-//   to avoid clobbering the caret while typing.
-// - `multiline` switches between <span> (one-line) and <div> (multi-line).
+// Modes:
+// - default       — `value` is plain text; carriage returns survive in
+//                   multiline mode via white-space: pre-wrap.
+// - rich={true}   — `value` is HTML; FormatToolbar attaches on focus to
+//                   apply B/I/U/font/size/alignment via execCommand. We
+//                   sanitise the HTML on blur before emitting onChange.
 
 type Props = {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  rich?: boolean;
   className?: string;
   ariaLabel?: string;
   style?: React.CSSProperties;
@@ -27,6 +29,7 @@ export function EditableText({
   onChange,
   placeholder,
   multiline = false,
+  rich = false,
   className,
   ariaLabel,
   style,
@@ -40,8 +43,12 @@ export function EditableText({
     const el = ref.current;
     if (!el) return;
     if (focused) return;
-    if (el.textContent !== value) el.textContent = value;
-  }, [value, focused]);
+    if (rich) {
+      if (el.innerHTML !== value) el.innerHTML = value || "";
+    } else {
+      if (el.textContent !== value) el.textContent = value;
+    }
+  }, [value, focused, rich]);
 
   function handleBlur() {
     handleBlurInternal();
@@ -51,6 +58,11 @@ export function EditableText({
     if (!multiline && e.key === "Enter") {
       e.preventDefault();
       (e.target as HTMLElement).blur();
+      return;
+    }
+    // In rich mode the browser's default Enter (insert <div><br></div> /
+    // <p>) plays well with our HTML round-trip — leave it alone.
+    if (multiline && rich && e.key === "Enter") {
       return;
     }
     if (multiline && e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
@@ -90,6 +102,12 @@ export function EditableText({
 
   function handleBlurInternal() {
     setFocused(false);
+    if (rich) {
+      const raw = ref.current?.innerHTML ?? "";
+      const next = sanitizeHtml(raw).replace(/​/g, "");
+      if (next !== value) onChange(next);
+      return;
+    }
     // Strip the zero-width-space pad we use to keep trailing line breaks
     // visible mid-edit; we don't want to persist it.
     const raw = ref.current?.textContent ?? "";
@@ -112,13 +130,16 @@ export function EditableText({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       data-placeholder={placeholder}
+      // FormatToolbar attaches to any element with this attribute.
+      data-rich-editor={rich ? "true" : undefined}
       style={style}
       className={cn(
         "outline-none cursor-text",
         // Multi-line: preserve newlines, give an empty editor real height
         // so the user can actually click into it (otherwise an empty bio
         // collapses to ~0 px under the preview scale and looks dead).
-        multiline && "whitespace-pre-wrap min-h-[1.4em] block",
+        multiline && !rich && "whitespace-pre-wrap min-h-[1.4em] block",
+        multiline && rich && "min-h-[1.4em] block",
         // Stack above any sibling click target on the same page (e.g. an
         // EditableImageSlot covering the page background).
         "relative z-10",

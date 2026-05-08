@@ -5,6 +5,7 @@ import { GroupShowHtml } from "./templates/GroupShowHtml";
 import { SpecialHtml } from "./templates/SpecialHtml";
 import { ArtFairHtml } from "./templates/ArtFairHtml";
 import { CollectorOfferHtml } from "./templates/CollectorOfferHtml";
+import { FormatToolbar } from "./FormatToolbar";
 
 // Top-level dispatcher for the WYSIWYG editor preview. Every dossier kind
 // has an HTML mirror; click-to-edit + drop-to-upload work directly on the
@@ -19,7 +20,16 @@ type Props = {
   onUpdateLayout: (next: string[]) => void;
 };
 
-export function HtmlEditorPreview({
+export function HtmlEditorPreview(props: Props) {
+  return (
+    <>
+      <Dispatcher {...props} />
+      <FormatToolbar />
+    </>
+  );
+}
+
+function Dispatcher({
   dossier,
   artworks,
   galleryName,

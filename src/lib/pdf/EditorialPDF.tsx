@@ -10,6 +10,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { formatPrice, formatSize, palette, type CommonProps } from "./shared";
+import { RichText } from "./rich-text-pdf";
 import type {
   ArtworkListItem,
   DossierArtistIntro,
@@ -359,15 +360,23 @@ function ArtistIntroPage({
           </Text>
         ) : null}
       </View>
-      {(intro?.bio_en || intro?.bio_es) ? (
+      {(intro?.bio_en || intro?.bio_es || intro?.bio_en_html || intro?.bio_es_html) ? (
         <View style={local.introBioRow}>
           <View style={local.introBioCol}>
             <Text style={local.introLangLabel}>EN</Text>
-            <Text style={local.introBioBody}>{intro?.bio_en ?? ""}</Text>
+            <RichText
+              html={intro?.bio_en_html}
+              fallback={intro?.bio_en}
+              baseStyle={local.introBioBody}
+            />
           </View>
           <View style={local.introBioCol}>
             <Text style={local.introLangLabel}>ES</Text>
-            <Text style={local.introBioBody}>{intro?.bio_es ?? ""}</Text>
+            <RichText
+              html={intro?.bio_es_html}
+              fallback={intro?.bio_es}
+              baseStyle={local.introBioBody}
+            />
           </View>
         </View>
       ) : null}

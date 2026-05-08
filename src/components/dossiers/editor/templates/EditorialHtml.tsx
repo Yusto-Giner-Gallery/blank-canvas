@@ -28,6 +28,7 @@ import { palette } from "@/lib/pdf/shared";
 import { imageUrl } from "@/hooks/useArtworks";
 import { buildPageSequence } from "@/lib/dossier/editorial-order";
 import { EditableText } from "../EditableText";
+import { htmlToPlain, plainToHtml } from "@/lib/dossier/rich-text";
 import { EditableImageSlot } from "../EditableImageSlot";
 import { PageLayoutSwitcher } from "../PageLayoutSwitcher";
 import { Button } from "@/components/ui/button";
@@ -546,10 +547,11 @@ function ArtistIntroPage({
         <div>
           <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>EN</div>
           <EditableText
-            value={intro.bio_en ?? ""}
-            onChange={(v) => onPatch({ bio_en: v })}
+            value={intro.bio_en_html ?? plainToHtml(intro.bio_en ?? "")}
+            onChange={(v) => onPatch({ bio_en_html: v, bio_en: htmlToPlain(v) })}
             placeholder="English bio…"
             multiline
+            rich
             ariaLabel={`${artistName} bio EN`}
             className="block text-[8.5px] leading-relaxed"
           />
@@ -557,10 +559,11 @@ function ArtistIntroPage({
         <div>
           <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>ES</div>
           <EditableText
-            value={intro.bio_es ?? ""}
-            onChange={(v) => onPatch({ bio_es: v })}
+            value={intro.bio_es_html ?? plainToHtml(intro.bio_es ?? "")}
+            onChange={(v) => onPatch({ bio_es_html: v, bio_es: htmlToPlain(v) })}
             placeholder="Bio en español…"
             multiline
+            rich
             ariaLabel={`${artistName} bio ES`}
             className="block text-[8.5px] leading-relaxed"
           />

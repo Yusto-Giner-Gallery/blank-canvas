@@ -40,6 +40,12 @@ export type DossierArtistIntro = {
   bio_es?: string;
   instagram?: string;
   photo_path?: string;
+  // Rich (HTML) variants kept in lockstep with the plain strings above. The
+  // editor reads these when present and falls back to the plain field
+  // otherwise; on save it writes BOTH so legacy consumers (AI text review,
+  // email composer) don't lose access.
+  bio_en_html?: string;
+  bio_es_html?: string;
 };
 
 export type PageLayoutVariant =
@@ -68,6 +74,12 @@ export type DossierBodyBlocks = {
   extra?: string;
   artwork_descriptions?: Record<string, string>;
   collector_pitch?: string;
+  // Rich (HTML) siblings — written by the WYSIWYG editor's rich mode.
+  // See DossierArtistIntro for the rationale.
+  intro_html?: string;
+  extra_html?: string;
+  collector_pitch_html?: string;
+  artwork_descriptions_html?: Record<string, string>;
   // Editorial-only fields. Stored in JSON so we don't need a schema change;
   // when Lovable adds dedicated columns later the shape can move out.
   show_title?: string;

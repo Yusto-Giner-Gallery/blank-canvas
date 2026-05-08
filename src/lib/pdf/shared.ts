@@ -1,8 +1,26 @@
-import { StyleSheet } from "@react-pdf/renderer";
+import { Font, StyleSheet } from "@react-pdf/renderer";
 import type {
   ArtworkListItem,
   Dossier,
 } from "@/integrations/supabase/domain";
+
+// Register the bundled Inter family so the rich-text toolbar's "Inter"
+// choice actually applies in PDF exports. Helvetica / Times-Roman /
+// Courier are built into @react-pdf and don't need registering. We
+// guard with a flag because Font.register is idempotent-noisy when
+// hot-reloaded.
+declare global {
+  interface Window {
+    __ygm_pdf_fonts_registered__?: boolean;
+  }
+}
+if (typeof window !== "undefined" && !window.__ygm_pdf_fonts_registered__) {
+  window.__ygm_pdf_fonts_registered__ = true;
+  Font.register({
+    family: "Inter",
+    fonts: [{ src: "/fonts/Inter-Bold.ttf", fontWeight: "bold" }],
+  });
+}
 
 export type TitlePathData = {
   d: string;
