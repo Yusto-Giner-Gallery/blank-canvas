@@ -70,34 +70,12 @@ function SortableTile({
     <div
       ref={setNodeRef}
       style={style}
-      className="relative flex flex-col overflow-hidden rounded-md border border-border bg-card"
+      className="group relative flex flex-col overflow-hidden rounded-md border border-border bg-card"
     >
-      <div className="relative aspect-square bg-muted">
-        {url ? (
-          <img src={url} alt="" className="h-full w-full object-contain" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <ImageOff className="h-6 w-6 text-muted-foreground" />
-          </div>
-        )}
-        <button
-          type="button"
-          {...listeners}
-          {...attributes}
-          aria-label="Drag to reorder"
-          className="absolute left-2 top-2 cursor-grab rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-foreground"
-        >
-          <GripVertical className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onRemove(artwork.id)}
-          aria-label="Remove from collection"
-          className="absolute right-2 top-2 rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      </div>
+      {/* Single full-tile <Link> covers both the image and the text block,
+          so clicking anywhere on the card opens the artwork. The drag
+          handle + trash button live as ABSOLUTE siblings outside the Link
+          so their own click handlers don't bubble through to it. */}
       <Link
         to={`/inventory/${artwork.id}`}
         onClick={(e) => {
@@ -106,13 +84,47 @@ function SortableTile({
             onPeek(artwork.id);
           }
         }}
-        className="flex flex-col gap-0.5 p-3 hover:bg-accent/40"
+        className="flex flex-1 flex-col hover:bg-accent/40"
       >
-        <div className="truncate text-sm font-medium">{artwork.title}</div>
-        <div className="truncate text-xs text-muted-foreground">
-          {artwork.artist?.name ?? "Unknown artist"} · {artwork.internal_id}
+        <div className="relative aspect-square bg-muted">
+          {url ? (
+            <img src={url} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <ImageOff className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-0.5 p-3">
+          <div className="truncate text-sm font-medium">{artwork.title}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {artwork.artist?.name ?? "Unknown artist"} · {artwork.internal_id}
+          </div>
         </div>
       </Link>
+      <button
+        type="button"
+        {...listeners}
+        {...attributes}
+        aria-label="Drag to reorder"
+        className="absolute left-2 top-2 z-10 cursor-grab rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-foreground"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          // Stop propagation so the surrounding <Link> doesn't fire its
+          // peek/navigate handler when the user wants to remove the item.
+          e.preventDefault();
+          e.stopPropagation();
+          onRemove(artwork.id);
+        }}
+        aria-label="Remove from collection"
+        className="absolute right-2 top-2 z-10 rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
       <span className="sr-only">collection {collection_id}</span>
     </div>
   );

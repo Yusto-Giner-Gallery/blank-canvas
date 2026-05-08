@@ -30,24 +30,20 @@ export default function PageSettings() {
           {LOCALES.map((opt) => {
             const checked = locale === opt.value;
             return (
-              <label
+              <button
                 key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                onClick={() => setLocale(opt.value)}
                 className={
-                  "flex cursor-pointer items-center justify-between gap-3 border px-3 py-2 text-sm transition-colors " +
+                  "flex cursor-pointer items-center justify-between gap-3 border px-3 py-2 text-left text-sm transition-colors " +
                   (checked
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background hover:bg-muted")
                 }
               >
                 <span className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="locale"
-                    value={opt.value}
-                    checked={checked}
-                    onChange={() => setLocale(opt.value)}
-                    className="sr-only"
-                  />
                   <span className="font-medium">{opt.nativeLabel}</span>
                   {opt.label !== opt.nativeLabel ? (
                     <span className={checked ? "text-background/70" : "text-muted-foreground"}>
@@ -58,7 +54,7 @@ export default function PageSettings() {
                 <span className="text-xs uppercase tracking-wider opacity-60">
                   {opt.value}
                 </span>
-              </label>
+              </button>
             );
           })}
         </div>
@@ -77,27 +73,21 @@ export default function PageSettings() {
           {layoutOptions.map((opt) => {
             const checked = layoutMode === opt.value;
             return (
-              <label
+              <button
                 key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                onClick={() => setLayoutMode(opt.value)}
                 className={
-                  "flex cursor-pointer flex-col gap-1 border px-3 py-3 text-sm transition-colors " +
+                  "flex cursor-pointer flex-col gap-1 border px-3 py-3 text-left text-sm transition-colors " +
                   (checked
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background hover:bg-muted")
                 }
               >
                 <span className="flex items-center justify-between">
-                  <span className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="layoutMode"
-                      value={opt.value}
-                      checked={checked}
-                      onChange={() => setLayoutMode(opt.value)}
-                      className="sr-only"
-                    />
-                    <span className="font-medium">{t(opt.titleKey)}</span>
-                  </span>
+                  <span className="font-medium">{t(opt.titleKey)}</span>
                   <span className="text-xs uppercase tracking-wider opacity-60">
                     {opt.value}
                   </span>
@@ -105,7 +95,7 @@ export default function PageSettings() {
                 <span className={"text-xs " + (checked ? "text-background/80" : "text-muted-foreground")}>
                   {t(opt.descKey)}
                 </span>
-              </label>
+              </button>
             );
           })}
         </div>
