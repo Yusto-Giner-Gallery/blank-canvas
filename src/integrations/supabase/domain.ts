@@ -50,6 +50,9 @@ export type DossierBodyBlocks = {
   // Editorial-only fields. Stored in JSON so we don't need a schema change;
   // when Lovable adds dedicated columns later the shape can move out.
   show_title?: string;
+  // Per-dossier accent color (hex string, e.g. "#EC6660"). User-editable;
+  // CLAUDE.md §3 4th approved color exception. Defaults to palette.accent.
+  accent_color?: string;
   artist_intros?: Record<string, DossierArtistIntro>;
 };
 export type Dossier = Omit<T["dossiers"]["Row"], "body_blocks" | "image_layout"> & {

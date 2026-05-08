@@ -68,14 +68,15 @@ No anything that wouldn't survive a Lovable import. See §8 for the port checkli
 - Components are plain shadcn-ui primitives. No custom decorative classes
 - Spacing is generous: large negative space, table rows breathe, dossier previews feel like a catalogue page
 
-### Color exceptions (the only three)
+### Color exceptions (the only four)
 
-The UI chrome is monochrome. Only **three** non-grayscale tokens are allowed,
+The UI chrome is monochrome. Only **four** non-grayscale tokens are allowed,
 each with a fixed and narrow purpose:
 
 1. `--attention` orange (`hsl(25 100% 50%)`) — the inventory "needs attention this week" flag (per spec). User-data flag, not decoration.
 2. **Kanban card color labels** — user-defined per-card tags. Rendered as small filled chips in the user's chosen palette (red, orange, yellow, green, blue, purple). Allowed because the user is choosing them as data; they do not theme the chrome.
-3. `--accent-red` (`hsl(4 85% 55%)`, ≈ `#ee4533`) — Yusto Giner Gallery brand accent, sampled from the gallery's wordmark slash. Used at three identity moments: (a) the slash in the `YUSTO / GINER` wordmark in the sidebar, (b) the active-item left rail in the sidebar, (c) the small `┐` corner bracket in the top-right of every page. `--destructive` shares the same hue (one red, two semantic uses — destructive actions are also branded red). Never as a fill for content surfaces. If a fourth use is needed, list it here in the same commit.
+3. `--accent-red` (`hsl(4 85% 55%)`, ≈ `#ee4533`) — Yusto Giner Gallery brand accent, sampled from the gallery's wordmark slash. Used at three identity moments: (a) the slash in the `YUSTO / GINER` wordmark in the sidebar, (b) the active-item left rail in the sidebar, (c) the small `┐` corner bracket in the top-right of every page. `--destructive` shares the same hue (one red, two semantic uses — destructive actions are also branded red). Never as a fill for content surfaces.
+4. **Editorial dossier accent** — per-dossier user-chosen color (default `#EC6660`, the PARALLELS coral). Used only inside an exported editorial dossier PDF (cover band + slash + artist names list). User-data, not chrome — never themes the live app. Stored at `dossier.body_blocks.accent_color`; default lives in `palette.accent` in `src/lib/pdf/shared.ts`. If a fifth use is needed, list it here in the same commit.
 
 ### Brand mark — corner bracket
 

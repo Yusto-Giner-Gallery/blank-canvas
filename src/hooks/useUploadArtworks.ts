@@ -32,12 +32,24 @@ async function resolveArtist(
 ): Promise<string> {
   if (draft.artist_id) return draft.artist_id;
   if (!draft.artist_name_new) throw new Error("No artist selected");
+  const trimmed = draft.artist_name_new.trim();
+  // Lookup-first: prevents duplicate artist rows when bulk-uploading
+  // multiple works for the same new artist in one batch (or across batches
+  // before a DB unique constraint exists). Case-insensitive match.
+  const { data: existing } = await supabase
+    .from("artists")
+    .select("id")
+    .eq("gallery_id", gallery_id)
+    .ilike("name", trimmed)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing?.id) return existing.id;
   const { data, error } = await supabase
     .from("artists")
     .insert({
       id: crypto.randomUUID(),
       gallery_id,
-      name: draft.artist_name_new,
+      name: trimmed,
       nationality: null,
       bio: null,
     })
