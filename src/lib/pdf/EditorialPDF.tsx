@@ -4,6 +4,7 @@ import {
   Image,
   Line,
   Page,
+  Path,
   StyleSheet,
   Svg,
   Text,
@@ -266,11 +267,13 @@ function CoverPage({
   artistNames,
   galleryName,
   accent,
+  titlePath,
 }: {
   showTitle: string;
   artistNames: string[];
   galleryName: string;
   accent: string;
+  titlePath?: import("./shared").TitlePathData | null;
 }) {
   // Slash geometry — both segments share slope = (320-200)/(300-240) = 2.0
   // and gap is centred at the band's right edge so the broken slash reads
@@ -278,11 +281,26 @@ function CoverPage({
   const SLASH_W = 18;
   const slashWhite = { x1: 240, y1: 200, x2: 300, y2: 320 };
   const slashAccent = { x1: 320, y1: 360, x2: 380, y2: 480 };
+  // Outlined title placement — opentype's path is drawn from baseline.
+  // Top of the cap aligns to y=56+offset where the original solid <Text>
+  // sat; the path's baseline = 56 + cap_height.
+  const titleY = titlePath ? 56 + titlePath.cap_height : 0;
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={[local.coverBand, { backgroundColor: accent }]} />
-      <Text style={local.coverTitle}>{(showTitle || "").toUpperCase()}</Text>
+      {titlePath ? null : (
+        <Text style={local.coverTitle}>{(showTitle || "").toUpperCase()}</Text>
+      )}
       <Svg style={local.coverSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
+        {titlePath ? (
+          <Path
+            d={titlePath.d}
+            stroke="#ffffff"
+            strokeWidth={1.6}
+            fill="none"
+            transform={`translate(${MARGIN}, ${titleY})`}
+          />
+        ) : null}
         {/* Broken slash — colinear segments straddling the band edge. */}
         <Line
           {...slashWhite}
@@ -492,7 +510,7 @@ function ArtworkPage({
   );
 }
 
-export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: CommonProps) {
+export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titlePath }: CommonProps) {
   const showTitle = dossier.body_blocks.show_title?.trim() || dossier.title;
   const intros = dossier.body_blocks.artist_intros ?? {};
   // Per-dossier accent override (CLAUDE.md §3 4th color exception). Defaults
@@ -519,6 +537,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
           artistNames={artistNamesForCover}
           galleryName={galleryName}
           accent={accent}
+          titlePath={titlePath}
         />
       );
     }

@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useDossiers";
 import { useArtworks, imageUrl } from "@/hooks/useArtworks";
 import { useGallery } from "@/hooks/useGallery";
+import { useTitleSvgPath } from "@/hooks/useTitleSvgPath";
 import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
 import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescriptionEditor";
 import { EditorialIntrosEditor } from "@/components/dossiers/EditorialIntrosEditor";
@@ -88,6 +89,16 @@ export default function DossierEditor() {
   }, [dossierQuery.data]);
 
   const artworks = useDossierArtworks(layout, artworksQuery.data);
+
+  // Outlined title path for the editorial cover. Async-loads Inter-Bold via
+  // opentype.js once and re-derives the SVG path whenever the title text /
+  // font sizing changes. null until the font is parsed → cover falls back
+  // to solid white text.
+  const editorialTitleText = (kind === "editorial"
+    ? (showTitle || title || "")
+    : ""
+  ).toUpperCase();
+  const titlePath = useTitleSvgPath(editorialTitleText, 42, 3);
 
   // Unique artists in display order, used by the editorial-only intro panel.
   const editorialArtists = useMemo(() => {
@@ -500,6 +511,7 @@ export default function DossierEditor() {
                 dossier={previewDossier}
                 artworks={artworks}
                 galleryName={galleryName}
+                titlePath={titlePath}
               />
             </Suspense>
           </div>
@@ -513,6 +525,7 @@ export default function DossierEditor() {
                     galleryName={galleryName}
                     onUpdate={(patch) => applyBodyBlocksPatch(patch)}
                     onUpdateTitle={(next) => setTitle(next)}
+                    onUpdateLayout={(next) => setLayout(next)}
                   />
                 </div>
               ) : (
@@ -528,6 +541,7 @@ export default function DossierEditor() {
                     artworks={artworks}
                     galleryName={galleryName}
                     imageUrlFor={imageUrl}
+                    titlePath={titlePath}
                   />
                 </Suspense>
               )
