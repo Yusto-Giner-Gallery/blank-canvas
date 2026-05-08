@@ -43,8 +43,10 @@ import {
   useCreateList,
   useDeleteList,
   useMoveCard,
+  useRenameList,
   type CardWithMeta,
 } from "@/hooks/useKanban";
+import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
 import { LabelPill, labelBg } from "@/components/kanban/LabelChips";
 import { AvatarStack } from "@/components/kanban/Avatar";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
@@ -182,6 +184,7 @@ function Lane({
   boardId,
   onAddCard,
   onDeleteList,
+  onRenameList,
   onOpenCard,
 }: {
   list: { id: string; name: string };
@@ -189,37 +192,83 @@ function Lane({
   boardId: string;
   onAddCard: (list_id: string, title: string) => void;
   onDeleteList: (list_id: string) => void;
+  onRenameList: (list_id: string, name: string) => void;
   onOpenCard: (card: CardWithMeta) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(list.name);
+
+  useEffect(() => {
+    setName(list.name);
+  }, [list.name]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     onAddCard(list.id, title.trim());
     setTitle("");
-    setAdding(false);
+    // Stay in adding mode so the user can type the next card immediately
+    // (Trello's behaviour) — Esc / Cancel exits.
+  }
+
+  function commitRename() {
+    const next = name.trim();
+    if (!next || next === list.name) {
+      setName(list.name);
+      setEditing(false);
+      return;
+    }
+    onRenameList(list.id, next);
+    setEditing(false);
   }
 
   return (
-    <div className="flex w-72 flex-shrink-0 flex-col rounded-md border border-border bg-muted/30">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">
-          {list.name}
-          <span className="ml-1.5 text-foreground/60">{cards.length}</span>
-        </div>
+    <div className="flex w-72 flex-shrink-0 flex-col self-start border border-border bg-muted">
+      <div className="flex items-center gap-2 px-2.5 pt-2.5">
+        {editing ? (
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitRename();
+              if (e.key === "Escape") {
+                setName(list.name);
+                setEditing(false);
+              }
+            }}
+            autoFocus
+            className="h-7 px-1.5 text-sm font-semibold uppercase tracking-wide"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="flex flex-1 items-center gap-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-foreground hover:text-accent-red"
+          >
+            <span className="truncate">{list.name}</span>
+            <span className="rounded-sm bg-background px-1.5 py-px text-[10px] text-muted-foreground">
+              {cards.length}
+            </span>
+          </button>
+        )}
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
           aria-label="Delete list"
           onClick={() => {
-            if (window.confirm(`Delete list "${list.name}"? Cards in it will also be removed.`))
+            if (
+              window.confirm(
+                `Delete list "${list.name}"? Cards in it will also be removed.`,
+              )
+            )
               onDeleteList(list.id);
           }}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
       <SortableContext
@@ -227,14 +276,14 @@ function Lane({
         strategy={verticalListSortingStrategy}
         id={list.id}
       >
-        <div className="flex flex-1 flex-col gap-2 p-2 min-h-12">
+        <div className="flex min-h-12 flex-1 flex-col gap-2 p-2">
           {cards.map((c) => (
             <CardTile key={c.id} card={c} onOpen={() => onOpenCard(c)} />
           ))}
         </div>
       </SortableContext>
       {adding ? (
-        <form onSubmit={submit} className="space-y-2 border-t border-border p-2">
+        <form onSubmit={submit} className="space-y-2 px-2 pb-2">
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -244,25 +293,101 @@ function Lane({
           />
           <div className="flex items-center gap-2">
             <Button type="submit" size="sm" disabled={!title.trim()}>
-              Add
+              Add card
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAdding(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setAdding(false);
+                setTitle("");
+              }}
+            >
               Cancel
             </Button>
           </div>
         </form>
       ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="m-1 justify-start"
+        <button
+          type="button"
           onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 px-3 pb-2.5 pt-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          <Plus className="h-4 w-4" /> Add card
-        </Button>
+          <Plus className="h-3.5 w-3.5" /> Add a card
+        </button>
       )}
       <span className="sr-only">board {boardId}</span>
     </div>
+  );
+}
+
+// Trailing column at the right end of the board (Trello convention) so a
+// new list can be added inline without scrolling back to a top-bar button.
+function AddListColumn({
+  onAdd,
+  pending,
+}: {
+  onAdd: (name: string) => void;
+  pending: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const v = name.trim();
+    if (!v) return;
+    onAdd(v);
+    setName("");
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="flex w-72 flex-shrink-0 items-center gap-2 self-start border border-dashed border-border bg-background/40 px-3 py-3 text-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+      >
+        <Plus className="h-4 w-4" /> Add another list
+      </button>
+    );
+  }
+  return (
+    <form
+      onSubmit={submit}
+      className="flex w-72 flex-shrink-0 flex-col gap-2 self-start border border-border bg-muted p-2"
+    >
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="List name"
+        className="h-9"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setEditing(false);
+            setName("");
+          }
+        }}
+      />
+      <div className="flex items-center gap-2">
+        <Button type="submit" size="sm" disabled={!name.trim() || pending}>
+          {pending ? "Adding…" : "Add list"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setEditing(false);
+            setName("");
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -271,13 +396,13 @@ export default function BoardDetail() {
   const { data, isLoading, error } = useBoard(id);
   const createList = useCreateList();
   const deleteList = useDeleteList();
+  const renameList = useRenameList();
   const createCard = useCreateCard();
   const move = useMoveCard();
+  const galleryProfiles = useGalleryProfiles().data ?? [];
 
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
-  const [addingList, setAddingList] = useState(false);
-  const [newListName, setNewListName] = useState("");
 
   // Local optimistic copy so drag feels instant.
   const [localLists, setLocalLists] = useState(
@@ -374,13 +499,9 @@ export default function BoardDetail() {
     }
   }
 
-  async function onAddList(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newListName.trim()) return;
+  async function onAddList(name: string) {
     try {
-      await createList.mutateAsync({ board_id: id, name: newListName.trim() });
-      setNewListName("");
-      setAddingList(false);
+      await createList.mutateAsync({ board_id: id, name });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -397,6 +518,14 @@ export default function BoardDetail() {
   async function onDeleteList(list_id: string) {
     try {
       await deleteList.mutateAsync({ board_id: id, id: list_id });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function onRenameList(list_id: string, name: string) {
+    try {
+      await renameList.mutateAsync({ board_id: id, id: list_id, name });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -427,35 +556,16 @@ export default function BoardDetail() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="sm">
           <Link to="/kanban">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </Button>
         <h1 className="text-xl font-semibold tracking-tight">{data.name}</h1>
-        <div className="ml-auto" />
-        {addingList ? (
-          <form onSubmit={onAddList} className="flex items-center gap-2">
-            <Input
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="List name"
-              className="h-9 w-40"
-              autoFocus
-            />
-            <Button type="submit" size="sm" disabled={!newListName.trim()}>
-              Add
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAddingList(false)}>
-              Cancel
-            </Button>
-          </form>
-        ) : (
-          <Button size="sm" variant="outline" onClick={() => setAddingList(true)}>
-            <Plus className="h-4 w-4" /> List
-          </Button>
-        )}
+        <div className="ml-auto">
+          <AvatarStack members={galleryProfiles} max={5} />
+        </div>
       </div>
 
       <DndContext
@@ -464,7 +574,7 @@ export default function BoardDetail() {
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        <div className="flex items-start gap-3 overflow-x-auto pb-4">
           {localLists.map((l) => (
             <Lane
               key={l.id}
@@ -473,18 +583,15 @@ export default function BoardDetail() {
               boardId={id}
               onAddCard={onAddCard}
               onDeleteList={onDeleteList}
+              onRenameList={onRenameList}
               onOpenCard={(c) => setOpenCardId(c.id)}
             />
           ))}
-          {localLists.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No lists yet. Click "List" above to add one.
-            </p>
-          ) : null}
+          <AddListColumn onAdd={onAddList} pending={createList.isPending} />
         </div>
         <DragOverlay>
           {activeCard ? (
-            <div className="rounded-md border border-foreground/40 bg-card p-2.5 text-sm shadow-lg">
+            <div className="border border-foreground/40 bg-card p-2.5 text-sm">
               {activeCard.title}
             </div>
           ) : null}

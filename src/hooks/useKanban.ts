@@ -191,6 +191,26 @@ export function useDeleteList() {
   });
 }
 
+export function useRenameList() {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    { board_id: string; id: string; name: string }
+  >({
+    mutationFn: async ({ id, name }) => {
+      const { error } = await supabase
+        .from("lists")
+        .update({ name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["board", vars.board_id] });
+    },
+  });
+}
+
 export function useCreateCard() {
   const qc = useQueryClient();
   return useMutation<
