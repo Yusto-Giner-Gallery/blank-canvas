@@ -34,6 +34,7 @@ export default function App() {
   return (
     <LocaleProvider>
       <LayoutModeProvider>
+      <LightboxProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup-contact" element={<PublicSignup />} />
