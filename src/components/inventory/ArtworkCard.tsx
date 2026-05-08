@@ -64,7 +64,16 @@ export function ArtworkCard({
     >
       <div className="relative aspect-square w-full bg-muted">
         {url ? (
-          <img src={url} alt="" className="h-full w-full object-contain" />
+          <img
+            src={url}
+            alt=""
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              lightbox.open({ src: url, alt: artwork.title });
+            }}
+            className="h-full w-full cursor-zoom-in object-contain"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <ImageOff className="h-6 w-6 text-muted-foreground" />
