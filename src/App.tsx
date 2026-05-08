@@ -70,6 +70,7 @@ export default function App() {
         </Route>
       </Routes>
       <Toaster />
+      </LightboxProvider>
       </LayoutModeProvider>
     </LocaleProvider>
   );
