@@ -187,11 +187,24 @@ export const STRINGS: Record<string, Entry> = {
   "activity.entity.contact": { en: "a contact", es: "un contacto" },
   "activity.entity.invoice": { en: "an invoice", es: "una factura" },
   "activity.entity.deal": { en: "a deal", es: "un trato" },
-  "activity.entity.card": { en: "a kanban card", es: "una tarjeta" },
+  "activity.entity.card": { en: "a Shirika card", es: "una tarjeta de Shirika" },
   "activity.entity.loan": { en: "a loan", es: "un préstamo" },
   "activity.entity.consignment": { en: "a consignment", es: "una consignación" },
   "activity.entity.shipment": { en: "a shipment", es: "un envío" },
   "activity.entity.document": { en: "a document", es: "un documento" },
+
+  // Named-entity templates — used when useActivityContext has resolved
+  // a label for the row's entity. {name} is the artwork title / contact
+  // full name / card title / etc.
+  "activity.named.artwork": { en: 'artwork "{name}"', es: 'obra «{name}»' },
+  "activity.named.contact": { en: 'contact "{name}"', es: 'contacto «{name}»' },
+  "activity.named.invoice": { en: "invoice {name}", es: "factura {name}" },
+  "activity.named.deal": { en: 'deal — {name}', es: 'trato — {name}' },
+  "activity.named.card": { en: 'Shirika card "{name}"', es: 'tarjeta de Shirika «{name}»' },
+  "activity.named.loan": { en: 'loan on "{name}"', es: 'préstamo de «{name}»' },
+  "activity.named.consignment": { en: 'consignment on "{name}"', es: 'consignación de «{name}»' },
+  "activity.named.shipment": { en: 'shipment of "{name}"', es: 'envío de «{name}»' },
+  "activity.named.document": { en: 'document "{name}"', es: 'documento «{name}»' },
   "activity.relative.justNow": { en: "just now", es: "justo ahora" },
   "activity.relative.minute": { en: "min", es: "min" },
   "activity.relative.hour": { en: "h", es: "h" },

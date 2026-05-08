@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useGlobalActivity, type ActivityLogRow } from "@/hooks/useActivityLog";
+import { useActivityContext } from "@/hooks/useActivityContext";
 import { useT, useLocale } from "@/lib/i18n/LocaleContext";
 import type { ActivityEntityType, Json } from "@/integrations/supabase/domain";
 
@@ -93,6 +94,11 @@ export function ActivityStream({ limit = 30 }: { limit?: number }) {
   const rows = (data ?? []).filter(
     (r) => !r.field || !SKIP_FIELDS.has(r.field),
   );
+  // Resolve names + parent context for the rows we're about to show.
+  // Rows render with the unnamed phrasing while context loads, then
+  // upgrade to "Shirika card 'Ship feet'" once names land.
+  const ctx = useActivityContext(rows);
+  const ctxMap = ctx.data;
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">{t("activity.empty")}</p>
@@ -101,10 +107,11 @@ export function ActivityStream({ limit = 30 }: { limit?: number }) {
   return (
     <ul className="divide-y divide-border border border-border">
       {rows.map((row) => {
-        const href = targetUrl(row);
+        const entry = ctxMap?.get(`${row.entity_type}:${row.entity_id}`);
+        const href = entry?.href ?? targetUrl(row);
         const content = (
           <>
-            <span className="flex-1">{describeRow(row, t)}</span>
+            <span className="flex-1">{describeRow(row, t, entry?.label)}</span>
             <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
               {relativeTime(row.created_at, locale, t)}
             </span>
@@ -169,10 +176,15 @@ function targetUrl(row: ActivityLogRow): string | null {
 function describeRow(
   row: ActivityLogRow,
   t: (k: string, vars?: Record<string, string | number>) => string,
+  name?: string,
 ): string {
   const actor = row.actor?.full_name?.trim() || t("activity.someone");
   const entityType = row.entity_type as ActivityEntityType;
-  const entity = t(`activity.entity.${entityType}`);
+  // Named when useActivityContext has resolved the row's label, unnamed
+  // (the existing "a Shirika card" / "an artwork" phrase) otherwise.
+  const entity = name
+    ? t(`activity.named.${entityType}`, { name })
+    : t(`activity.entity.${entityType}`);
 
   // Field-level update.
   if (row.field) {
