@@ -421,11 +421,12 @@ function CoverPage({
             key={name}
             style={{
               color: accent,
-              fontSize: 14,
+              fontSize: 16,
               marginTop: 2,
               fontWeight: 700,
               lineHeight: 1,
               textDecoration: "underline",
+              textTransform: "uppercase",
             }}
           >
             {name}
