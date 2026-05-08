@@ -10,6 +10,7 @@ import {
   KanbanSquare,
   Shield,
   Inbox,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
@@ -34,37 +35,76 @@ const items: Item[] = [
   { to: "/feedback", label: "Feedback", icon: Inbox, adminOnly: true },
 ];
 
-export function Sidebar() {
+function Wordmark() {
+  return (
+    <div className="flex h-14 items-center gap-2 border-b border-border px-4 text-sm font-semibold uppercase tracking-[0.22em]">
+      <span>Yusto</span>
+      <span aria-hidden className="text-accent-red text-base font-normal leading-none">/</span>
+      <span>Giner</span>
+    </div>
+  );
+}
+
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { isAdmin } = useProfile();
   const visible = items.filter((i) => !i.adminOnly || isAdmin);
+  return (
+    <nav className="flex-1 space-y-px px-0 pb-4 pt-2">
+      {visible.map(({ to, label, icon: Icon }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={to === "/"}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 border-l-2 px-3 py-2 text-sm font-medium uppercase tracking-wider transition-colors",
+              isActive
+                ? "border-accent-red bg-accent text-accent-foreground"
+                : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+            )
+          }
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
 
+export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
-      <div className="flex h-14 items-center gap-2 border-b border-border px-4 text-sm font-semibold uppercase tracking-[0.22em]">
-        <span>Yusto</span>
-        <span aria-hidden className="text-accent-red text-base font-normal leading-none">/</span>
-        <span>Giner</span>
-      </div>
-      <nav className="flex-1 space-y-px px-0 pb-4 pt-2">
-        {visible.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 border-l-2 px-3 py-2 text-sm font-medium uppercase tracking-wider transition-colors",
-                isActive
-                  ? "border-accent-red bg-accent text-accent-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-              )
-            }
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      <Wordmark />
+      <NavList />
     </aside>
+  );
+}
+
+export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 md:hidden">
+      <div
+        className="absolute inset-0 bg-background/80"
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside className="relative flex h-full w-64 flex-col border-r border-border bg-background">
+        <div className="relative">
+          <Wordmark />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <NavList onNavigate={onClose} />
+      </aside>
+    </div>
   );
 }

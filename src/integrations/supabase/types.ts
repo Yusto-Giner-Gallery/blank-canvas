@@ -680,6 +680,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          company: string | null
           created_at: string
           deleted_at: string | null
           email: string
@@ -689,9 +690,13 @@ export type Database = {
           interest: string | null
           newsletter_opt_in: boolean
           notes: string | null
+          phone: string | null
+          role: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          company?: string | null
           created_at?: string
           deleted_at?: string | null
           email: string
@@ -701,9 +706,13 @@ export type Database = {
           interest?: string | null
           newsletter_opt_in?: boolean
           notes?: string | null
+          phone?: string | null
+          role?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          company?: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string
@@ -713,7 +722,10 @@ export type Database = {
           interest?: string | null
           newsletter_opt_in?: boolean
           notes?: string | null
+          phone?: string | null
+          role?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {

@@ -17,7 +17,11 @@ export function TopBar({ onOpenNav }: { onOpenNav?: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="text-sm text-muted-foreground md:hidden">YGManager</span>
+        <span className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.22em] md:hidden">
+          <span>Yusto</span>
+          <span aria-hidden className="text-accent-red text-base font-normal leading-none">/</span>
+          <span>Giner</span>
+        </span>
       </div>
       <div className="flex items-center gap-3">
         {user ? (
