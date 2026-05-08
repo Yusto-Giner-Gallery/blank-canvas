@@ -45,6 +45,7 @@ type CollectionRowExpanded = Collection & {
       year: number | null;
       medium: string | null;
       price_eur: number | null;
+      is_nfs: boolean;
       location_id: string | null;
       gallery_id: string;
       artist_id: string;

@@ -122,6 +122,7 @@ speculative dependency choices.
 - **Drag-and-drop (everywhere — Kanban, dossier image swap, collections, sortable cards):** `@dnd-kit/core` + `@dnd-kit/sortable`. One library, every drag interaction.
 - **PDF:** `@react-pdf/renderer` (client-side, see §2)
 - **CSV import/export:** `papaparse`
+- **Client-side zip:** `jszip` — used by the artwork action rail's "Download images" entry to bundle every `artwork_images` row for an artwork into a single `.zip` without a server round-trip. ~95 KB, no Node-only deps, survives a Lovable import.
 - **QR codes:** `qrcode.react`
 - **Dates:** `date-fns`
 - **Icons:** `lucide-react` (shadcn default)
@@ -212,7 +213,7 @@ ygmanager/
 - `profiles (id=auth.users.id, gallery_id, role: 'admin'|'staff', full_name)`
 - `artists (id, gallery_id, name, nationality, bio, deleted_at)`
 - `locations (id, gallery_id, name)` — physical places. A "set" *is* a location
-- `artworks (id, gallery_id, internal_id, title, artist_id, year, medium, width_cm, height_cm, depth_cm, price_eur, location_id, status, notes, deleted_at)` — `status` enum: `'available' | 'on_hold' | 'sold' | 'archived'` (locked feature 3; widen here if more states are needed)
+- `artworks (id, gallery_id, internal_id, title, artist_id, year, medium, width_cm, height_cm, depth_cm, price_eur, location_id, status, is_nfs, notes, deleted_at)` — `status` enum: `'available' | 'on_hold' | 'sold' | 'archived'` (locked feature 3; widen here if more states are needed). `is_nfs boolean default false` is **orthogonal** to status: a piece can be `available + is_nfs=true` (museum loan, artist's keep) or `on_hold + is_nfs=true`. NFS hides the price from external surfaces (dossiers, tearsheets) but does not change inventory state.
 - `artwork_images (id, artwork_id, storage_path, sort_order, is_primary)`
 - `collections (id, gallery_id, name, kind: 'exhibition'|'fair'|'viewing_room')` — curated, not physical
 - `collection_artworks (collection_id, artwork_id, sort_order)`
@@ -229,6 +230,10 @@ ygmanager/
 - `card_artwork_mentions (card_id, artwork_id)` — drives the "orange in inventory" rule
 - `activity_log (id, gallery_id, entity_type, entity_id, profile_id, field, before, after, event_type, created_at)`
 - `contact_activity (id, contact_id, kind, ref_id)` — artworks shown, dossiers sent, replies, purchases
+- `loans (id, gallery_id, artwork_id, contact_id, start_date, end_date, status, notes, created_at, updated_at)` — `status` enum `'active' | 'returned' | 'overdue'` (Phase 2 of the inventory action rail). Multiple loans per artwork allowed historically; only one can have `status='active'` at a time, enforced by a partial unique index on `(artwork_id) WHERE status='active'`. The `overdue` status is computed: a Postgres function flips `active → overdue` when `end_date < current_date`, run nightly via `pg_cron` or on read via a view (Lovable picks). An overdue loan flips `needs_attention=true` in `artworks_with_attention`.
+- `consignments (id, gallery_id, artwork_id, partner_contact_id, start_date, end_date, split_pct, status, notes, created_at, updated_at)` — `status` enum `'active' | 'returned' | 'sold'`. `split_pct` is the gallery's share (so 60 means gallery keeps 60%, partner gets 40%). Same partial-unique-on-active rule as loans. When `status='sold'`, the line is closed; the actual invoice lives in `invoices`.
+- `shipments (id, gallery_id, artwork_id, from_location_id, to_contact_id, to_address jsonb, carrier, tracking_no, status, shipped_at, delivered_at, notes, created_at, updated_at)` — `status` enum `'prep' | 'in_transit' | 'delivered' | 'returned'`. `in_transit` flips `needs_attention=true` in `artworks_with_attention`. Either `to_contact_id` (contact's address-on-file) or free-text `to_address` (jsonb: `{name, line1, line2, city, region, postcode, country}`) — the dialog enforces XOR.
+- `artwork_documents (id, gallery_id, artwork_id, storage_path, filename, mime_type, byte_size, uploaded_by, created_at)` — non-image attachments (certificates of authenticity, condition reports, signed agreements). Storage bucket `artwork-documents`, RLS-scoped by `gallery_id` prefix (same pattern as `artwork-images`). No soft delete: removing a row removes the file. Hard ceiling on `byte_size` is enforced at the bucket policy level on Lovable; the dialog rejects > 25 MB client-side as a friendly pre-check.
 
 **RLS:** every policy joins through `profiles.gallery_id = row.gallery_id`. `client_portal` role added later via new policies, no schema change.
 
@@ -242,6 +247,13 @@ or comment contains `@artwork:<internal_id>`:
 1. Insert/update a row in `card_artwork_mentions`.
 2. Append a structured note to `artworks.notes` of the form `[card:<board>/<list>] <card title> — <due_date>`. (Append, never overwrite — full audit lives in `activity_log`.)
 3. If the card has `labels @> ARRAY['shipping']` or `due_date <= now() + interval '7 days'`, the artwork shows in orange in inventory until the card is closed or the label/due-date changes. Implemented as a database **view** `artworks_with_attention`, not a stored column — recomputes for free.
+
+**Attention view scope (full):** `artworks_with_attention.needs_attention` is `true` for any artwork that has at least one of:
+1. a Kanban card mentioning it via `card_artwork_mentions`, where the card has `labels @> ARRAY['shipping']` or `due_date <= now() + interval '7 days'` (the F13a rule above);
+2. an active row in `loans` with `status='overdue'`;
+3. a row in `shipments` with `status='in_transit'`.
+
+The view is the single source of truth — UI never recomputes locally. Lovable owns the view definition.
 
 **Activity log scope:** every UPDATE on `artworks`, `contacts`, `invoices`,
 `deals`, `cards` writes a row to `activity_log` with `field`, `before`,
@@ -357,16 +369,17 @@ not in this repo. This repo ships the frontend (UI, hooks, types, routing,
 client logic) and **documents** the schema; Lovable Cloud is responsible for:
 
 - Creating the Supabase project in `eu-central-1` (Frankfurt).
-- Writing and applying SQL migrations matching §6 (galleries, profiles, role enum, artists, locations, artworks, artwork_images, collections, collection_artworks, contacts, tags, contact_tags, dossiers, invoices, invoice_lines, deals, boards, lists, cards, card_members, card_checklist, card_comments, card_attachments, card_artwork_mentions, activity_log, contact_activity).
-- Writing RLS policies: every policy joins through `profiles.gallery_id = row.gallery_id`. Future `client_portal` role added via new policies, no schema change.
-- The `log_change()` trigger function (generic, attached to all auditable tables; writes to `activity_log`).
-- The `artworks_with_attention` view (computed `needs_attention` from card mentions, due dates, and `'shipping'` label).
+- Writing and applying SQL migrations matching §6 (galleries, profiles, role enum, artists, locations, artworks, artwork_images, collections, collection_artworks, contacts, tags, contact_tags, dossiers, invoices, invoice_lines, deals, boards, lists, cards, card_members, card_checklist, card_comments, card_attachments, card_artwork_mentions, activity_log, contact_activity, **loans, consignments, shipments, artwork_documents** — Phase 2 of the inventory action rail). Plus the `is_nfs boolean default false` column on `artworks`. Plus the new enums `loan_status` (`active|returned|overdue`), `consignment_status` (`active|returned|sold`), `shipment_status` (`prep|in_transit|delivered|returned`).
+- Writing RLS policies: every policy joins through `profiles.gallery_id = row.gallery_id`. Future `client_portal` role added via new policies, no schema change. RLS for `loans`, `consignments`, `shipments`, `artwork_documents` follows the same `gallery_id` pattern. The partial-unique indexes `loans (artwork_id) WHERE status='active'` and `consignments (artwork_id) WHERE status='active'` enforce one-active-at-a-time.
+- The `log_change()` trigger function (generic, attached to all auditable tables; writes to `activity_log`). **Phase 2:** extend the trigger to `loans`, `consignments`, `shipments`, `artwork_documents`, and add `'loan' | 'consignment' | 'shipment' | 'document'` to the `activity_entity_type` enum so the per-artwork timeline can narrate "loaned to X", "shipped via DHL", "document uploaded".
+- The `artworks_with_attention` view (computed `needs_attention` from card mentions, due dates, and `'shipping'` label). **Phase 2:** the same view also flips `needs_attention=true` when any `loans.status='overdue'` or `shipments.status='in_transit'` row references the artwork (see §6 attention view scope).
+- A nightly `pg_cron` job (or a stored function called from a cheap edge cron) that flips `loans.status` from `active` to `overdue` whenever `end_date < current_date`. If `pg_cron` is unavailable, embed the same logic in the view (`CASE WHEN status='active' AND end_date < current_date THEN 'overdue' ELSE status END`) so the read path is always correct without a writer.
 - The `invite-staff` edge function (admin-only; `supabase.auth.admin.inviteUserByEmail` + insert profile row with `role='staff'` and the caller's `gallery_id`).
-- Storage buckets: `artwork-images`, `card-attachments`, `dossier-exports`. RLS-scoped by `gallery_id` prefix. If buckets are private, replace `imageUrl()` (currently `getPublicUrl`) with `createSignedUrl()`.
+- Storage buckets: `artwork-images`, `card-attachments`, `dossier-exports`, **`artwork-documents`** (Phase 2). All RLS-scoped by `gallery_id` prefix. If buckets are private, replace `imageUrl()` / `documentUrl()` (currently `getPublicUrl`) with `createSignedUrl()`. The `artwork-documents` bucket should additionally cap object size to 25 MB and restrict MIME types to `application/pdf`, `image/*`, common office types — bucket policy, not application code.
 - The `create-payment-link` edge function (feature 11): authenticated; reads `invoice_lines`, builds a Stripe Payment Link in **EUR test mode**, patches `invoices.stripe_payment_link`, returns `{ url }` to the client.
 - Stripe webhook edge function (feature 11): on `checkout.session.completed` for the relevant link, sets `invoices.status = 'paid'`.
 - **Anonymous-INSERT RLS policy on `contacts`** for the `/signup-contact` public route (feature 9): allows `INSERT` from `anon` role only when `gallery_id` matches the path's `?gallery=` argument; rate-limit at the edge if abused.
-- **Realtime channel scope** must be expanded beyond the F6 `artworks*` baseline to include: `collection_artworks`, `dossiers`, `contacts`, `contact_activity`, `invoices`, `invoice_lines`, `deals`, `cards`, `lists`, `boards`, `card_artwork_mentions`, `card_members`, `card_checklist`, `card_comments`, `card_attachments` — i.e. every table the UI cares about for cross-tab sync.
+- **Realtime channel scope** must be expanded beyond the F6 `artworks*` baseline to include: `collection_artworks`, `dossiers`, `contacts`, `contact_activity`, `invoices`, `invoice_lines`, `deals`, `cards`, `lists`, `boards`, `card_artwork_mentions`, `card_members`, `card_checklist`, `card_comments`, `card_attachments`, **`loans`, `consignments`, `shipments`, `artwork_documents`** (Phase 2) — i.e. every table the UI cares about for cross-tab sync.
 
 The frontend is written so that, once the schema exists, it works without
 changes — types in `src/integrations/supabase/types.ts` already match §6.
