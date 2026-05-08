@@ -434,9 +434,11 @@ function Slash({ accent }: { accent: string }) {
   // One continuous slash that color-inverts at the band edge (x=BAND_W):
   // white where it crosses the coral panel, coral where it crosses the
   // white panel. Mirrors the PDF cover geometry.
-  const x1 = 450;
+  // Equidistant: midpoint sits exactly on the band edge (x = BAND_W),
+  // so the coral and white halves have identical length.
+  const x1 = BAND_W + 100;
   const y1 = 200;
-  const x2 = 250;
+  const x2 = BAND_W - 100;
   const y2 = 480;
   const sw = 20;
   return (
