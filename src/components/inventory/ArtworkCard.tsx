@@ -30,6 +30,7 @@ export function ArtworkCard({
 }) {
   const url = imageUrl(artwork.primary_image?.storage_path);
   const size = formatSize(artwork.width_cm, artwork.height_cm, artwork.depth_cm);
+  const lightbox = useLightbox();
 
   const longPress = useLongPress<HTMLAnchorElement>((e) => {
     if (!onQuickEdit) return;
