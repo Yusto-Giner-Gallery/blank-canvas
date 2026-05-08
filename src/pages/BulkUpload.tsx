@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Sparkles, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
   type DraftArtwork,
 } from "@/hooks/useUploadArtworks";
 import { parseFilename, type ParseResult } from "@/lib/filename-parser";
+import { cleanupFilenames } from "@/lib/ai/client";
 import type { ArtworkStatus } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ export default function BulkUpload() {
   const upload = useUploadArtworks();
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [aiCleaning, setAiCleaning] = useState(false);
 
   const artists = artistsQuery.data ?? [];
   const locations = locationsQuery.data ?? [];
@@ -151,6 +153,71 @@ export default function BulkUpload() {
     }
   }
 
+  async function onAiCleanup() {
+    if (drafts.length === 0) return;
+    setAiCleaning(true);
+    try {
+      const cleaned = await cleanupFilenames(
+        drafts.map((d) => ({
+          id: d.client_key,
+          filename: d.file.name,
+          current: {
+            title: d.title || null,
+            artist_name:
+              d.artist_id
+                ? artists.find((a) => a.id === d.artist_id)?.name ?? null
+                : d.artist_name_new || null,
+            medium: d.medium,
+            width_cm: d.width_cm,
+            height_cm: d.height_cm,
+            depth_cm: d.depth_cm,
+            year: d.year,
+            price_eur: d.price_eur,
+          },
+        })),
+        artists.map((a) => a.name),
+      );
+      const byId = new Map(cleaned.map((c) => [c.id, c]));
+      setDrafts((prev) =>
+        prev.map((d) => {
+          const c = byId.get(d.client_key);
+          if (!c) return d;
+          // Match the AI-suggested artist name against the known list;
+          // fall back to "create new" if it's a new name.
+          const matched =
+            c.artist_name && c.artist_name.trim()
+              ? artists.find(
+                  (a) =>
+                    a.name.trim().toLowerCase() ===
+                    c.artist_name!.trim().toLowerCase(),
+                )
+              : undefined;
+          return {
+            ...d,
+            title: c.title?.trim() || d.title,
+            artist_id: matched?.id ?? null,
+            artist_name_new: matched
+              ? null
+              : c.artist_name?.trim() || d.artist_name_new,
+            medium: c.medium ?? d.medium,
+            width_cm: c.width_cm ?? d.width_cm,
+            height_cm: c.height_cm ?? d.height_cm,
+            depth_cm: c.depth_cm ?? d.depth_cm,
+            year: c.year ?? d.year,
+            price_eur: c.price_eur ?? d.price_eur,
+          };
+        }),
+      );
+      toast.success(`Cleaned up ${cleaned.length} row${cleaned.length === 1 ? "" : "s"}.`);
+    } catch (err) {
+      toast.error(
+        `AI cleanup failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setAiCleaning(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -215,7 +282,7 @@ export default function BulkUpload() {
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[1500px] text-sm">
+          <table className="w-full min-w-[1600px] text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
                 <th className="w-16 px-3 py-2 text-left font-medium">Image</th>
@@ -227,8 +294,8 @@ export default function BulkUpload() {
                 <th className="w-60 px-3 py-2 text-left font-medium">
                   Size (cm)
                 </th>
-                <th className="w-56 px-3 py-2 text-left font-medium">Medium</th>
-                <th className="w-28 px-3 py-2 text-left font-medium">Year</th>
+                <th className="w-72 px-3 py-2 text-left font-medium">Medium</th>
+                <th className="w-32 px-3 py-2 text-left font-medium">Year</th>
                 <th className="w-28 px-3 py-2 text-left font-medium">
                   Price (€)
                 </th>
@@ -464,6 +531,14 @@ export default function BulkUpload() {
         <Label className="mr-auto text-xs text-muted-foreground">
           {drafts.length} file{drafts.length === 1 ? "" : "s"} ready
         </Label>
+        <Button
+          variant="outline"
+          onClick={onAiCleanup}
+          disabled={drafts.length === 0 || aiCleaning || upload.isPending}
+        >
+          <Sparkles className="h-4 w-4" />
+          {aiCleaning ? "Cleaning…" : "AI cleanup"}
+        </Button>
         <Button
           onClick={onSubmit}
           disabled={!ready || upload.isPending}

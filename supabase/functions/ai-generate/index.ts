@@ -8,6 +8,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+type CleanupRow = {
+  id: string;
+  filename: string;
+  current: {
+    title: string | null;
+    artist_name: string | null;
+    medium: string | null;
+    width_cm: number | null;
+    height_cm: number | null;
+    depth_cm: number | null;
+    year: number | null;
+    price_eur: number | null;
+  };
+};
+
 type AIRequest =
   | {
       kind: "exhibition_blurb";
@@ -41,6 +56,11 @@ type AIRequest =
         artist?: { name: string } | null;
       };
       contact_name?: string;
+    }
+  | {
+      kind: "cleanup_filenames";
+      rows: CleanupRow[];
+      known_artists: string[];
     };
 
 function buildMessages(req: AIRequest): {
@@ -80,6 +100,28 @@ function buildMessages(req: AIRequest): {
         system:
           "You write personalised collector outreach emails on behalf of a gallery. Warm, concise, 80–140 words, no subject line, plain text body only. Sign off with 'Best,' on its own line.",
         user: `Recipient: ${req.contact_name ?? "(unnamed collector)"}\nFeatured work: "${a.title}"${a.artist?.name ? ` by ${a.artist.name}` : ""}${a.year ? `, ${a.year}` : ""}${a.medium ? ` (${a.medium})` : ""}\n\nWrite the email body.`,
+      };
+    }
+    case "cleanup_filenames": {
+      const known = req.known_artists.length
+        ? req.known_artists.map((n) => `- ${n}`).join("\n")
+        : "(none)";
+      const rowsBlock = JSON.stringify(req.rows, null, 2);
+      return {
+        system: [
+          "You clean up auto-extracted artwork metadata from filenames for an art gallery's bulk upload.",
+          "For each row, look at the original filename and the parser's current guess. Correct any errors:",
+          "- title: just the artwork's title. No commas, no leftover medium/size/year text, no orphan punctuation.",
+          "- artist_name: ONLY when an exact case-insensitive match against the known artists list. Otherwise null.",
+          "- medium: the technique/material — phrases like 'Oil on Canvas', 'Mixed Media on Linen', 'Bronze', 'Watercolor on Paper'.",
+          "- width_cm, height_cm, depth_cm: numbers in cm. Ignore image-pixel dimensions when an explicit cm size exists.",
+          "- year: 4-digit year or null.",
+          "- price_eur: number (euros) or null.",
+          "Return STRICT JSON with this exact shape — nothing else, no markdown fences, no commentary:",
+          '{"rows":[{"id":"<row id>","title":"<string|null>","artist_name":"<string|null>","medium":"<string|null>","width_cm":<number|null>,"height_cm":<number|null>,"depth_cm":<number|null>,"year":<number|null>,"price_eur":<number|null>}]}',
+          "Every row in the input must appear in the output, keyed by the same id.",
+        ].join("\n"),
+        user: `Known artists:\n${known}\n\nRows to clean:\n${rowsBlock}`,
       };
     }
   }

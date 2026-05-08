@@ -6,6 +6,33 @@
 import { supabase } from "@/lib/supabase";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 
+export type CleanupRow = {
+  id: string;
+  filename: string;
+  current: {
+    title: string | null;
+    artist_name: string | null;
+    medium: string | null;
+    width_cm: number | null;
+    height_cm: number | null;
+    depth_cm: number | null;
+    year: number | null;
+    price_eur: number | null;
+  };
+};
+
+export type CleanedRow = {
+  id: string;
+  title: string | null;
+  artist_name: string | null;
+  medium: string | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  depth_cm: number | null;
+  year: number | null;
+  price_eur: number | null;
+};
+
 export type AIRequest =
   | {
       kind: "exhibition_blurb";
@@ -21,6 +48,11 @@ export type AIRequest =
       kind: "collector_pitch";
       artwork: ArtworkListItem;
       contact_name?: string;
+    }
+  | {
+      kind: "cleanup_filenames";
+      rows: CleanupRow[];
+      known_artists: string[];
     };
 
 const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
@@ -29,6 +61,13 @@ const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
 
 function stubResponse(req: AIRequest): string {
   switch (req.kind) {
+    case "cleanup_filenames": {
+      // Stub: echo current values unchanged so the UI flow still works
+      // when the AI provider is offline.
+      return JSON.stringify({
+        rows: req.rows.map((r) => ({ id: r.id, ...r.current })),
+      });
+    }
     case "exhibition_blurb": {
       const artistNames = Array.from(
         new Set(req.artworks.map((a) => a.artist?.name).filter(Boolean)),
@@ -82,5 +121,32 @@ export async function generateText(req: AIRequest): Promise<string> {
   if (data?.error) throw new Error(data.error);
   if (!data?.text) throw new Error("AI returned an empty response");
   return data.text;
+}
+
+// Strip optional ```json fences and parse. Models occasionally wrap JSON
+// despite being told not to.
+function parseJsonResponse(text: string): unknown {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "");
+  return JSON.parse(cleaned);
+}
+
+export async function cleanupFilenames(
+  rows: CleanupRow[],
+  knownArtists: string[],
+): Promise<CleanedRow[]> {
+  if (rows.length === 0) return [];
+  const text = await generateText({
+    kind: "cleanup_filenames",
+    rows,
+    known_artists: knownArtists,
+  });
+  const parsed = parseJsonResponse(text) as { rows?: CleanedRow[] };
+  if (!parsed?.rows || !Array.isArray(parsed.rows)) {
+    throw new Error("AI cleanup returned an unexpected shape");
+  }
+  return parsed.rows;
 }
 

@@ -187,11 +187,12 @@ function titleCase(s: string): string {
 }
 
 // Collapse leftover separator junk (slug chars, commas, semicolons,
-// orphan "by") into clean words.
+// orphan "by", and stray extension words like "jpg") into clean text.
 function tidy(s: string): string {
   return s
     .replace(/[_\-–—,;]+/g, " ")
     .replace(/\b(?:by|para)\b/gi, " ") // strip orphan "by"/"para" left after artist extraction
+    .replace(/\b(?:jpg|jpeg|png|gif|webp|tiff?|bmp|heic|heif|raw)\b/gi, " ") // stray extension fragments
     .replace(/\s+/g, " ")
     .trim();
 }
