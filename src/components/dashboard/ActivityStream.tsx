@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useGlobalActivity, type ActivityLogRow } from "@/hooks/useActivityLog";
 import { useT, useLocale } from "@/lib/i18n/LocaleContext";
 import type { ActivityEntityType, Json } from "@/integrations/supabase/domain";
@@ -99,16 +100,70 @@ export function ActivityStream({ limit = 30 }: { limit?: number }) {
   }
   return (
     <ul className="divide-y divide-border border border-border">
-      {rows.map((row) => (
-        <li key={row.id} className="flex items-baseline gap-3 px-3 py-2 text-sm">
-          <span className="flex-1">{describeRow(row, t)}</span>
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {relativeTime(row.created_at, locale, t)}
-          </span>
-        </li>
-      ))}
+      {rows.map((row) => {
+        const href = targetUrl(row);
+        const content = (
+          <>
+            <span className="flex-1">{describeRow(row, t)}</span>
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              {relativeTime(row.created_at, locale, t)}
+            </span>
+          </>
+        );
+        return (
+          <li key={row.id}>
+            {href ? (
+              <Link
+                to={href}
+                className="flex items-baseline gap-3 px-3 py-2 text-sm transition-colors hover:bg-accent/40"
+              >
+                {content}
+              </Link>
+            ) : (
+              <div className="flex items-baseline gap-3 px-3 py-2 text-sm">
+                {content}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
+}
+
+// Resolve where clicking a row should land. activity_log rows store the
+// entity_id but no board / parent context, so for entities without a
+// per-id detail page (deals, cards, loans/consignments/shipments/
+// documents) we land at the closest list view from which the user can
+// drill in. Returns null if we genuinely have no destination.
+function targetUrl(row: ActivityLogRow): string | null {
+  const id = row.entity_id;
+  switch (row.entity_type as ActivityEntityType) {
+    case "artwork":
+      return `/inventory/${id}`;
+    case "contact":
+      return `/contacts/${id}`;
+    case "invoice":
+      return `/invoices/${id}`;
+    case "deal":
+      // No per-deal route — pipeline is the only deal surface.
+      return "/pipeline";
+    case "card":
+      // We don't know the board_id from the activity row; the boards
+      // list is the closest landing surface. A future enhancement could
+      // join lists+boards on the server side and deep-link with ?card=.
+      return "/kanban";
+    case "loan":
+    case "consignment":
+    case "shipment":
+    case "document":
+      // These surface from the artwork detail action rail. Without the
+      // parent artwork_id on the activity row, the inventory list is
+      // the right fallback.
+      return "/inventory";
+    default:
+      return null;
+  }
 }
 
 function describeRow(
