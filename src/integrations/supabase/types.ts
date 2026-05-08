@@ -109,6 +109,42 @@ export type Database = {
           },
         ]
       }
+      artwork_documents: {
+        Row: {
+          artwork_id: string
+          byte_size: number | null
+          created_at: string
+          filename: string
+          gallery_id: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          artwork_id: string
+          byte_size?: number | null
+          created_at?: string
+          filename: string
+          gallery_id: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          artwork_id?: string
+          byte_size?: number | null
+          created_at?: string
+          filename?: string
+          gallery_id?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       artwork_images: {
         Row: {
           artwork_id: string
@@ -616,6 +652,48 @@ export type Database = {
           },
         ]
       }
+      consignments: {
+        Row: {
+          artwork_id: string
+          created_at: string
+          end_date: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          partner_contact_id: string
+          split_pct: number
+          start_date: string
+          status: Database["public"]["Enums"]["consignment_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          partner_contact_id: string
+          split_pct?: number
+          start_date: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          partner_contact_id?: string
+          split_pct?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_activity: {
         Row: {
           contact_id: string
@@ -1063,6 +1141,45 @@ export type Database = {
           },
         ]
       }
+      loans: {
+        Row: {
+          artwork_id: string
+          contact_id: string
+          created_at: string
+          end_date: string
+          gallery_id: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["loan_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          contact_id: string
+          created_at?: string
+          end_date: string
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          contact_id?: string
+          created_at?: string
+          end_date?: string
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           created_at: string
@@ -1133,160 +1250,6 @@ export type Database = {
           },
         ]
       }
-      tags: {
-        Row: {
-          created_at: string
-          gallery_id: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          gallery_id: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          gallery_id?: string
-          id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tags_gallery_id_fkey"
-            columns: ["gallery_id"]
-            isOneToOne: false
-            referencedRelation: "galleries"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      loans: {
-        Row: {
-          artwork_id: string
-          contact_id: string
-          created_at: string
-          end_date: string | null
-          gallery_id: string
-          id: string
-          notes: string | null
-          start_date: string
-          status: Database["public"]["Enums"]["loan_status"]
-          updated_at: string
-        }
-        Insert: {
-          artwork_id: string
-          contact_id: string
-          created_at?: string
-          end_date?: string | null
-          gallery_id: string
-          id?: string
-          notes?: string | null
-          start_date: string
-          status?: Database["public"]["Enums"]["loan_status"]
-          updated_at?: string
-        }
-        Update: {
-          artwork_id?: string
-          contact_id?: string
-          created_at?: string
-          end_date?: string | null
-          gallery_id?: string
-          id?: string
-          notes?: string | null
-          start_date?: string
-          status?: Database["public"]["Enums"]["loan_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "loans_artwork_id_fkey"
-            columns: ["artwork_id"]
-            isOneToOne: false
-            referencedRelation: "artworks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "loans_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "loans_gallery_id_fkey"
-            columns: ["gallery_id"]
-            isOneToOne: false
-            referencedRelation: "galleries"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      consignments: {
-        Row: {
-          artwork_id: string
-          created_at: string
-          end_date: string | null
-          gallery_id: string
-          id: string
-          notes: string | null
-          partner_contact_id: string
-          split_pct: number
-          start_date: string
-          status: Database["public"]["Enums"]["consignment_status"]
-          updated_at: string
-        }
-        Insert: {
-          artwork_id: string
-          created_at?: string
-          end_date?: string | null
-          gallery_id: string
-          id?: string
-          notes?: string | null
-          partner_contact_id: string
-          split_pct?: number
-          start_date: string
-          status?: Database["public"]["Enums"]["consignment_status"]
-          updated_at?: string
-        }
-        Update: {
-          artwork_id?: string
-          created_at?: string
-          end_date?: string | null
-          gallery_id?: string
-          id?: string
-          notes?: string | null
-          partner_contact_id?: string
-          split_pct?: number
-          start_date?: string
-          status?: Database["public"]["Enums"]["consignment_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "consignments_artwork_id_fkey"
-            columns: ["artwork_id"]
-            isOneToOne: false
-            referencedRelation: "artworks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consignments_partner_contact_id_fkey"
-            columns: ["partner_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consignments_gallery_id_fkey"
-            columns: ["gallery_id"]
-            isOneToOne: false
-            referencedRelation: "galleries"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       shipments: {
         Row: {
           artwork_id: string
@@ -1336,91 +1299,33 @@ export type Database = {
           tracking_no?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "shipments_artwork_id_fkey"
-            columns: ["artwork_id"]
-            isOneToOne: false
-            referencedRelation: "artworks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shipments_from_location_id_fkey"
-            columns: ["from_location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shipments_to_contact_id_fkey"
-            columns: ["to_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shipments_gallery_id_fkey"
-            columns: ["gallery_id"]
-            isOneToOne: false
-            referencedRelation: "galleries"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      artwork_documents: {
+      tags: {
         Row: {
-          artwork_id: string
-          byte_size: number | null
           created_at: string
-          filename: string
           gallery_id: string
           id: string
-          mime_type: string | null
-          storage_path: string
-          uploaded_by: string | null
+          name: string
         }
         Insert: {
-          artwork_id: string
-          byte_size?: number | null
           created_at?: string
-          filename: string
           gallery_id: string
           id?: string
-          mime_type?: string | null
-          storage_path: string
-          uploaded_by?: string | null
+          name: string
         }
         Update: {
-          artwork_id?: string
-          byte_size?: number | null
           created_at?: string
-          filename?: string
           gallery_id?: string
           id?: string
-          mime_type?: string | null
-          storage_path?: string
-          uploaded_by?: string | null
+          name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "artwork_documents_artwork_id_fkey"
-            columns: ["artwork_id"]
-            isOneToOne: false
-            referencedRelation: "artworks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "artwork_documents_gallery_id_fkey"
+            foreignKeyName: "tags_gallery_id_fkey"
             columns: ["gallery_id"]
             isOneToOne: false
             referencedRelation: "galleries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "artwork_documents_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1518,6 +1423,7 @@ export type Database = {
     }
     Functions: {
       current_gallery_id: { Args: never; Returns: string }
+      flip_overdue_loans: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -51,12 +51,16 @@ export function LoanOutDialog({
       toast.error("Pick a borrower");
       return;
     }
+    if (!endDate) {
+      toast.error("Pick an end date");
+      return;
+    }
     try {
       await createLoan.mutateAsync({
         artwork_id,
         contact_id: contactId,
         start_date: startDate,
-        end_date: endDate || null,
+        end_date: endDate,
         notes: notes.trim() || null,
       });
       toast.success("Loan recorded");

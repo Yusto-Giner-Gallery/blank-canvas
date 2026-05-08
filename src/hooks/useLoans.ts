@@ -39,7 +39,7 @@ export function useCreateLoan() {
       artwork_id: string;
       contact_id: string;
       start_date: string;
-      end_date: string | null;
+      end_date: string;
       notes: string | null;
     }
   >({
