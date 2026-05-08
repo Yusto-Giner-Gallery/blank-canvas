@@ -10,7 +10,12 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { formatPrice, formatSize, palette, type CommonProps } from "./shared";
-import type { ArtworkListItem, DossierArtistIntro } from "@/integrations/supabase/domain";
+import type {
+  ArtworkListItem,
+  DossierArtistIntro,
+  DossierCustomPage,
+} from "@/integrations/supabase/domain";
+import { buildPageSequence } from "@/lib/dossier/editorial-order";
 
 // Editorial template — faithful, parameterised copy of the PARALLELS dossier.
 // Layout is fixed (cover band + slash + per-artist intro + per-artwork pages);
@@ -170,6 +175,77 @@ const local = StyleSheet.create({
   metaLine: { fontSize: 9, color: palette.body, marginTop: 2 },
   metaPrice: { fontSize: 10, color: palette.ink, fontWeight: 700, marginTop: 14 },
   metaDisclaimer: { fontSize: 8, color: palette.body },
+
+  // Full-bleed image page — image fills, optional small footer caption
+  fullImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fullImageCaption: {
+    position: "absolute",
+    bottom: 24,
+    left: MARGIN,
+    fontSize: 8,
+    color: "#ffffff",
+    textShadow: "0 0 2px rgba(0,0,0,0.5)",
+  },
+
+  // Detail zoom — same as full-bleed but contain (no crop) and on dark bg
+  detailBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#0a0a0a",
+  },
+  detailImage: {
+    position: "absolute",
+    top: 30,
+    left: 30,
+    right: 30,
+    bottom: 30,
+    objectFit: "contain",
+  },
+
+  // Pair page — two artworks side by side
+  pairLeft: {
+    position: "absolute",
+    top: 70,
+    left: MARGIN,
+    width: PAGE.width / 2 - MARGIN - 8,
+    bottom: 110,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pairRight: {
+    position: "absolute",
+    top: 70,
+    right: MARGIN,
+    width: PAGE.width / 2 - MARGIN - 8,
+    bottom: 110,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pairMetaLeft: {
+    position: "absolute",
+    left: MARGIN,
+    bottom: 50,
+    width: PAGE.width / 2 - MARGIN - 8,
+  },
+  pairMetaRight: {
+    position: "absolute",
+    right: MARGIN,
+    bottom: 50,
+    width: PAGE.width / 2 - MARGIN - 8,
+    alignItems: "flex-start",
+  },
 });
 
 function Wordmark({ galleryName, white = false }: { galleryName: string; white?: boolean }) {
@@ -280,6 +356,122 @@ function ArtistIntroPage({
   );
 }
 
+// Compact meta block (artist / title+year / medium / dimensions / price)
+// reused across artwork-page variants.
+function ArtworkMeta({
+  artwork,
+  style,
+}: {
+  artwork: ArtworkListItem;
+  style?: React.ComponentProps<typeof View>["style"];
+}) {
+  const size = formatSize(artwork);
+  const dims = size ? size.replace(/×/g, "x") : "";
+  const price = formatPrice(artwork.price_eur);
+  return (
+    <View style={style ?? local.artworkMeta}>
+      {artwork.artist?.name ? (
+        <Text style={local.metaArtist}>{artwork.artist.name}</Text>
+      ) : null}
+      <Text style={local.metaTitle}>
+        {artwork.title}
+        {artwork.year ? `, ${artwork.year}` : ""}
+      </Text>
+      {artwork.medium ? <Text style={local.metaLine}>{artwork.medium}</Text> : null}
+      {dims ? <Text style={local.metaLine}>{dims}</Text> : null}
+      {price ? (
+        <Text style={local.metaPrice}>
+          {price} <Text style={local.metaDisclaimer}>| {FIXED_DISCLAIMER}</Text>
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function FullImagePage({
+  artwork,
+  imageUrl,
+}: {
+  artwork: ArtworkListItem;
+  imageUrl: string | null;
+}) {
+  return (
+    <Page size={[PAGE.width, PAGE.height]} style={local.page}>
+      {imageUrl ? <Image src={imageUrl} style={local.fullImage} /> : null}
+      <Text style={local.fullImageCaption}>
+        {artwork.artist?.name ? `${artwork.artist.name} — ` : ""}
+        {artwork.title}
+        {artwork.year ? `, ${artwork.year}` : ""}
+      </Text>
+    </Page>
+  );
+}
+
+function DetailZoomPage({
+  imageUrl,
+}: {
+  imageUrl: string | null;
+}) {
+  // Cropped/zoom variant: dark canvas, image contained without crop, no
+  // meta block. Mirrors PARALLELS' page-8/page-21 detail spreads.
+  return (
+    <Page size={[PAGE.width, PAGE.height]} style={local.page}>
+      <View style={local.detailBg} />
+      {imageUrl ? <Image src={imageUrl} style={local.detailImage} /> : null}
+    </Page>
+  );
+}
+
+function PairPage({
+  left,
+  right,
+  leftUrl,
+  rightUrl,
+  galleryName,
+}: {
+  left: ArtworkListItem;
+  right: ArtworkListItem;
+  leftUrl: string | null;
+  rightUrl: string | null;
+  galleryName: string;
+}) {
+  return (
+    <Page size={[PAGE.width, PAGE.height]} style={local.page}>
+      <Wordmark galleryName={galleryName} />
+      <View style={local.pairLeft}>
+        {leftUrl ? <Image src={leftUrl} style={local.artworkImage} /> : null}
+      </View>
+      <View style={local.pairRight}>
+        {rightUrl ? <Image src={rightUrl} style={local.artworkImage} /> : null}
+      </View>
+      <ArtworkMeta artwork={left} style={local.pairMetaLeft} />
+      <ArtworkMeta artwork={right} style={local.pairMetaRight} />
+    </Page>
+  );
+}
+
+function CustomImagePage({
+  page,
+  imageUrl,
+  galleryName,
+}: {
+  page: DossierCustomPage;
+  imageUrl: string | null;
+  galleryName: string;
+}) {
+  return (
+    <Page size={[PAGE.width, PAGE.height]} style={local.page}>
+      {imageUrl ? <Image src={imageUrl} style={local.fullImage} /> : (
+        <View style={[local.fullImage, { backgroundColor: "#1a1a1a" }]} />
+      )}
+      <Wordmark galleryName={galleryName} />
+      {page.caption ? (
+        <Text style={local.fullImageCaption}>{page.caption}</Text>
+      ) : null}
+    </Page>
+  );
+}
+
 function ArtworkPage({
   artwork,
   imageUrl,
@@ -289,31 +481,13 @@ function ArtworkPage({
   imageUrl: string | null;
   galleryName: string;
 }) {
-  const size = formatSize(artwork);
-  const dims = size ? size.replace(/×/g, "x") : "";
-  const price = formatPrice(artwork.price_eur);
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <Wordmark galleryName={galleryName} />
       <View style={local.artworkImageBox}>
         {imageUrl ? <Image src={imageUrl} style={local.artworkImage} /> : null}
       </View>
-      <View style={local.artworkMeta}>
-        {artwork.artist?.name ? (
-          <Text style={local.metaArtist}>{artwork.artist.name}</Text>
-        ) : null}
-        <Text style={local.metaTitle}>
-          {artwork.title}
-          {artwork.year ? `, ${artwork.year}` : ""}
-        </Text>
-        {artwork.medium ? <Text style={local.metaLine}>{artwork.medium}</Text> : null}
-        {dims ? <Text style={local.metaLine}>{dims}</Text> : null}
-        {price ? (
-          <Text style={local.metaPrice}>
-            {price} <Text style={local.metaDisclaimer}>| {FIXED_DISCLAIMER}</Text>
-          </Text>
-        ) : null}
-      </View>
+      <ArtworkMeta artwork={artwork} />
     </Page>
   );
 }
@@ -325,78 +499,86 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
   // to palette.accent (PARALLELS coral) so existing dossiers keep working.
   const accent = dossier.body_blocks.accent_color?.trim() || palette.accent;
 
-  // Group by canonical name (case-insensitive, trimmed) so the dossier
-  // renders one intro page + N artwork pages even when the upload pipeline
-  // has accidentally created duplicate artist rows for the same person.
-  // The first-seen artist row is the canonical entry; per-artist intro
-  // text/photo is read from that id.
-  type ArtistGroup = { id: string; name: string; artworks: ArtworkListItem[] };
-  const byName = new Map<string, ArtistGroup>();
-  const orphaned: ArtworkListItem[] = [];
-  for (const aw of artworks) {
-    if (!aw.artist) {
-      orphaned.push(aw);
-      continue;
-    }
-    const key = aw.artist.name.trim().toLowerCase();
-    const existing = byName.get(key);
-    if (existing) {
-      existing.artworks.push(aw);
-    } else {
-      byName.set(key, {
-        id: aw.artist.id,
-        name: aw.artist.name,
-        artworks: [aw],
-      });
-    }
-  }
-  const artists = Array.from(byName.values());
+  // Single source of truth for page ordering — same helper drives the HTML
+  // editor preview, so layout changes can never diverge between the two.
+  const sequence = buildPageSequence(
+    artworks,
+    dossier.body_blocks.page_layouts,
+    dossier.body_blocks.custom_pages,
+  );
+  const artistNamesForCover = sequence
+    .filter((p): p is Extract<typeof sequence[number], { type: "artist_intro" }> => p.type === "artist_intro")
+    .map((p) => p.artist.name);
 
-  // Flatten into a single page array — @react-pdf requires <Page> elements to
-  // be direct children of <Document>. Wrapping in <View> silently fails.
-  const pages: React.ReactNode[] = [
-    <CoverPage
-      key="cover"
-      showTitle={showTitle}
-      artistNames={artists.map((a) => a.name)}
-      galleryName={galleryName}
-      accent={accent}
-    />,
-  ];
-  for (const artist of artists) {
-    const intro = intros[artist.id];
-    const photoUrl = imageUrlFor(intro?.photo_path);
-    pages.push(
-      <ArtistIntroPage
-        key={`intro-${artist.id}`}
-        artistName={artist.name}
-        intro={intro}
-        photoUrl={photoUrl}
-        galleryName={galleryName}
-      />,
-    );
-    for (const aw of artist.artworks) {
-      pages.push(
-        <ArtworkPage
-          key={`aw-${aw.id}`}
-          artwork={aw}
-          imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
+  const pages: React.ReactNode[] = sequence.map((spec, i) => {
+    if (spec.type === "cover") {
+      return (
+        <CoverPage
+          key={`cover-${i}`}
+          showTitle={showTitle}
+          artistNames={artistNamesForCover}
           galleryName={galleryName}
-        />,
+          accent={accent}
+        />
       );
     }
-  }
-  // Artworks with no artist still render so nothing silently disappears.
-  for (const aw of orphaned) {
-    pages.push(
+    if (spec.type === "artist_intro") {
+      const intro = intros[spec.artist.id];
+      return (
+        <ArtistIntroPage
+          key={`intro-${spec.artist.id}`}
+          artistName={spec.artist.name}
+          intro={intro}
+          photoUrl={imageUrlFor(intro?.photo_path)}
+          galleryName={galleryName}
+        />
+      );
+    }
+    if (spec.type === "custom") {
+      return (
+        <CustomImagePage
+          key={`custom-${spec.page.id}`}
+          page={spec.page}
+          imageUrl={imageUrlFor(spec.page.image_path)}
+          galleryName={galleryName}
+        />
+      );
+    }
+    // Artwork page — pick variant.
+    const aw = spec.artwork;
+    const imgUrl = imageUrlFor(aw.primary_image?.storage_path);
+    if (spec.variant === "full_image") {
+      return <FullImagePage key={`aw-${aw.id}`} artwork={aw} imageUrl={imgUrl} />;
+    }
+    if (spec.variant === "detail_zoom") {
+      const layout = dossier.body_blocks.page_layouts?.[aw.id];
+      const detailUrl = layout?.detail_image_path
+        ? imageUrlFor(layout.detail_image_path)
+        : imgUrl;
+      return <DetailZoomPage key={`aw-${aw.id}`} imageUrl={detailUrl} />;
+    }
+    if (spec.variant === "pair_with" && spec.paired_with) {
+      const right = spec.paired_with;
+      return (
+        <PairPage
+          key={`aw-${aw.id}-${right.id}`}
+          left={aw}
+          right={right}
+          leftUrl={imgUrl}
+          rightUrl={imageUrlFor(right.primary_image?.storage_path)}
+          galleryName={galleryName}
+        />
+      );
+    }
+    return (
       <ArtworkPage
         key={`aw-${aw.id}`}
         artwork={aw}
-        imageUrl={imageUrlFor(aw.primary_image?.storage_path)}
+        imageUrl={imgUrl}
         galleryName={galleryName}
-      />,
+      />
     );
-  }
+  });
 
   return <Document title={dossier.title}>{pages}</Document>;
 }

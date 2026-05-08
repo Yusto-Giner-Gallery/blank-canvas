@@ -28,6 +28,13 @@ const dossier: any = {
         photo_path: null,
       },
     },
+    page_layouts: {
+      w2: { variant: "full_image" },
+      w3: { variant: "detail_zoom" },
+    },
+    custom_pages: [
+      { id: "c1", image_path: null as unknown as string, caption: "Installation view", position: 0 },
+    ],
   },
   image_layout: ["w1", "w2", "w3"],
 };
@@ -80,15 +87,15 @@ const artworks: any[] = [
       imageUrlFor: () => null,
     }) as any,
   );
-  // Expect: cover + 2 intro pages + 3 artwork pages = 6 pages.
-  // PDF page count is the number of "/Type /Page" entries.
+  // Expect: cover + 2 intros + 3 artworks (w1 default, w2 full, w3 detail)
+  //   + 1 custom page = 7 pages.
   const pageCount = (buf.toString("binary").match(/\/Type\s*\/Page[^s]/g) || []).length;
   console.log(`PDF rendered: ${buf.length} bytes, ${pageCount} pages`);
   const fs = await import("node:fs/promises");
   await fs.writeFile("/tmp/editorial-test.pdf", buf);
   console.log(`Wrote /tmp/editorial-test.pdf`);
-  if (pageCount !== 6) {
-    console.error(`Expected 6 pages, got ${pageCount}`);
+  if (pageCount !== 7) {
+    console.error(`Expected 7 pages, got ${pageCount}`);
     process.exit(1);
   }
 })().catch((e) => {

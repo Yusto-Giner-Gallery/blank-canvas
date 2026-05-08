@@ -26,7 +26,15 @@ import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescripti
 import { EditorialIntrosEditor } from "@/components/dossiers/EditorialIntrosEditor";
 import { SendToContactsModal } from "@/components/dossiers/SendToContactsModal";
 import { AICorrectionOverlay } from "@/components/dossiers/AICorrectionOverlay";
-import type { DossierArtistIntro, DossierKind } from "@/integrations/supabase/domain";
+import {
+  HtmlEditorPreview,
+  hasHtmlEditor,
+} from "@/components/dossiers/editor/HtmlEditorPreview";
+import type {
+  Dossier,
+  DossierArtistIntro,
+  DossierKind,
+} from "@/integrations/supabase/domain";
 
 const PdfPanel = lazy(() => import("@/components/dossiers/PdfPanel"));
 
@@ -57,11 +65,14 @@ export default function DossierEditor() {
   const [showTitle, setShowTitle] = useState("");
   const [accentColor, setAccentColor] = useState("");
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
+  const [pageLayouts, setPageLayouts] = useState<NonNullable<Dossier["body_blocks"]["page_layouts"]>>({});
+  const [customPages, setCustomPages] = useState<NonNullable<Dossier["body_blocks"]["custom_pages"]>>([]);
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string[]>([]);
   const [fillingHardcoded, setFillingHardcoded] = useState(false);
   const [sending, setSending] = useState(false);
   const [reviewing, setReviewing] = useState<{ context: string; text: string } | null>(null);
+  const [previewMode, setPreviewMode] = useState<"edit" | "pdf">("edit");
 
   // Hydrate local state from server data once.
   useEffect(() => {
@@ -74,6 +85,8 @@ export default function DossierEditor() {
     setShowTitle(d.body_blocks.show_title ?? "");
     setAccentColor(d.body_blocks.accent_color ?? "");
     setArtistIntros(d.body_blocks.artist_intros ?? {});
+    setPageLayouts(d.body_blocks.page_layouts ?? {});
+    setCustomPages(d.body_blocks.custom_pages ?? []);
     setDescriptions(d.body_blocks.artwork_descriptions ?? {});
     setLayout(d.image_layout);
   }, [dossierQuery.data]);
@@ -116,10 +129,12 @@ export default function DossierEditor() {
         accent_color:
           kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
         artist_intros: kind === "editorial" ? artistIntros : undefined,
+        page_layouts: kind === "editorial" ? pageLayouts : undefined,
+        custom_pages: kind === "editorial" ? customPages : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, pageLayouts, customPages, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -137,14 +152,31 @@ export default function DossierEditor() {
             accent_color:
               kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
             artist_intros: kind === "editorial" ? artistIntros : undefined,
+            page_layouts: kind === "editorial" ? pageLayouts : undefined,
+            custom_pages: kind === "editorial" ? customPages : undefined,
           },
           image_layout: layout,
         },
       });
       toast.success("Dossier saved");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errorMessage(e));
     }
+  }
+
+  // The HTML editor preview emits whole-block patches; we fan-out into the
+  // editor's individual setters so the existing form panel + the live PDF
+  // export both see the same source of truth (no shadow state).
+  function applyBodyBlocksPatch(patch: Partial<Dossier["body_blocks"]>) {
+    if ("intro" in patch) setIntro(patch.intro ?? "");
+    if ("show_title" in patch) setShowTitle(patch.show_title ?? "");
+    if ("accent_color" in patch) setAccentColor(patch.accent_color ?? "");
+    if ("artist_intros" in patch) setArtistIntros(patch.artist_intros ?? {});
+    if ("page_layouts" in patch) setPageLayouts(patch.page_layouts ?? {});
+    if ("custom_pages" in patch) setCustomPages(patch.custom_pages ?? []);
+    if ("artwork_descriptions" in patch)
+      setDescriptions(patch.artwork_descriptions ?? {});
+    if ("extra" in patch) setExtra(patch.extra ?? "");
   }
 
   // Editorial — Option 1: Hard-coded fill. Pulls existing fields verbatim,
@@ -397,8 +429,40 @@ export default function DossierEditor() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs text-muted-foreground">Live preview</Label>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground">Preview</Label>
+              {hasHtmlEditor(kind) ? (
+                <div className="ml-2 inline-flex items-center border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("edit")}
+                    className={
+                      "px-2 py-1 text-xs uppercase tracking-wide transition-colors " +
+                      (previewMode === "edit"
+                        ? "bg-foreground text-background"
+                        : "bg-background hover:bg-muted")
+                    }
+                    aria-pressed={previewMode === "edit"}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("pdf")}
+                    className={
+                      "px-2 py-1 text-xs uppercase tracking-wide transition-colors " +
+                      (previewMode === "pdf"
+                        ? "bg-foreground text-background"
+                        : "bg-background hover:bg-muted")
+                    }
+                    aria-pressed={previewMode === "pdf"}
+                  >
+                    PDF
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <Suspense
               fallback={
                 <Button size="sm" variant="outline" disabled>
@@ -413,22 +477,34 @@ export default function DossierEditor() {
               />
             </Suspense>
           </div>
-          <div className="h-[80vh] overflow-hidden rounded-md border border-border bg-muted">
+          <div className="h-[80vh] overflow-auto rounded-md border border-border bg-muted">
             {previewDossier ? (
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    Loading preview…
-                  </div>
-                }
-              >
-                <PdfPanel
-                  dossier={previewDossier}
-                  artworks={artworks}
-                  galleryName={galleryName}
-                  imageUrlFor={imageUrl}
-                />
-              </Suspense>
+              hasHtmlEditor(kind) && previewMode === "edit" ? (
+                <div className="p-4">
+                  <HtmlEditorPreview
+                    dossier={previewDossier}
+                    artworks={artworks}
+                    galleryName={galleryName}
+                    onUpdate={(patch) => applyBodyBlocksPatch(patch)}
+                    onUpdateTitle={(next) => setTitle(next)}
+                  />
+                </div>
+              ) : (
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                      Loading preview…
+                    </div>
+                  }
+                >
+                  <PdfPanel
+                    dossier={previewDossier}
+                    artworks={artworks}
+                    galleryName={galleryName}
+                    imageUrlFor={imageUrl}
+                  />
+                </Suspense>
+              )
             ) : null}
           </div>
         </div>
