@@ -8,6 +8,12 @@ export type ArtworkPatch = {
   price_eur?: number | null;
   title?: string;
   notes?: string | null;
+  artist_id?: string;
+  year?: number | null;
+  medium?: string | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  depth_cm?: number | null;
 };
 
 export function useUpdateArtwork() {
