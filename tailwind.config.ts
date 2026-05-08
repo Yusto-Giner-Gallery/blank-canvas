@@ -20,6 +20,9 @@ export default {
           "Apple Color Emoji",
           "Segoe UI Emoji",
         ],
+        // Logo-only typeface. Use via `font-recta` on the wordmark only;
+        // body copy stays in `font-sans` (Inter) per CLAUDE.md §3.
+        recta: ["Recta", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

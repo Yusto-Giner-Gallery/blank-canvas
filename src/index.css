@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Recta — used exclusively for the YUSTO / GINER logo wordmark per
+   CLAUDE.md §3. Body copy stays in Inter. */
+@font-face {
+  font-family: "Recta";
+  src: url("/fonts/Recta-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Recta";
+  src: url("/fonts/Recta-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Recta";
+  src: url("/fonts/Recta-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -20,6 +20,17 @@ if (typeof window !== "undefined" && !window.__ygm_pdf_fonts_registered__) {
     family: "Inter",
     fonts: [{ src: "/fonts/Inter-Bold.ttf", fontWeight: "bold" }],
   });
+  // Recta — gallery wordmark only. Registered with three weights so PDF
+  // headers and the editorial cover/interior wordmark render in the
+  // brand typeface (CLAUDE.md §3).
+  Font.register({
+    family: "Recta",
+    fonts: [
+      { src: "/fonts/Recta-Regular.otf", fontWeight: 400 },
+      { src: "/fonts/Recta-Medium.otf", fontWeight: 500 },
+      { src: "/fonts/Recta-Bold.otf", fontWeight: 700 },
+    ],
+  });
 }
 
 export type TitlePathData = {
@@ -67,7 +78,13 @@ export const baseStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
-  wordmark: { fontSize: 9, letterSpacing: 1, textTransform: "uppercase" },
+  wordmark: {
+    fontFamily: "Recta",
+    fontWeight: 500,
+    fontSize: 9,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
   kindLabel: {
     fontSize: 8,
     color: palette.muted,
