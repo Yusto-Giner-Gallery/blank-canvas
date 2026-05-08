@@ -50,7 +50,7 @@ export function EditableImageSlot({
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const id = crypto.randomUUID();
-      const path = `dossier-extras/${dossierId}/${id}-${safeName}`;
+      const path = `${profile.gallery_id}/dossier-extras/${dossierId}/${id}-${safeName}`;
       const { error } = await supabase.storage
         .from("artwork-images")
         .upload(path, file, { upsert: false });
