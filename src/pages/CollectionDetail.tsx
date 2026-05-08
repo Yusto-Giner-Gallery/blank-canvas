@@ -37,6 +37,7 @@ import { useCreateDossier } from "@/hooks/useDossiers";
 import { useProfile } from "@/hooks/useProfile";
 import { useLayoutMode } from "@/lib/layout/LayoutContext";
 import { Drawer } from "@/components/shared/Drawer";
+import { useLightbox } from "@/components/shared/Lightbox";
 import ArtworkDetail from "./ArtworkDetail";
 import type {
   ArtworkListItem,
