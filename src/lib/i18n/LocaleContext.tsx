@@ -1,22 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { resolve, type Locale } from "./translations";
+import { LocaleContext, type LocaleContextValue } from "./useLocale";
 
-// Locale provider for the app shell. Persists to localStorage so the chosen
-// language survives reloads. Exposes `t(key)` for translation and `setLocale`
-// for the Page Settings UI. No external i18n library — the translations table
-// is small enough to live in-tree, and a Lovable port stays trivial.
+// Locale provider for the app shell. Hooks live in `useLocale.ts` so
+// Fast Refresh treats this file as a pure component module.
+
+export { useLocale, useT } from "./useLocale";
 
 const STORAGE_KEY = "ygm.locale";
-
-type LocaleContextValue = {
-  locale: Locale;
-  setLocale: (next: Locale) => void;
-  /** Translate a key. Optional `vars` interpolates {placeholders} —
-   *  e.g. `t("inventory.summary", { filtered: 3, total: 12, plural: "s" })`. */
-  t: (key: string, vars?: Record<string, string | number>) => string;
-};
-
-const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 function readInitialLocale(): Locale {
   if (typeof window === "undefined") return "en";
@@ -31,7 +22,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(STORAGE_KEY, locale);
-    // Reflect on <html lang=> so spell-check + screen readers honour it.
     document.documentElement.lang = locale;
   }, [locale]);
 
@@ -55,22 +45,4 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
-}
-
-export function useLocale(): LocaleContextValue {
-  const ctx = useContext(LocaleContext);
-  if (!ctx) {
-    // Fallback so a forgotten Provider in a leaf doesn't crash — strings
-    // pass through as-is (English keys).
-    return {
-      locale: "en",
-      setLocale: () => {},
-      t: (key: string) => resolve(key, "en"),
-    };
-  }
-  return ctx;
-}
-
-export function useT() {
-  return useLocale().t;
 }
