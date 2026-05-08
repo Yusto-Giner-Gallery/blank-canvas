@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, UserPlus } from "lucide-react";
+import { Camera, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
 import { SignupShare } from "@/components/crm/SignupShare";
+import { ScanContactModal } from "@/components/crm/ScanContactModal";
 import { cn, errorMessage } from "@/lib/utils";
 
 export default function Contacts() {
@@ -26,6 +27,7 @@ export default function Contacts() {
   const update = useUpdateContact();
 
   const [adding, setAdding] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newInterest, setNewInterest] = useState("");
@@ -91,6 +93,14 @@ export default function Contacts() {
         </div>
         <div className="flex items-center gap-2">
           <SignupShare />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setScanning(true)}
+          >
+            <Camera className="h-4 w-4" />
+            <span className="hidden sm:inline">Scan card</span>
+          </Button>
           <Button size="sm" onClick={() => setAdding((v) => !v)}>
             <UserPlus className="h-4 w-4" />
             <span className="hidden sm:inline">Add contact</span>
@@ -256,6 +266,10 @@ export default function Contacts() {
           </table>
         </div>
       )}
+
+      {scanning ? (
+        <ScanContactModal onClose={() => setScanning(false)} />
+      ) : null}
     </div>
   );
 }

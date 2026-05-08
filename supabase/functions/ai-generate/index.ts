@@ -66,6 +66,11 @@ type AIRequest =
       kind: "text_review";
       context: string;
       text: string;
+    }
+  | {
+      kind: "extract_business_card";
+      // "data:image/jpeg;base64,…" — already resized client-side.
+      image_data_url: string;
     };
 
 function buildMessages(req: AIRequest): {
@@ -169,7 +174,39 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { system, user } = buildMessages(body);
+    // Vision request: the user message is multimodal (text + image),
+    // structured per OpenAI's chat-completions vision shape which the
+    // Lovable AI gateway accepts for Gemini.
+    let messages: Array<{ role: string; content: unknown }>;
+    if (body.kind === "extract_business_card") {
+      const system = [
+        "You read business cards and extract contact details for a CRM.",
+        "Look at the image and pull out: full_name, email, phone, company, role (job title), website, address, notes.",
+        "Phone: keep digits, +, and spaces; strip parentheses and dashes.",
+        "Email: lowercase.",
+        "Website: the URL only (no http:// prefix needed; if present, keep it).",
+        "Notes: anything useful that doesn't fit elsewhere (slogan, certification, second address).",
+        "Return STRICT JSON only — no markdown fences, no commentary — with this exact shape:",
+        '{"full_name":"<string|null>","email":"<string|null>","phone":"<string|null>","company":"<string|null>","role":"<string|null>","website":"<string|null>","address":"<string|null>","notes":"<string|null>"}',
+        "Use null for any field that is genuinely not on the card. Do not invent or guess.",
+      ].join("\n");
+      messages = [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract the contact details from this business card." },
+            { type: "image_url", image_url: { url: body.image_data_url } },
+          ],
+        },
+      ];
+    } else {
+      const built = buildMessages(body);
+      messages = [
+        { role: "system", content: built.system },
+        { role: "user", content: built.user },
+      ];
+    }
 
     const upstream = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -181,10 +218,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
+          messages,
         }),
       },
     );

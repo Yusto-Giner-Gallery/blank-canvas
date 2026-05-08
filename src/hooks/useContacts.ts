@@ -63,9 +63,24 @@ export function useCreateContact() {
       full_name: string;
       interest?: string | null;
       newsletter_opt_in?: boolean;
+      phone?: string | null;
+      company?: string | null;
+      role?: string | null;
+      website?: string | null;
+      notes?: string | null;
     }
   >({
-    mutationFn: async ({ email, full_name, interest = null, newsletter_opt_in = false }) => {
+    mutationFn: async ({
+      email,
+      full_name,
+      interest = null,
+      newsletter_opt_in = false,
+      phone = null,
+      company = null,
+      role = null,
+      website = null,
+      notes = null,
+    }) => {
       if (!profile) throw new Error("No profile");
       const { data, error } = await supabase
         .from("contacts")
@@ -75,8 +90,13 @@ export function useCreateContact() {
           email,
           full_name,
           interest,
-          notes: null,
+          notes,
           newsletter_opt_in,
+          // The schema migration adding these columns is pending Lovable
+          // type regen; the cast keeps the build green until then.
+          ...(phone || company || role || website
+            ? ({ phone, company, role, website } as Record<string, unknown>)
+            : {}),
         })
         .select("*")
         .single();

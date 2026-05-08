@@ -77,7 +77,22 @@ export type AIRequest =
       kind: "text_review";
       context: string;
       text: string;
+    }
+  | {
+      kind: "extract_business_card";
+      image_data_url: string;
     };
+
+export type ExtractedCard = {
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  role: string | null;
+  website: string | null;
+  address: string | null;
+  notes: string | null;
+};
 
 const PROVIDER = (import.meta.env.VITE_AI_PROVIDER ?? "lovable") as
   | "stub"
@@ -126,6 +141,20 @@ function stubResponse(req: AIRequest): string {
         ``,
         `I thought of you when looking at "${req.artwork.title}" by ${req.artwork.artist?.name ?? "the artist"}. Replace this body with a personalised note.`,
       ].join("\n");
+    }
+    case "extract_business_card": {
+      // Stub: empty result so the UI flow is testable without a vision
+      // provider. The user can fill the form by hand.
+      return JSON.stringify({
+        full_name: null,
+        email: null,
+        phone: null,
+        company: null,
+        role: null,
+        website: null,
+        address: null,
+        notes: null,
+      } satisfies ExtractedCard);
     }
     case "text_review": {
       return [
@@ -193,6 +222,36 @@ export async function generateEditorialDossier(
     throw new Error("AI editorial dossier returned an unexpected shape");
   }
   return parsed;
+}
+
+// Vision: extract structured contact fields from a business-card image.
+// `image_data_url` should be a data URL ("data:image/jpeg;base64,…")
+// — caller is responsible for resizing client-side before the call.
+export async function extractBusinessCard(
+  image_data_url: string,
+): Promise<ExtractedCard> {
+  if (!image_data_url.startsWith("data:image/")) {
+    throw new Error("Expected a data:image/* URL");
+  }
+  const text = await generateText({
+    kind: "extract_business_card",
+    image_data_url,
+  });
+  const parsed = parseJsonResponse(text) as Partial<ExtractedCard>;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI extract returned an unexpected shape");
+  }
+  // Normalise: model may omit fields. Fill missing keys with null.
+  return {
+    full_name: parsed.full_name ?? null,
+    email: parsed.email ?? null,
+    phone: parsed.phone ?? null,
+    company: parsed.company ?? null,
+    role: parsed.role ?? null,
+    website: parsed.website ?? null,
+    address: parsed.address ?? null,
+    notes: parsed.notes ?? null,
+  };
 }
 
 // Editorial-feedback request: returns plain prose / bullet list of
