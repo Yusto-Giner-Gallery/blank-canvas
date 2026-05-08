@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 
 const PAGE_W = 792;
 const PAGE_H = 595;
-const BAND_W = 320;
+const BAND_W = 341.2;
 const MARGIN = 40;
 
 const FIXED_DISCLAIMER = "TAXES and transport excluded / IVA y Transporte no incluido";
