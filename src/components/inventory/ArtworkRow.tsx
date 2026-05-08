@@ -4,6 +4,7 @@ import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
 import { useLongPress } from "@/hooks/useLongPress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useLightbox } from "@/components/shared/Lightbox";
 import { StatusPill } from "./StatusPill";
 import { AttentionBadge } from "./AttentionBadge";
 import { formatSize } from "./sizeFormat";
