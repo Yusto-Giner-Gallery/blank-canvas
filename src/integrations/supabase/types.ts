@@ -272,24 +272,30 @@ export type Database = {
       }
       boards: {
         Row: {
+          color: string | null
           created_at: string
           gallery_id: string
           id: string
           name: string
+          starred: boolean
           updated_at: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           gallery_id: string
           id?: string
           name: string
+          starred?: boolean
           updated_at?: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           gallery_id?: string
           id?: string
           name?: string
+          starred?: boolean
           updated_at?: string
         }
         Relationships: [
