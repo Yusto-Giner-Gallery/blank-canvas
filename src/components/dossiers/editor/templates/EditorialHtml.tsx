@@ -436,11 +436,13 @@ function Slash({ accent }: { accent: string }) {
   // white panel. Mirrors the PDF cover geometry.
   // Equidistant: midpoint sits exactly on the band edge (x = BAND_W),
   // so the coral and white halves have identical length.
-  const x1 = BAND_W + 100;
-  const y1 = 200;
-  const x2 = BAND_W - 100;
-  const y2 = 480;
-  const sw = 20;
+  // Match PARALLELS reference: short slash, lower on the page, centered
+  // on the band edge so coral and white halves are equal length.
+  const x1 = BAND_W + 36;
+  const y1 = 320;
+  const x2 = BAND_W - 36;
+  const y2 = 500;
+  const sw = 14;
   return (
     <svg
       className="pointer-events-none absolute inset-0"
