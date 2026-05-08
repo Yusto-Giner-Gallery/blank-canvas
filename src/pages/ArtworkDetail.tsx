@@ -255,7 +255,8 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
                   <img
                     src={url}
                     alt=""
-                    className="block max-h-[70vh] w-full object-contain"
+                    onClick={() => openLightbox()}
+                    className="block max-h-[70vh] w-full cursor-zoom-in object-contain"
                   />
                 ) : (
                   <div className="flex h-64 w-full items-center justify-center">
