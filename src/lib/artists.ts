@@ -1,17 +1,15 @@
 import { supabase } from "@/lib/supabase";
 
-// Shared by useUploadArtworks (bulk upload) and ArtworkDetail (edit mode).
-// Lookup-first prevents duplicate artist rows when the same new artist
-// name is supplied across batches before a DB unique constraint exists.
+// Lookup-first artist resolution shared between bulk upload and the
+// artwork-detail edit form. Case-insensitive name match within the
+// gallery; creates a row if no match.
 export async function resolveArtist(
   gallery_id: string,
-  input: { artist_id: string | null; artist_name_new: string | null },
+  opts: { artist_id?: string | null; new_name?: string | null },
 ): Promise<string> {
-  if (input.artist_id) return input.artist_id;
-  if (!input.artist_name_new) throw new Error("No artist selected");
-  const trimmed = input.artist_name_new.trim();
+  if (opts.artist_id) return opts.artist_id;
+  const trimmed = (opts.new_name ?? "").trim();
   if (!trimmed) throw new Error("No artist selected");
-
   const { data: existing } = await supabase
     .from("artists")
     .select("id")
@@ -20,7 +18,6 @@ export async function resolveArtist(
     .is("deleted_at", null)
     .maybeSingle();
   if (existing?.id) return existing.id;
-
   const { data, error } = await supabase
     .from("artists")
     .insert({

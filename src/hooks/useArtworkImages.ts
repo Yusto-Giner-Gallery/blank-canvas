@@ -1,14 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "./useProfile";
-
-export type ArtworkImage = {
-  id: string;
-  artwork_id: string;
-  storage_path: string;
-  is_primary: boolean;
-  sort_order: number;
-};
+import type { ArtworkImage } from "@/integrations/supabase/domain";
 
 export function useArtworkImages(artwork_id: string | undefined) {
   return useQuery<ArtworkImage[]>({
@@ -17,8 +10,9 @@ export function useArtworkImages(artwork_id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("artwork_images")
-        .select("id, artwork_id, storage_path, is_primary, sort_order")
+        .select("*")
         .eq("artwork_id", artwork_id!)
+        .order("is_primary", { ascending: false })
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -26,102 +20,96 @@ export function useArtworkImages(artwork_id: string | undefined) {
   });
 }
 
-function invalidate(qc: ReturnType<typeof useQueryClient>, artwork_id: string) {
-  qc.invalidateQueries({ queryKey: ["artwork-images", artwork_id] });
-  qc.invalidateQueries({ queryKey: ["artworks"] });
-}
-
 export function useAddArtworkImages() {
-  const { profile } = useProfile();
   const qc = useQueryClient();
+  const { profile } = useProfile();
   return useMutation<
     void,
     Error,
-    { artwork_id: string; files: File[]; existing_count: number }
+    { artwork_id: string; files: File[] }
   >({
-    mutationFn: async ({ artwork_id, files, existing_count }) => {
-      if (!profile) throw new Error("No profile loaded");
-      let nextOrder = existing_count;
+    mutationFn: async ({ artwork_id, files }) => {
+      if (!profile) throw new Error("No profile");
+      // Find current max sort_order so new uploads append.
+      const { data: existing } = await supabase
+        .from("artwork_images")
+        .select("sort_order, is_primary")
+        .eq("artwork_id", artwork_id);
+      const hasPrimary = (existing ?? []).some((r) => r.is_primary);
+      let nextSort =
+        (existing ?? []).reduce((m, r) => Math.max(m, r.sort_order), -1) + 1;
+
       for (const file of files) {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `${profile.gallery_id}/${artwork_id}/${crypto.randomUUID()}-${safeName}`;
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${profile.gallery_id}/${artwork_id}/${Date.now()}_${safe}`;
         const { error: stErr } = await supabase.storage
           .from("artwork-images")
           .upload(path, file, { upsert: false });
         if (stErr) throw stErr;
-        const { error: imgErr } = await supabase.from("artwork_images").insert({
+        const { error: insErr } = await supabase.from("artwork_images").insert({
           id: crypto.randomUUID(),
           artwork_id,
           storage_path: path,
-          // First-ever image becomes primary; subsequent additions don't
-          // displace an existing primary.
-          is_primary: nextOrder === 0,
-          sort_order: nextOrder,
+          sort_order: nextSort,
+          // First image ever uploaded becomes primary if there isn't one.
+          is_primary: !hasPrimary && nextSort === 0,
         });
-        if (imgErr) throw imgErr;
-        nextOrder += 1;
+        if (insErr) throw insErr;
+        nextSort += 1;
       }
     },
-    onSuccess: (_d, vars) => invalidate(qc, vars.artwork_id),
+    onSuccess: (_v, vars) => {
+      qc.invalidateQueries({ queryKey: ["artwork-images", vars.artwork_id] });
+      qc.invalidateQueries({ queryKey: ["artworks"] });
+    },
   });
 }
 
 export function useSetPrimaryImage() {
   const qc = useQueryClient();
-  return useMutation<void, Error, { artwork_id: string; image_id: string }>({
+  return useMutation<
+    void,
+    Error,
+    { artwork_id: string; image_id: string }
+  >({
     mutationFn: async ({ artwork_id, image_id }) => {
-      // Two-step: clear existing primary, then set the chosen one. RLS
-      // policy scopes both updates by artwork ownership.
-      const { error: clrErr } = await supabase
+      const { error: clearErr } = await supabase
         .from("artwork_images")
         .update({ is_primary: false })
         .eq("artwork_id", artwork_id);
-      if (clrErr) throw clrErr;
-      const { error: setErr } = await supabase
+      if (clearErr) throw clearErr;
+      const { error } = await supabase
         .from("artwork_images")
         .update({ is_primary: true })
         .eq("id", image_id);
-      if (setErr) throw setErr;
+      if (error) throw error;
     },
-    onSuccess: (_d, vars) => invalidate(qc, vars.artwork_id),
+    onSuccess: (_v, vars) => {
+      qc.invalidateQueries({ queryKey: ["artwork-images", vars.artwork_id] });
+      qc.invalidateQueries({ queryKey: ["artworks"] });
+    },
   });
 }
 
-export function useRemoveArtworkImage() {
+export function useDeleteArtworkImage() {
   const qc = useQueryClient();
   return useMutation<
     void,
     Error,
-    { artwork_id: string; image_id: string; storage_path: string; was_primary: boolean }
+    { artwork_id: string; image_id: string; storage_path: string }
   >({
-    mutationFn: async ({ artwork_id, image_id, storage_path, was_primary }) => {
-      const { error: delRowErr } = await supabase
+    mutationFn: async ({ image_id, storage_path }) => {
+      // Best-effort storage cleanup; row is the source of truth.
+      await supabase.storage.from("artwork-images").remove([storage_path]);
+      const { error } = await supabase
         .from("artwork_images")
         .delete()
         .eq("id", image_id);
-      if (delRowErr) throw delRowErr;
-      // Best-effort storage cleanup: if it fails (e.g. orphaned object)
-      // we still consider the image removed from the artwork.
-      await supabase.storage.from("artwork-images").remove([storage_path]);
-
-      // Promote the next image to primary so the artwork always has one
-      // when at least one image remains.
-      if (was_primary) {
-        const { data: remaining } = await supabase
-          .from("artwork_images")
-          .select("id")
-          .eq("artwork_id", artwork_id)
-          .order("sort_order", { ascending: true })
-          .limit(1);
-        const next = remaining?.[0];
-        if (next) {
-          await supabase
-            .from("artwork_images")
-            .update({ is_primary: true })
-            .eq("id", next.id);
-        }
-      }
+      if (error) throw error;
     },
-    onSuccess: (_d, vars) => invalidate(qc, vars.artwork_id),
+    onSuccess: (_v, vars) => {
+      qc.invalidateQueries({ queryKey: ["artwork-images", vars.artwork_id] });
+      qc.invalidateQueries({ queryKey: ["artworks"] });
+    },
   });
 }

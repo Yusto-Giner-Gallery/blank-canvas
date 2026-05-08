@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { ArtworkStatus } from "@/integrations/supabase/domain";
-import { resolveArtist } from "@/lib/artists";
 import { useProfile } from "./useProfile";
+import { resolveArtist } from "@/lib/artists";
 
 export type DraftArtwork = {
   client_key: string;
@@ -31,7 +31,10 @@ async function uploadOne(
   gallery_id: string,
   draft: DraftArtwork,
 ): Promise<string> {
-  const artist_id = await resolveArtist(gallery_id, draft);
+  const artist_id = await resolveArtist(gallery_id, {
+    artist_id: draft.artist_id,
+    new_name: draft.artist_name_new,
+  });
   const artwork_id = crypto.randomUUID();
 
   const { error: artErr } = await supabase.from("artworks").insert({
