@@ -245,5 +245,23 @@ export function useReorderCollection() {
   });
 }
 
+// Hard delete — collection_artworks rows cascade via the FK in
+// migration 20260507160144 (ON DELETE CASCADE).
+export function useDeleteCollection() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from("collections")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["collections"] });
+    },
+  });
+}
+
 // Re-export for convenience
 export { imageUrl };

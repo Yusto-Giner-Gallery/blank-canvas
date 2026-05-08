@@ -122,3 +122,18 @@ export function useUpdateDossier() {
     },
   });
 }
+
+// Hard delete. Dossiers don't currently have a soft-delete column in
+// the schema (CLAUDE.md §6 only marks artworks/contacts/invoices).
+export function useDeleteDossier() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase.from("dossiers").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dossiers"] });
+    },
+  });
+}

@@ -28,10 +28,12 @@ import {
 import {
   imageUrl,
   useCollection,
+  useDeleteCollection,
   useRemoveFromCollection,
   useReorderCollection,
 } from "@/hooks/useCollections";
 import { useCreateDossier } from "@/hooks/useDossiers";
+import { useProfile } from "@/hooks/useProfile";
 import type {
   ArtworkListItem,
   DossierKind,
@@ -119,6 +121,8 @@ export default function CollectionDetail() {
   const reorder = useReorderCollection();
   const remove = useRemoveFromCollection();
   const createDossier = useCreateDossier();
+  const deleteCollection = useDeleteCollection();
+  const { isAdmin } = useProfile();
 
   const initialOrder = useMemo(
     () => (data?.artworks ?? []).map((a) => a.id),
@@ -222,6 +226,32 @@ export default function CollectionDetail() {
           <FileText className="h-4 w-4" />
           {createDossier.isPending ? "Generating…" : "Generate dossier"}
         </Button>
+        {isAdmin && data ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              if (
+                !window.confirm(
+                  `Delete collection "${data.name}"? Artworks themselves are kept.`,
+                )
+              )
+                return;
+              try {
+                await deleteCollection.mutateAsync({ id: data.id });
+                toast.success("Collection deleted.");
+                navigate("/collections", { replace: true });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : String(err));
+              }
+            }}
+            disabled={deleteCollection.isPending}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            {deleteCollection.isPending ? "Deleting…" : "Delete"}
+          </Button>
+        ) : null}
       </div>
 
       <div>

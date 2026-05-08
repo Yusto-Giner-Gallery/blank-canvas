@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Send, Sparkles } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Download, Send, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  useDeleteDossier,
   useDossier,
   useDossierArtworks,
   useUpdateDossier,
 } from "@/hooks/useDossiers";
+import { useProfile } from "@/hooks/useProfile";
 import { useArtworks, imageUrl } from "@/hooks/useArtworks";
 import { useGallery } from "@/hooks/useGallery";
 import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
@@ -38,9 +40,12 @@ const KIND_OPTIONS: Array<{ value: DossierKind; label: string }> = [
 
 export default function DossierEditor() {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const dossierQuery = useDossier(id);
   const artworksQuery = useArtworks();
   const update = useUpdateDossier();
+  const del = useDeleteDossier();
+  const { isAdmin } = useProfile();
   const galleryQuery = useGallery();
   const galleryName = galleryQuery.data?.name ?? "Gallery";
 
@@ -257,6 +262,32 @@ export default function DossierEditor() {
           <Button onClick={onSave} disabled={update.isPending} size="sm">
             {update.isPending ? "Saving…" : "Save"}
           </Button>
+          {isAdmin && dossierQuery.data ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    `Delete dossier "${dossierQuery.data?.title ?? ""}"? Artworks themselves are kept.`,
+                  )
+                )
+                  return;
+                try {
+                  await del.mutateAsync({ id });
+                  toast.success("Dossier deleted.");
+                  navigate("/dossiers", { replace: true });
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : String(err));
+                }
+              }}
+              disabled={del.isPending}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              {del.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          ) : null}
         </div>
       </div>
 
