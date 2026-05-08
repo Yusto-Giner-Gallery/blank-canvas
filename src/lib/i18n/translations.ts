@@ -262,11 +262,11 @@ export const STRINGS: Record<string, Entry> = {
     en: "{n} receipt{plural} · vendor bills and expenses.",
     es: "{n} recibo{plural} · facturas de proveedores y gastos.",
   },
-  "receipts.scan": { en: "Scan receipt", es: "Escanear recibo" },
+  "receipts.scan": { en: "Scan or upload", es: "Escanear o subir" },
   "receipts.empty.title": { en: "No receipts yet", es: "Aún no hay recibos" },
   "receipts.empty.description": {
-    en: "Tap 'Scan receipt' and snap a photo or upload a file. AI extracts the vendor, date, total, and lines for you to review before saving.",
-    es: "Pulsa 'Escanear recibo' y haz una foto o sube un archivo. La IA extrae el proveedor, la fecha, el total y las líneas para que las revises antes de guardar.",
+    en: "Tap 'Scan or upload' to capture a receipt — take a photo with the camera or pick an image from disk. AI extracts the vendor, date, total, and lines for you to review before saving.",
+    es: "Pulsa 'Escanear o subir' para capturar un recibo — haz una foto con la cámara o elige una imagen del disco. La IA extrae el proveedor, la fecha, el total y las líneas para que las revises antes de guardar.",
   },
   "receipts.selectHint": {
     en: "Select a receipt from the list to see its details.",
