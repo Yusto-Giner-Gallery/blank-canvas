@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ImageOff, Plus, X } from "lucide-react";
+import { ArrowLeft, ImageOff, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useArtworks, imageUrl } from "@/hooks/useArtworks";
+import { useDeleteArtwork } from "@/hooks/useUpdateArtwork";
 import { useTags } from "@/hooks/useTags";
 import {
   useAttachTag,
@@ -31,6 +32,7 @@ export default function ArtworkDetail() {
   const attach = useAttachTag();
   const detach = useDetachTag();
   const createAndAttach = useCreateAndAttachTag();
+  const deleteArtwork = useDeleteArtwork();
   const [newTag, setNewTag] = useState("");
 
   const artwork = useMemo(
@@ -88,11 +90,38 @@ export default function ArtworkDetail() {
     }
   }
 
+  async function onDelete() {
+    if (!artwork) return;
+    if (
+      !window.confirm(
+        `Delete "${artwork.title}"? It will be removed from inventory; you can recover it via the database soft-delete column. Continue?`,
+      )
+    )
+      return;
+    try {
+      await deleteArtwork.mutateAsync({ id: artwork.id });
+      toast.success(`Deleted "${artwork.title}".`);
+      navigate("/inventory", { replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleteArtwork.isPending}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          {deleteArtwork.isPending ? "Deleting…" : "Delete artwork"}
         </Button>
       </div>
 

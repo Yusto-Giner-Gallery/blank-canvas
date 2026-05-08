@@ -22,3 +22,24 @@ export function useUpdateArtwork() {
     },
   });
 }
+
+// Soft delete: stamp deleted_at so the row drops out of useArtworks /
+// artist / dossier queries (which all filter `is("deleted_at", null)`)
+// without losing audit history. Matches the soft-delete pattern used
+// for invoices and contacts.
+export function useDeleteArtwork() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from("artworks")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["artworks"] });
+      qc.invalidateQueries({ queryKey: ["artists"] });
+    },
+  });
+}
