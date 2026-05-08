@@ -18,7 +18,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, CalendarClock, Plus, Trash2 } from "lucide-react";
+import {
+  AlignLeft,
+  ArrowLeft,
+  CalendarClock,
+  CheckSquare,
+  MessageSquare,
+  Paperclip,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,20 +43,30 @@ import {
   useCreateList,
   useDeleteList,
   useMoveCard,
+  type CardWithMeta,
 } from "@/hooks/useKanban";
-import { LabelDot } from "@/components/kanban/LabelChips";
+import { LabelPill, labelBg } from "@/components/kanban/LabelChips";
+import { AvatarStack } from "@/components/kanban/Avatar";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
-import type { Card } from "@/integrations/supabase/domain";
 import { cn } from "@/lib/utils";
 
-function isDueSoon(due: string | null): boolean {
-  if (!due) return false;
-  const d = new Date(due).getTime();
-  const week = 7 * 24 * 60 * 60 * 1000;
-  return d - Date.now() < week;
+type DueState = "overdue" | "soon" | "ok";
+function classifyDue(due: string | null): DueState | null {
+  if (!due) return null;
+  const ts = new Date(due).getTime();
+  const now = Date.now();
+  if (ts < now) return "overdue";
+  if (ts - now < 7 * 24 * 60 * 60 * 1000) return "soon";
+  return "ok";
 }
 
-function CardTile({ card, onOpen }: { card: Card; onOpen: () => void }) {
+function CardTile({
+  card,
+  onOpen,
+}: {
+  card: CardWithMeta;
+  onOpen: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id, data: { type: "card" } });
   const style: React.CSSProperties = {
@@ -55,7 +74,9 @@ function CardTile({ card, onOpen }: { card: Card; onOpen: () => void }) {
     transition,
     opacity: isDragging ? 0.4 : 1,
   };
-  const due = card.due_date;
+  const due = classifyDue(card.due_date);
+  const cover = card.labels[0];
+
   return (
     <div
       ref={setNodeRef}
@@ -64,31 +85,92 @@ function CardTile({ card, onOpen }: { card: Card; onOpen: () => void }) {
       {...listeners}
       onClick={(e) => {
         if (isDragging) return;
-        // Don't open while pointer is mid-drag handler.
         e.stopPropagation();
         onOpen();
       }}
-      className="cursor-pointer rounded-md border border-border bg-card p-2.5 text-sm shadow-sm hover:border-foreground/40"
+      className="group cursor-pointer overflow-hidden border border-border bg-card text-sm hover:border-foreground/40"
     >
-      {card.labels.length > 0 ? (
-        <div className="mb-1.5 flex flex-wrap gap-1">
-          {card.labels.map((l) => (
-            <LabelDot key={l} label={l} />
-          ))}
-        </div>
-      ) : null}
-      <div className="text-sm">{card.title}</div>
+      {cover ? <div className={cn("h-1.5", labelBg(cover))} /> : null}
+      <div className="space-y-2 px-2.5 py-2">
+        {card.labels.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {card.labels.map((l) => (
+              <LabelPill key={l} label={l} />
+            ))}
+          </div>
+        ) : null}
+        <div className="text-sm leading-snug">{card.title}</div>
+        <CardFooter card={card} due={due} />
+      </div>
+    </div>
+  );
+}
+
+function CardFooter({
+  card,
+  due,
+}: {
+  card: CardWithMeta;
+  due: DueState | null;
+}) {
+  const meta = [
+    card.has_description,
+    card.checklist_total > 0,
+    card.comment_count > 0,
+    card.attachment_count > 0,
+    !!due,
+  ].some(Boolean);
+  if (!meta && card.member_profiles.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
       {due ? (
-        <div
+        <span
+          title={card.due_date ? new Date(card.due_date).toLocaleString() : undefined}
           className={cn(
-            "mt-1.5 inline-flex items-center gap-1 text-xs",
-            isDueSoon(due) ? "text-[hsl(var(--attention))]" : "text-muted-foreground",
+            "inline-flex items-center gap-1 border px-1.5 py-px",
+            due === "overdue" && "border-accent-red text-accent-red",
+            due === "soon" && "border-[hsl(var(--attention))] text-[hsl(var(--attention))]",
+            due === "ok" && "border-border",
           )}
         >
           <CalendarClock className="h-3 w-3" />
-          {new Date(due).toLocaleDateString("en-GB")}
-        </div>
+          {card.due_date ? new Date(card.due_date).toLocaleDateString("en-GB") : ""}
+        </span>
       ) : null}
+      {card.has_description ? (
+        <span title="Has description" className="inline-flex">
+          <AlignLeft className="h-3 w-3" />
+        </span>
+      ) : null}
+      {card.checklist_total > 0 ? (
+        <span
+          title="Checklist progress"
+          className={cn(
+            "inline-flex items-center gap-1",
+            card.checklist_done === card.checklist_total &&
+              "text-foreground",
+          )}
+        >
+          <CheckSquare className="h-3 w-3" />
+          {card.checklist_done}/{card.checklist_total}
+        </span>
+      ) : null}
+      {card.comment_count > 0 ? (
+        <span className="inline-flex items-center gap-1" title="Comments">
+          <MessageSquare className="h-3 w-3" />
+          {card.comment_count}
+        </span>
+      ) : null}
+      {card.attachment_count > 0 ? (
+        <span className="inline-flex items-center gap-1" title="Attachments">
+          <Paperclip className="h-3 w-3" />
+          {card.attachment_count}
+        </span>
+      ) : null}
+      <div className="ml-auto">
+        <AvatarStack members={card.member_profiles} />
+      </div>
     </div>
   );
 }
@@ -102,11 +184,11 @@ function Lane({
   onOpenCard,
 }: {
   list: { id: string; name: string };
-  cards: Card[];
+  cards: CardWithMeta[];
   boardId: string;
   onAddCard: (list_id: string, title: string) => void;
   onDeleteList: (list_id: string) => void;
-  onOpenCard: (card: Card) => void;
+  onOpenCard: (card: CardWithMeta) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
@@ -210,7 +292,7 @@ export default function BoardDetail() {
   );
 
   const cardById = useMemo(() => {
-    const m = new Map<string, Card>();
+    const m = new Map<string, CardWithMeta>();
     localLists.forEach((l) => l.cards.forEach((c) => m.set(c.id, c)));
     return m;
   }, [localLists]);

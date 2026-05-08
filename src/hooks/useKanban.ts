@@ -40,12 +40,38 @@ export function useBoards() {
   });
 }
 
+export type CardMemberProfile = {
+  id: string;
+  full_name: string;
+  email: string;
+};
+
+// Card augmented with the per-card aggregates the board view needs to
+// render Trello-style tiles: member avatars, checklist progress, comment
+// + attachment counts, description indicator. Fetched in one go via the
+// useBoard query rather than per-card to keep the board snappy.
+export type CardWithMeta = Card & {
+  member_profiles: CardMemberProfile[];
+  checklist_done: number;
+  checklist_total: number;
+  comment_count: number;
+  attachment_count: number;
+  has_description: boolean;
+};
+
 export type BoardDetail = Board & {
-  lists: Array<List & { cards: Card[] }>;
+  lists: Array<List & { cards: CardWithMeta[] }>;
+};
+
+type RawCardRow = Card & {
+  members?: Array<{ profile: CardMemberProfile | null }> | null;
+  checklist?: Array<{ done: boolean }> | null;
+  comment_count?: Array<{ count: number }> | null;
+  attachment_count?: Array<{ count: number }> | null;
 };
 
 type BoardRow = Board & {
-  lists: Array<List & { cards: Card[] }>;
+  lists: Array<List & { cards: RawCardRow[] }>;
 };
 
 export function useBoard(id: string | undefined) {
@@ -62,7 +88,13 @@ export function useBoard(id: string | undefined) {
           *,
           lists (
             *,
-            cards ( * )
+            cards (
+              *,
+              members:card_members ( profile:profiles ( id, full_name, email ) ),
+              checklist:card_checklist ( done ),
+              comment_count:card_comments ( count ),
+              attachment_count:card_attachments ( count )
+            )
           )
           `,
         )
@@ -77,7 +109,21 @@ export function useBoard(id: string | undefined) {
           ...l,
           cards: (l.cards ?? [])
             .slice()
-            .sort((a, b) => a.sort_order - b.sort_order),
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((c): CardWithMeta => {
+              const checklist = c.checklist ?? [];
+              return {
+                ...c,
+                member_profiles: (c.members ?? [])
+                  .map((m) => m.profile)
+                  .filter((p): p is CardMemberProfile => !!p),
+                checklist_total: checklist.length,
+                checklist_done: checklist.filter((x) => x.done).length,
+                comment_count: c.comment_count?.[0]?.count ?? 0,
+                attachment_count: c.attachment_count?.[0]?.count ?? 0,
+                has_description: !!c.description?.trim(),
+              };
+            }),
         }));
       return { ...data, lists };
     },

@@ -43,6 +43,29 @@ export function LabelDot({ label }: { label: CardLabel }) {
   );
 }
 
+// Small text-pill used on card tiles. Unlike the LabelDot (bar only) this
+// shows the label name inline like Trello's card badges.
+export function LabelPill({ label }: { label: CardLabel }) {
+  return (
+    <span
+      title={LABEL[label]}
+      className={cn(
+        "inline-flex items-center px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-white",
+        COLOR[label],
+        label === "shipping" && "text-background",
+      )}
+    >
+      {LABEL[label]}
+    </span>
+  );
+}
+
+// Returns the Tailwind background utility for a label colour. Used by
+// CardTile to draw a Trello-style cover stripe across the top of the card.
+export function labelBg(label: CardLabel): string {
+  return COLOR[label];
+}
+
 export function LabelChip({
   label,
   active,
