@@ -430,6 +430,14 @@ function CoverPage({
 }
 
 function Slash({ accent }: { accent: string }) {
+  // One continuous slash that color-inverts at the band edge (x=BAND_W):
+  // white where it crosses the coral panel, coral where it crosses the
+  // white panel. Mirrors the PDF cover geometry.
+  const x1 = 450;
+  const y1 = 200;
+  const x2 = 250;
+  const y2 = 480;
+  const sw = 20;
   return (
     <svg
       className="pointer-events-none absolute inset-0"
@@ -437,8 +445,24 @@ function Slash({ accent }: { accent: string }) {
       width={PAGE_W}
       height={PAGE_H}
     >
-      <line x1={240} y1={200} x2={300} y2={320} stroke="#ffffff" strokeWidth={18} strokeLinecap="butt" />
-      <line x1={320} y1={360} x2={380} y2={480} stroke={accent} strokeWidth={18} strokeLinecap="butt" />
+      <defs>
+        <clipPath id="slash-band-clip">
+          <rect x={0} y={0} width={BAND_W} height={PAGE_H} />
+        </clipPath>
+        <clipPath id="slash-white-clip">
+          <rect x={BAND_W} y={0} width={PAGE_W - BAND_W} height={PAGE_H} />
+        </clipPath>
+      </defs>
+      <line
+        x1={x1} y1={y1} x2={x2} y2={y2}
+        stroke="#ffffff" strokeWidth={sw} strokeLinecap="butt"
+        clipPath="url(#slash-band-clip)"
+      />
+      <line
+        x1={x1} y1={y1} x2={x2} y2={y2}
+        stroke={accent} strokeWidth={sw} strokeLinecap="butt"
+        clipPath="url(#slash-white-clip)"
+      />
     </svg>
   );
 }
