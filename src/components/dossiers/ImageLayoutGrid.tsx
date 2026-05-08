@@ -17,6 +17,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ImageOff } from "lucide-react";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
+import { useLightbox } from "@/components/shared/Lightbox";
 
 function Tile({ artwork }: { artwork: ArtworkListItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
