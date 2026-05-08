@@ -80,6 +80,12 @@ export type DossierBodyBlocks = {
   extra_html?: string;
   collector_pitch_html?: string;
   artwork_descriptions_html?: Record<string, string>;
+  // Per-text-block position offsets in PDF points. Keyed by a stable slot
+  // identifier (e.g. "intro.<artist_id>.bio_en"). Default {x:0, y:0}.
+  // Drag-to-position in the editor preview persists into here; the PDF
+  // template reads from the same map and applies the offsets on render
+  // so preview + export never diverge.
+  text_offsets?: Record<string, { x: number; y: number }>;
   // Editorial-only fields. Stored in JSON so we don't need a schema change;
   // when Lovable adds dedicated columns later the shape can move out.
   show_title?: string;

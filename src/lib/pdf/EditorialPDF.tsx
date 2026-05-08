@@ -334,16 +334,36 @@ function CoverPage({
 }
 
 function ArtistIntroPage({
+  artistId,
   artistName,
   intro,
   photoUrl,
   galleryName,
+  textOffsets,
 }: {
+  artistId: string;
   artistName: string;
   intro: DossierArtistIntro | undefined;
   photoUrl: string | null;
   galleryName: string;
+  textOffsets: Record<string, { x: number; y: number }>;
 }) {
+  // Per-block draggable offsets in PDF pt — applied as inline overrides on
+  // the matching styles so the export mirrors the editor preview exactly.
+  // Keys must match the ones the HTML editor's DraggableTextBlock writes.
+  const nameOff = textOffsets[`intro.${artistId}.name`] ?? { x: 0, y: 0 };
+  const bioEnOff = textOffsets[`intro.${artistId}.bio_en`] ?? { x: 0, y: 0 };
+  const bioEsOff = textOffsets[`intro.${artistId}.bio_es`] ?? { x: 0, y: 0 };
+
+  // Bios were a single flex row with two `flex: 1` cols. To honour
+  // independent per-bio offsets we render each column as its own
+  // absolute View with explicit left/right/bottom. Column geometry
+  // matches the row's flex layout (gap: 24 → ~12 pt of empty space on
+  // each side of the centre line).
+  const colWidth = (PAGE.width - 2 * MARGIN - 24) / 2;
+  const enLeft = MARGIN;
+  const esLeft = MARGIN + colWidth + 24;
+
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       {photoUrl ? (
@@ -353,7 +373,15 @@ function ArtistIntroPage({
       )}
       <View style={local.introScrim} />
       <Wordmark galleryName={galleryName} white />
-      <View style={local.introHeader}>
+      <View
+        style={[
+          local.introHeader,
+          // Overrides flow: positive y → moves down (top grows); positive x
+          // → moves right; the header is anchored to right:MARGIN, so a
+          // rightward x shrinks the right gutter.
+          { top: 28 + nameOff.y, right: MARGIN - nameOff.x },
+        ]}
+      >
         <Text style={local.introArtistName}>{artistName.toUpperCase()}</Text>
         {intro?.instagram ? (
           <Text style={local.introHandle}>
@@ -361,24 +389,39 @@ function ArtistIntroPage({
           </Text>
         ) : null}
       </View>
-      {(intro?.bio_en || intro?.bio_es || intro?.bio_en_html || intro?.bio_es_html) ? (
-        <View style={local.introBioRow}>
-          <View style={local.introBioCol}>
-            <Text style={local.introLangLabel}>EN</Text>
-            <RichText
-              html={intro?.bio_en_html}
-              fallback={intro?.bio_en}
-              baseStyle={local.introBioBody}
-            />
-          </View>
-          <View style={local.introBioCol}>
-            <Text style={local.introLangLabel}>ES</Text>
-            <RichText
-              html={intro?.bio_es_html}
-              fallback={intro?.bio_es}
-              baseStyle={local.introBioBody}
-            />
-          </View>
+      {intro?.bio_en || intro?.bio_en_html ? (
+        <View
+          style={{
+            position: "absolute",
+            left: enLeft + bioEnOff.x,
+            // bottom-anchored: positive y in editor (down) → smaller bottom.
+            bottom: 56 - bioEnOff.y,
+            width: colWidth,
+          }}
+        >
+          <Text style={local.introLangLabel}>EN</Text>
+          <RichText
+            html={intro?.bio_en_html}
+            fallback={intro?.bio_en}
+            baseStyle={local.introBioBody}
+          />
+        </View>
+      ) : null}
+      {intro?.bio_es || intro?.bio_es_html ? (
+        <View
+          style={{
+            position: "absolute",
+            left: esLeft + bioEsOff.x,
+            bottom: 56 - bioEsOff.y,
+            width: colWidth,
+          }}
+        >
+          <Text style={local.introLangLabel}>ES</Text>
+          <RichText
+            html={intro?.bio_es_html}
+            fallback={intro?.bio_es}
+            baseStyle={local.introBioBody}
+          />
         </View>
       ) : null}
     </Page>
@@ -557,10 +600,12 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor, titl
       return (
         <ArtistIntroPage
           key={`intro-${spec.artist.id}`}
+          artistId={spec.artist.id}
           artistName={spec.artist.name}
           intro={intro}
           photoUrl={imageUrlFor(intro?.photo_path)}
           galleryName={galleryName}
+          textOffsets={dossier.body_blocks.text_offsets ?? {}}
         />
       );
     }

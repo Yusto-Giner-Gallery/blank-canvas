@@ -28,6 +28,8 @@ import { palette } from "@/lib/pdf/shared";
 import { imageUrl } from "@/hooks/useArtworks";
 import { buildPageSequence } from "@/lib/dossier/editorial-order";
 import { EditableText } from "../EditableText";
+import { DraggableTextBlock } from "../DraggableTextBlock";
+import { PageScaleContext } from "../PageScaleContext";
 import { htmlToPlain, plainToHtml } from "@/lib/dossier/rich-text";
 import { EditableImageSlot } from "../EditableImageSlot";
 import { PageLayoutSwitcher } from "../PageLayoutSwitcher";
@@ -60,6 +62,17 @@ export function EditorialHtml({
   const intros = dossier.body_blocks.artist_intros ?? {};
   const layouts = dossier.body_blocks.page_layouts ?? {};
   const customPages = dossier.body_blocks.custom_pages ?? [];
+  const textOffsets = dossier.body_blocks.text_offsets ?? {};
+
+  function setOffset(blockKey: string, next: { x: number; y: number }) {
+    const map: Record<string, { x: number; y: number }> = { ...textOffsets };
+    if (next.x === 0 && next.y === 0) {
+      delete map[blockKey];
+    } else {
+      map[blockKey] = next;
+    }
+    onUpdate({ text_offsets: map });
+  }
 
   // Same helper used by EditorialPDF — single source of truth for ordering.
   const sequence = useMemo(
@@ -182,11 +195,14 @@ export function EditorialHtml({
               return (
                 <ArtistIntroPage
                   key={`intro-${spec.artist.id}`}
+                  artistId={spec.artist.id}
                   artistName={spec.artist.name}
                   intro={intro}
                   dossierId={dossier.id}
                   galleryName={galleryName}
                   accent={accent}
+                  textOffsets={textOffsets}
+                  setOffset={setOffset}
                   onPatch={(p) => patchIntro(spec.artist.id, p)}
                 />
               );
@@ -346,7 +362,9 @@ function Page({ children }: { children: React.ReactNode }) {
           transform: `scale(${scale})`,
         }}
       >
-        {children}
+        <PageScaleContext.Provider value={scale}>
+          {children}
+        </PageScaleContext.Provider>
       </div>
     </div>
   );
@@ -513,20 +531,36 @@ function Wordmark({
 }
 
 function ArtistIntroPage({
+  artistId,
   artistName,
   intro,
   dossierId,
   galleryName,
   accent,
+  textOffsets,
+  setOffset,
   onPatch,
 }: {
+  artistId: string;
   artistName: string;
   intro: DossierArtistIntro;
   dossierId: string;
   galleryName: string;
   accent: string;
+  textOffsets: Record<string, { x: number; y: number }>;
+  setOffset: (key: string, next: { x: number; y: number }) => void;
   onPatch: (p: Partial<DossierArtistIntro>) => void;
 }) {
+  // Stable slot keys + their saved offsets. Read once per render.
+  const nameKey = `intro.${artistId}.name`;
+  const handleKey = `intro.${artistId}.handle`;
+  const bioEnKey = `intro.${artistId}.bio_en`;
+  const bioEsKey = `intro.${artistId}.bio_es`;
+  const nameOffset = textOffsets[nameKey] ?? { x: 0, y: 0 };
+  const handleOffset = textOffsets[handleKey] ?? { x: 0, y: 0 };
+  const bioEnOffset = textOffsets[bioEnKey] ?? { x: 0, y: 0 };
+  const bioEsOffset = textOffsets[bioEsKey] ?? { x: 0, y: 0 };
+
   return (
     <Page>
       <div className="absolute inset-0 bg-neutral-900">
@@ -541,26 +575,49 @@ function ArtistIntroPage({
         <div className="pointer-events-none absolute inset-0 bg-black/35" />
       </div>
       <Wordmark galleryName={galleryName} white accent={accent} />
-      <div
+      <DraggableTextBlock
+        blockKey={nameKey}
+        offset={nameOffset}
+        onCommit={(next) => setOffset(nameKey, next)}
+        onReset={() => setOffset(nameKey, { x: 0, y: 0 })}
         className="absolute flex flex-col items-end text-white"
-        style={{ top: 28, right: MARGIN }}
       >
-        <div className="font-bold uppercase tracking-wide" style={{ fontSize: 16 }}>
-          {artistName.toUpperCase()}
+        <div
+          // The draggable wrapper supplies the position; we keep the
+          // template's "top: 28, right: MARGIN" placement here so the
+          // drag is relative to the default.
+          className="flex flex-col items-end"
+          style={{ position: "absolute", top: 28, right: MARGIN }}
+        >
+          <div className="font-bold uppercase tracking-wide" style={{ fontSize: 16 }}>
+            {artistName.toUpperCase()}
+          </div>
+          <DraggableTextBlock
+            blockKey={handleKey}
+            offset={handleOffset}
+            onCommit={(next) => setOffset(handleKey, next)}
+            onReset={() => setOffset(handleKey, { x: 0, y: 0 })}
+          >
+            <EditableText
+              value={intro.instagram ?? ""}
+              onChange={(v) => onPatch({ instagram: v })}
+              placeholder="@handle"
+              ariaLabel={`${artistName} Instagram`}
+              className="text-xs"
+            />
+          </DraggableTextBlock>
         </div>
-        <EditableText
-          value={intro.instagram ?? ""}
-          onChange={(v) => onPatch({ instagram: v })}
-          placeholder="@handle"
-          ariaLabel={`${artistName} Instagram`}
-          className="text-xs"
-        />
-      </div>
+      </DraggableTextBlock>
       <div
         className="absolute grid grid-cols-2 gap-6 text-white"
         style={{ left: MARGIN, right: MARGIN, bottom: 56 }}
       >
-        <div>
+        <DraggableTextBlock
+          blockKey={bioEnKey}
+          offset={bioEnOffset}
+          onCommit={(next) => setOffset(bioEnKey, next)}
+          onReset={() => setOffset(bioEnKey, { x: 0, y: 0 })}
+        >
           <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>EN</div>
           <EditableText
             value={intro.bio_en_html ?? plainToHtml(intro.bio_en ?? "")}
@@ -572,8 +629,13 @@ function ArtistIntroPage({
             ariaLabel={`${artistName} bio EN`}
             className="block text-[8.5px] leading-relaxed"
           />
-        </div>
-        <div>
+        </DraggableTextBlock>
+        <DraggableTextBlock
+          blockKey={bioEsKey}
+          offset={bioEsOffset}
+          onCommit={(next) => setOffset(bioEsKey, next)}
+          onReset={() => setOffset(bioEsKey, { x: 0, y: 0 })}
+        >
           <div className="mb-2 uppercase tracking-wider" style={{ fontSize: 9 }}>ES</div>
           <EditableText
             value={intro.bio_es_html ?? plainToHtml(intro.bio_es ?? "")}
@@ -585,7 +647,7 @@ function ArtistIntroPage({
             ariaLabel={`${artistName} bio ES`}
             className="block text-[8.5px] leading-relaxed"
           />
-        </div>
+        </DraggableTextBlock>
       </div>
     </Page>
   );
