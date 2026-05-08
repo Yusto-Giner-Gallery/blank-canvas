@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useProfile } from "@/hooks/useProfile";
 import { useT } from "@/lib/i18n/LocaleContext";
 import { FeedbackModal } from "@/components/shared/FeedbackModal";
+import { useMyAssignedCards } from "@/hooks/useMyAssignedCards";
 
 type Item = {
   to: string;
@@ -55,28 +56,45 @@ function Wordmark() {
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { isAdmin } = useProfile();
   const t = useT();
+  // Count of cards the user is a member of — surfaces unseen assignments
+  // as a small badge next to "Shirika", same pattern as Linear's inbox
+  // count or Asana's "My tasks" badge.
+  const assignedCount = useMyAssignedCards().data?.length ?? 0;
   const visible = items.filter((i) => !i.adminOnly || isAdmin);
   return (
     <nav className="flex-1 space-y-px px-0 pb-4 pt-2">
-      {visible.map(({ to, i18nKey, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === "/"}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 border-l-2 px-3 py-2 text-sm font-medium uppercase tracking-wider transition-colors",
-              isActive
-                ? "border-accent-red bg-accent text-accent-foreground"
-                : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
-            )
-          }
-        >
-          <Icon className="h-4 w-4" />
-          {t(i18nKey)}
-        </NavLink>
-      ))}
+      {visible.map(({ to, i18nKey, icon: Icon }) => {
+        const showBadge = i18nKey === "nav.shirika" && assignedCount > 0;
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === "/"}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 border-l-2 px-3 py-2 text-sm font-medium uppercase tracking-wider transition-colors",
+                isActive
+                  ? "border-accent-red bg-accent text-accent-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+              )
+            }
+          >
+            <Icon className="h-4 w-4" />
+            <span className="flex-1">{t(i18nKey)}</span>
+            {showBadge ? (
+              <span
+                aria-label={`${assignedCount} assigned`}
+                // Monochrome badge per CLAUDE.md §3 — accent-red is reserved
+                // for chrome (wordmark slash, active rail, page bracket).
+                className="inline-flex h-5 min-w-[1.25rem] items-center justify-center border border-foreground bg-foreground px-1.5 text-[10px] font-semibold tabular-nums text-background"
+              >
+                {assignedCount}
+              </span>
+            ) : null}
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

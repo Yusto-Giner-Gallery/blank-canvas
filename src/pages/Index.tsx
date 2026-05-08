@@ -3,6 +3,7 @@ import { useT } from "@/lib/i18n/LocaleContext";
 import { useArtworks } from "@/hooks/useArtworks";
 import { useInvoices } from "@/hooks/useInvoices";
 import { ActivityStream } from "@/components/dashboard/ActivityStream";
+import { MyAssignments } from "@/components/dashboard/MyAssignments";
 
 export default function Index() {
   const t = useT();
@@ -64,6 +65,18 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
+      <section className="space-y-2">
+        <div>
+          <h2 className="text-xs font-medium uppercase tracking-[0.18em]">
+            {t("assignments.title")}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {t("assignments.description")}
+          </p>
+        </div>
+        <MyAssignments />
+      </section>
 
       <section className="space-y-2">
         <div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -423,6 +423,21 @@ export default function BoardDetail() {
 
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+
+  // Deep-link support: arrive at /kanban/:board?card=<id> from the
+  // dashboard "Assigned to you" widget and the card detail modal opens
+  // automatically. Strips the param after consuming it so the URL stays
+  // clean if the user navigates within the board.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const cardParam = searchParams.get("card");
+    if (cardParam) {
+      setOpenCardId(cardParam);
+      const next = new URLSearchParams(searchParams);
+      next.delete("card");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Local optimistic copy so drag feels instant.
   const [localLists, setLocalLists] = useState(
