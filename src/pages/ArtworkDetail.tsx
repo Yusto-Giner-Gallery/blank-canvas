@@ -151,6 +151,20 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
   const url = imageUrl(artwork.primary_image?.storage_path);
   const size = formatSize(artwork.width_cm, artwork.height_cm, artwork.depth_cm);
   const images = imagesQuery.data ?? [];
+  const lightbox = useLightbox();
+  const lightboxImages = images
+    .map((img) => ({ src: imageUrl(img.storage_path), alt: artwork.title }))
+    .filter((i): i is { src: string; alt: string } => !!i.src);
+  function openLightbox(imageId?: string) {
+    if (lightboxImages.length === 0) {
+      if (url) lightbox.open({ src: url, alt: artwork.title });
+      return;
+    }
+    const idx = imageId
+      ? Math.max(0, images.findIndex((i) => i.id === imageId))
+      : 0;
+    lightbox.open({ images: lightboxImages, index: idx });
+  }
 
   async function onCreateTag(e: React.FormEvent) {
     e.preventDefault();
