@@ -1,5 +1,9 @@
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Bug, Plus } from "lucide-react";
 import { useT, useLocale } from "@/lib/i18n/LocaleContext";
 import { LOCALES } from "@/lib/i18n/translations";
+import { FeedbackModal } from "@/components/shared/FeedbackModal";
 
 // Page Settings — a dedicated area for language, layout, and visual-style
 // preferences. Layout + visual-style sections are placeholders pending the
@@ -13,15 +17,44 @@ import { LOCALES } from "@/lib/i18n/translations";
 export default function PageSettings() {
   const t = useT();
   const { locale, setLocale } = useLocale();
+  const location = useLocation();
+  const [feedback, setFeedback] = useState<null | "bug" | "feature">(null);
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-xl font-medium">{t("settings.title")}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t("settings.description")}
-        </p>
+      <header className="space-y-3">
+        <div className="space-y-1">
+          <h1 className="text-xl font-medium">{t("settings.title")}</h1>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.description")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setFeedback("bug")}
+            className="inline-flex items-center gap-2 border border-border bg-background px-3 py-2 text-sm hover:bg-muted"
+          >
+            <Bug className="h-4 w-4" />
+            Report a bug
+          </button>
+          <button
+            type="button"
+            onClick={() => setFeedback("feature")}
+            className="inline-flex items-center gap-2 border border-border bg-background px-3 py-2 text-sm hover:bg-muted"
+          >
+            <Plus className="h-4 w-4" />
+            Request a feature
+          </button>
+        </div>
       </header>
+      {feedback ? (
+        <FeedbackModal
+          kind={feedback}
+          page_path={location.pathname}
+          onClose={() => setFeedback(null)}
+        />
+      ) : null}
 
       <Section title={t("settings.section.language")}>
         <div role="radiogroup" aria-label={t("settings.section.language")} className="flex flex-col gap-2">

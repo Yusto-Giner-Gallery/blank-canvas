@@ -4,7 +4,6 @@ import { Sidebar, MobileSidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useRealtimeArtworks } from "@/hooks/useRealtimeArtworks";
 import { useRealtimeKanban } from "@/hooks/useRealtimeKanban";
-import { FeedbackWidget } from "@/components/shared/FeedbackWidget";
 import { recordRouteChange } from "@/lib/feedback-buffer";
 import { useEffect } from "react";
 
@@ -33,7 +32,6 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 }
