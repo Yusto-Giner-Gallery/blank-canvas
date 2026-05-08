@@ -1,0 +1,1 @@
+ALTER TYPE public.dossier_kind ADD VALUE IF NOT EXISTS 'editorial';
