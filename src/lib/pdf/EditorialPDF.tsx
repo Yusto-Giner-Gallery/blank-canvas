@@ -33,29 +33,30 @@ const local = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: BAND_W,
-    backgroundColor: palette.accent,
   },
+  // Full-page SVG overlay just for the broken slash (Lines fully supported).
+  coverSvg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: PAGE.width,
+    height: PAGE.height,
+  },
+  // Cover title — solid white at large size. Known compromise: PARALLELS
+  // uses outlined-stroke type, but @react-pdf/renderer's SVG <Text> does
+  // not call ctx.stroke() (see render/lib/index.js renderRun$1), so true
+  // hollow text needs opentype.js glyph paths rendered as <Path>. Out of
+  // scope for now.
   coverTitle: {
     position: "absolute",
     top: 56,
     left: MARGIN,
     width: BAND_W - MARGIN,
     color: "#ffffff",
-    fontSize: 28,
-    letterSpacing: 2,
+    fontSize: 42,
+    letterSpacing: 3,
     fontWeight: 700,
     textTransform: "uppercase",
-  },
-  // Bicolor broken slash drawn as two colinear SVG line segments along a
-  // single diagonal axis, with a gap centred on the band's right edge:
-  // upper segment is white (sits on the coloured band), lower segment is
-  // the accent colour (sits on the white area).
-  slashSvg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: PAGE.width,
-    height: PAGE.height,
   },
   coverArtists: {
     position: "absolute",
@@ -64,7 +65,6 @@ const local = StyleSheet.create({
     alignItems: "flex-end",
   },
   coverArtistName: {
-    color: palette.accent,
     fontSize: 14,
     textDecoration: "underline",
     marginTop: 2,
@@ -189,41 +189,42 @@ function CoverPage({
   showTitle,
   artistNames,
   galleryName,
+  accent,
 }: {
   showTitle: string;
   artistNames: string[];
   galleryName: string;
+  accent: string;
 }) {
+  // Slash geometry — both segments share slope = (320-200)/(300-240) = 2.0
+  // and gap is centred at the band's right edge so the broken slash reads
+  // as one diagonal mark crossing into the white area.
+  const SLASH_W = 18;
+  const slashWhite = { x1: 240, y1: 200, x2: 300, y2: 320 };
+  const slashAccent = { x1: 320, y1: 360, x2: 380, y2: 480 };
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
-      <View style={local.coverBand} />
-      <Text style={local.coverTitle}>{showTitle}</Text>
-      {/* Colinear broken slash. Both segments sit on the same diagonal line
-          y = m * x + c with a gap centred at the band edge (x = BAND_W). */}
-      <Svg style={local.slashSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
+      <View style={[local.coverBand, { backgroundColor: accent }]} />
+      <Text style={local.coverTitle}>{(showTitle || "").toUpperCase()}</Text>
+      <Svg style={local.coverSvg} viewBox={`0 0 ${PAGE.width} ${PAGE.height}`}>
+        {/* Broken slash — colinear segments straddling the band edge. */}
         <Line
-          x1={BAND_W - 120}
-          y1={180}
-          x2={BAND_W - 10}
-          y2={340}
+          {...slashWhite}
           stroke="#ffffff"
-          strokeWidth={16}
+          strokeWidth={SLASH_W}
           strokeLinecap="butt"
         />
         <Line
-          x1={BAND_W + 5}
-          y1={362}
-          x2={BAND_W + 115}
-          y2={522}
-          stroke={palette.accent}
-          strokeWidth={16}
+          {...slashAccent}
+          stroke={accent}
+          strokeWidth={SLASH_W}
           strokeLinecap="butt"
         />
       </Svg>
       {artistNames.length > 0 ? (
         <View style={local.coverArtists}>
           {artistNames.map((name) => (
-            <Text key={name} style={local.coverArtistName}>
+            <Text key={name} style={[local.coverArtistName, { color: accent }]}>
               {name}
             </Text>
           ))}
@@ -320,16 +321,36 @@ function ArtworkPage({
 export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: CommonProps) {
   const showTitle = dossier.body_blocks.show_title?.trim() || dossier.title;
   const intros = dossier.body_blocks.artist_intros ?? {};
+  // Per-dossier accent override (CLAUDE.md §3 4th color exception). Defaults
+  // to palette.accent (PARALLELS coral) so existing dossiers keep working.
+  const accent = dossier.body_blocks.accent_color?.trim() || palette.accent;
 
-  // Unique artists in display order (preserves dossier image_layout sequence).
-  const seen = new Set<string>();
-  const artists: Array<{ id: string; name: string }> = [];
-  for (const a of artworks) {
-    if (a.artist && !seen.has(a.artist.id)) {
-      seen.add(a.artist.id);
-      artists.push({ id: a.artist.id, name: a.artist.name });
+  // Group by canonical name (case-insensitive, trimmed) so the dossier
+  // renders one intro page + N artwork pages even when the upload pipeline
+  // has accidentally created duplicate artist rows for the same person.
+  // The first-seen artist row is the canonical entry; per-artist intro
+  // text/photo is read from that id.
+  type ArtistGroup = { id: string; name: string; artworks: ArtworkListItem[] };
+  const byName = new Map<string, ArtistGroup>();
+  const orphaned: ArtworkListItem[] = [];
+  for (const aw of artworks) {
+    if (!aw.artist) {
+      orphaned.push(aw);
+      continue;
+    }
+    const key = aw.artist.name.trim().toLowerCase();
+    const existing = byName.get(key);
+    if (existing) {
+      existing.artworks.push(aw);
+    } else {
+      byName.set(key, {
+        id: aw.artist.id,
+        name: aw.artist.name,
+        artworks: [aw],
+      });
     }
   }
+  const artists = Array.from(byName.values());
 
   // Flatten into a single page array — @react-pdf requires <Page> elements to
   // be direct children of <Document>. Wrapping in <View> silently fails.
@@ -339,6 +360,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
       showTitle={showTitle}
       artistNames={artists.map((a) => a.name)}
       galleryName={galleryName}
+      accent={accent}
     />,
   ];
   for (const artist of artists) {
@@ -353,7 +375,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
         galleryName={galleryName}
       />,
     );
-    for (const aw of artworks.filter((a) => a.artist?.id === artist.id)) {
+    for (const aw of artist.artworks) {
       pages.push(
         <ArtworkPage
           key={`aw-${aw.id}`}
@@ -365,7 +387,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
     }
   }
   // Artworks with no artist still render so nothing silently disappears.
-  for (const aw of artworks.filter((a) => !a.artist)) {
+  for (const aw of orphaned) {
     pages.push(
       <ArtworkPage
         key={`aw-${aw.id}`}

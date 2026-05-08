@@ -17,9 +17,10 @@ export const palette = {
   body: "#262626",
   muted: "#737373",
   hairline: "#e5e5e5",
-  // Yusto / Giner brand red — CLAUDE.md §3 approved exception. Used by the
-  // Editorial template (cover band, artist names, slash mark).
-  accent: "#ee4533",
+  // Editorial accent — pixel-sampled from the PARALLELS dossier cover band.
+  // Approved as the 4th color exception in CLAUDE.md §3 (per-dossier accent,
+  // user-overridable via body_blocks.accent_color).
+  accent: "#EC6660",
 };
 
 export const baseStyles = StyleSheet.create({

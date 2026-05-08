@@ -55,6 +55,7 @@ export default function DossierEditor() {
   const [intro, setIntro] = useState("");
   const [extra, setExtra] = useState("");
   const [showTitle, setShowTitle] = useState("");
+  const [accentColor, setAccentColor] = useState("");
   const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string[]>([]);
@@ -71,6 +72,7 @@ export default function DossierEditor() {
     setIntro(d.body_blocks.intro ?? "");
     setExtra(d.body_blocks.extra ?? "");
     setShowTitle(d.body_blocks.show_title ?? "");
+    setAccentColor(d.body_blocks.accent_color ?? "");
     setArtistIntros(d.body_blocks.artist_intros ?? {});
     setDescriptions(d.body_blocks.artwork_descriptions ?? {});
     setLayout(d.image_layout);
@@ -111,11 +113,13 @@ export default function DossierEditor() {
         extra: kind === "special" ? extra : undefined,
         artwork_descriptions: descriptions,
         show_title: kind === "editorial" ? showTitle : undefined,
+        accent_color:
+          kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
         artist_intros: kind === "editorial" ? artistIntros : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, showTitle, artistIntros, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, accentColor, artistIntros, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -130,6 +134,8 @@ export default function DossierEditor() {
             extra: kind === "special" ? extra : undefined,
             artwork_descriptions: descriptions,
             show_title: kind === "editorial" ? showTitle : undefined,
+            accent_color:
+              kind === "editorial" ? (accentColor.trim() || undefined) : undefined,
             artist_intros: kind === "editorial" ? artistIntros : undefined,
           },
           image_layout: layout,
@@ -321,16 +327,38 @@ export default function DossierEditor() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">
-                  Show title (cover word, e.g. PARALLELS)
-                </Label>
-                <Input
-                  value={showTitle}
-                  onChange={(e) => setShowTitle(e.target.value)}
-                  className="h-9 uppercase tracking-widest"
-                  placeholder="UPPERCASE COVER TITLE"
-                />
+              <div className="grid gap-2 sm:grid-cols-[1fr_140px]">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Show title (cover word, e.g. PARALLELS)
+                  </Label>
+                  <Input
+                    value={showTitle}
+                    onChange={(e) => setShowTitle(e.target.value)}
+                    className="h-9 uppercase tracking-widest"
+                    placeholder="UPPERCASE COVER TITLE"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Accent color
+                  </Label>
+                  <div className="flex h-9 items-center gap-2">
+                    <input
+                      type="color"
+                      value={accentColor || "#EC6660"}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="h-9 w-10 cursor-pointer border border-input bg-background p-0"
+                      aria-label="Cover accent color"
+                    />
+                    <Input
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      placeholder="#EC6660"
+                      className="h-9 font-mono text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               <EditorialIntrosEditor
