@@ -29,12 +29,16 @@ import {
   useCardComments,
   useCardMembers,
   useDeleteCardAttachment,
+  useDeleteCardComment,
   useDeleteChecklistItem,
   useRemoveCardMember,
   useToggleChecklistItem,
+  useUpdateCardComment,
+  useUpdateChecklistItem,
   useUploadCardAttachment,
 } from "@/hooks/useCardDetail";
 import { useGalleryProfiles } from "@/hooks/useGalleryProfiles";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/lib/supabase";
 import { parseMentions } from "@/lib/mentions";
 import { ALL_LABELS, LabelChip, LabelPill, labelBg } from "./LabelChips";
@@ -92,9 +96,13 @@ export function CardDetailModal({
   const addItem = useAddChecklistItem();
   const toggleItem = useToggleChecklistItem();
   const deleteItem = useDeleteChecklistItem();
+  const updateItem = useUpdateChecklistItem();
   const addComment = useAddCardComment();
+  const updateComment = useUpdateCardComment();
+  const deleteComment = useDeleteCardComment();
   const uploadAttachment = useUploadCardAttachment();
   const deleteAttachment = useDeleteCardAttachment();
+  const { profile: currentProfile } = useProfile();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -272,36 +280,27 @@ export function CardDetailModal({
               ) : null}
               <ul className="space-y-1.5">
                 {checklist.map((it) => (
-                  <li key={it.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={it.done}
-                      onCheckedChange={(v) =>
-                        toggleItem.mutate({
-                          card_id: card.id,
-                          id: it.id,
-                          done: v,
-                        })
-                      }
-                      ariaLabel={it.text}
-                    />
-                    <span
-                      className={
-                        it.done ? "line-through text-muted-foreground" : ""
-                      }
-                    >
-                      {it.text}
-                    </span>
-                    <button
-                      type="button"
-                      className="ml-auto text-muted-foreground hover:text-destructive"
-                      aria-label="Delete item"
-                      onClick={() =>
-                        deleteItem.mutate({ card_id: card.id, id: it.id })
-                      }
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </li>
+                  <ChecklistRow
+                    key={it.id}
+                    item={it}
+                    onToggle={(done) =>
+                      toggleItem.mutate({
+                        card_id: card.id,
+                        id: it.id,
+                        done,
+                      })
+                    }
+                    onSave={(text) =>
+                      updateItem.mutate({
+                        card_id: card.id,
+                        id: it.id,
+                        text,
+                      })
+                    }
+                    onDelete={() =>
+                      deleteItem.mutate({ card_id: card.id, id: it.id })
+                    }
+                  />
                 ))}
               </ul>
               <form
@@ -417,16 +416,24 @@ export function CardDetailModal({
                   <li className="text-sm text-muted-foreground">No comments yet.</li>
                 ) : (
                   comments.map((c) => (
-                    <li
+                    <CommentRow
                       key={c.id}
-                      className="border border-border bg-card p-2 text-sm"
-                    >
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{c.author?.full_name ?? c.author?.email ?? "—"}</span>
-                        <span>{new Date(c.created_at).toLocaleString()}</span>
-                      </div>
-                      <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
-                    </li>
+                      comment={c}
+                      isMine={c.profile_id === currentProfile?.id}
+                      onSave={(body) =>
+                        updateComment.mutate({
+                          card_id: card.id,
+                          id: c.id,
+                          body,
+                        })
+                      }
+                      onDelete={() =>
+                        deleteComment.mutate({
+                          card_id: card.id,
+                          id: c.id,
+                        })
+                      }
+                    />
                   ))
                 )}
               </ul>
@@ -614,6 +621,175 @@ function AttachmentRow({
       >
         <Trash2 className="h-3 w-3" />
       </button>
+    </li>
+  );
+}
+
+// Inline-editable checklist row. Click the text → input, Enter or blur
+// commits, Escape reverts. Matches Trello's pattern.
+function ChecklistRow({
+  item,
+  onToggle,
+  onSave,
+  onDelete,
+}: {
+  item: { id: string; text: string; done: boolean };
+  onToggle: (done: boolean) => void;
+  onSave: (text: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.text);
+
+  useEffect(() => {
+    setDraft(item.text);
+  }, [item.text]);
+
+  function commit() {
+    const next = draft.trim();
+    if (next && next !== item.text) onSave(next);
+    if (!next) setDraft(item.text);
+    setEditing(false);
+  }
+
+  return (
+    <li className="group flex items-center gap-2 text-sm">
+      <Checkbox
+        checked={item.done}
+        onCheckedChange={(v) => onToggle(v)}
+        ariaLabel={item.text}
+      />
+      {editing ? (
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") {
+              setDraft(item.text);
+              setEditing(false);
+            }
+          }}
+          autoFocus
+          className="h-7 px-2"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className={cn(
+            "flex-1 cursor-text text-left",
+            item.done && "line-through text-muted-foreground",
+          )}
+        >
+          {item.text}
+        </button>
+      )}
+      <button
+        type="button"
+        className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+        aria-label="Delete item"
+        onClick={onDelete}
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </li>
+  );
+}
+
+// Comment row with edit + delete on the user's own comments.
+function CommentRow({
+  comment,
+  isMine,
+  onSave,
+  onDelete,
+}: {
+  comment: {
+    id: string;
+    body: string;
+    created_at: string;
+    author: { full_name?: string | null; email?: string | null } | null;
+  };
+  isMine: boolean;
+  onSave: (body: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.body);
+
+  useEffect(() => {
+    setDraft(comment.body);
+  }, [comment.body]);
+
+  function commit() {
+    const next = draft.trim();
+    if (next && next !== comment.body) onSave(next);
+    if (!next) setDraft(comment.body);
+    setEditing(false);
+  }
+
+  return (
+    <li className="group border border-border bg-card p-2 text-sm">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{comment.author?.full_name ?? comment.author?.email ?? "—"}</span>
+        <span>{new Date(comment.created_at).toLocaleString()}</span>
+      </div>
+      {editing ? (
+        <div className="mt-1 space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setDraft(comment.body);
+                setEditing(false);
+              }
+            }}
+            className="w-full resize-y border border-input bg-background p-2 text-sm"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDraft(comment.body);
+                setEditing(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="button" size="sm" onClick={commit}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
+      )}
+      {isMine && !editing ? (
+        <div className="mt-1 flex gap-3 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="hover:text-foreground"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Delete this comment?")) onDelete();
+            }}
+            className="hover:text-destructive"
+          >
+            Delete
+          </button>
+        </div>
+      ) : null}
     </li>
   );
 }

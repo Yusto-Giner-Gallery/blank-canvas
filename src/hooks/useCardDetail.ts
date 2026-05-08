@@ -131,6 +131,26 @@ export function useDeleteChecklistItem() {
   });
 }
 
+export function useUpdateChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    { card_id: string; id: string; text: string }
+  >({
+    mutationFn: async ({ id, text }) => {
+      const { error } = await supabase
+        .from("card_checklist")
+        .update({ text })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["card_checklist", vars.card_id] });
+    },
+  });
+}
+
 // --- Comments ---
 
 export type CardCommentRow = CardComment & {
@@ -167,6 +187,39 @@ export function useAddCardComment() {
         profile_id: profile.id,
         body,
       });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["card_comments", vars.card_id] });
+    },
+  });
+}
+
+export function useUpdateCardComment() {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    { card_id: string; id: string; body: string }
+  >({
+    mutationFn: async ({ id, body }) => {
+      const { error } = await supabase
+        .from("card_comments")
+        .update({ body })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["card_comments", vars.card_id] });
+    },
+  });
+}
+
+export function useDeleteCardComment() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { card_id: string; id: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase.from("card_comments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {

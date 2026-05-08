@@ -43,6 +43,7 @@ import {
   useCreateCard,
   useCreateList,
   useDeleteList,
+  useUpdateBoard,
   useMoveCard,
   useRenameList,
   type CardWithMeta,
@@ -413,6 +414,9 @@ export default function BoardDetail() {
   const createList = useCreateList();
   const deleteList = useDeleteList();
   const renameList = useRenameList();
+  const updateBoard = useUpdateBoard();
+  const [editingBoardName, setEditingBoardName] = useState(false);
+  const [boardNameDraft, setBoardNameDraft] = useState("");
   const createCard = useCreateCard();
   const move = useMoveCard();
   const galleryProfiles = useGalleryProfiles().data ?? [];
@@ -578,7 +582,42 @@ export default function BoardDetail() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold tracking-tight">{data.name}</h1>
+        {editingBoardName ? (
+          <Input
+            value={boardNameDraft}
+            onChange={(e) => setBoardNameDraft(e.target.value)}
+            onBlur={() => {
+              const next = boardNameDraft.trim();
+              if (next && next !== data.name) {
+                updateBoard.mutate(
+                  { id: data.id, patch: { name: next } },
+                  { onError: (err) => toast.error(err.message) },
+                );
+              }
+              setEditingBoardName(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
+              if (e.key === "Escape") {
+                setBoardNameDraft(data.name);
+                setEditingBoardName(false);
+              }
+            }}
+            autoFocus
+            className="h-9 max-w-sm text-xl font-semibold"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setBoardNameDraft(data.name);
+              setEditingBoardName(true);
+            }}
+            className="text-xl font-semibold tracking-tight hover:text-accent-red"
+          >
+            {data.name}
+          </button>
+        )}
         <div className="ml-auto">
           <AvatarStack members={galleryProfiles} max={5} />
         </div>
