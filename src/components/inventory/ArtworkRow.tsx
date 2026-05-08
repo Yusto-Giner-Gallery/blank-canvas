@@ -85,7 +85,16 @@ export function ArtworkRow({
         )}
       >
         {url ? (
-          <img src={url} alt="" className="h-full w-full object-contain" />
+          <img
+            src={url}
+            alt=""
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              lightbox.open({ src: url, alt: artwork.title });
+            }}
+            className="h-full w-full cursor-zoom-in object-contain"
+          />
         ) : (
           <ImageOff className="h-5 w-5 text-muted-foreground" />
         )}
