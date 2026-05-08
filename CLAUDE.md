@@ -122,6 +122,7 @@ speculative dependency choices.
 - **Drag-and-drop (everywhere — Kanban, dossier image swap, collections, sortable cards):** `@dnd-kit/core` + `@dnd-kit/sortable`. One library, every drag interaction.
 - **PDF:** `@react-pdf/renderer` (client-side, see §2)
 - **CSV import/export:** `papaparse`
+- **Client-side zip:** `jszip` — used by the artwork action rail's "Download images" entry to bundle every `artwork_images` row for an artwork into a single `.zip` without a server round-trip. ~95 KB, no Node-only deps, survives a Lovable import.
 - **QR codes:** `qrcode.react`
 - **Dates:** `date-fns`
 - **Icons:** `lucide-react` (shadcn default)
