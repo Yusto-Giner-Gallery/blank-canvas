@@ -66,6 +66,7 @@ function SortableTile({
     opacity: isDragging ? 0.6 : 1,
   };
   const url = imageUrl(artwork.primary_image?.storage_path);
+  const lightbox = useLightbox();
 
   return (
     <div
