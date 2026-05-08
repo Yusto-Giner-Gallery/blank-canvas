@@ -554,6 +554,7 @@ function ArtistIntroPage({
             placeholder="English bio…"
             multiline
             rich
+            lang="en"
             ariaLabel={`${artistName} bio EN`}
             className="block text-[8.5px] leading-relaxed"
           />
@@ -566,6 +567,7 @@ function ArtistIntroPage({
             placeholder="Bio en español…"
             multiline
             rich
+            lang="es"
             ariaLabel={`${artistName} bio ES`}
             className="block text-[8.5px] leading-relaxed"
           />

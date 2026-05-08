@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
+  Eraser,
   Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Strikethrough,
   Underline,
+  Unlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,10 +32,45 @@ const FONTS = [
 
 const SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 72] as const;
 
+// Curated 8-swatch palette + a custom-colour native picker. Sharp / hairline
+// aesthetic — the swatches are 14px squares with a 1px border.
+const COLOR_SWATCHES = [
+  "#0a0a0a",
+  "#737373",
+  "#ffffff",
+  "#EC6660", // PARALLELS coral / brand red
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#a855f7",
+] as const;
+
 type AnchorRect = { top: number; left: number; width: number };
 
 export function FormatToolbar() {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
+  const [counts, setCounts] = useState<{ words: number; chars: number }>({
+    words: 0,
+    chars: 0,
+  });
+
+  // Recompute word/char count whenever selection/content changes.
+  useEffect(() => {
+    function refreshCounts() {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || !isRichEditable(el)) return;
+      const text = (el.innerText ?? el.textContent ?? "").replace(/​/g, "");
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      setCounts({ words, chars: text.length });
+    }
+    document.addEventListener("input", refreshCounts, true);
+    document.addEventListener("selectionchange", refreshCounts);
+    refreshCounts();
+    return () => {
+      document.removeEventListener("input", refreshCounts, true);
+      document.removeEventListener("selectionchange", refreshCounts);
+    };
+  }, [anchor]);
 
   useEffect(() => {
     function onFocus() {
@@ -96,6 +138,9 @@ export function FormatToolbar() {
       <ToolBtn ariaLabel="Underline" onClick={() => exec("underline")}>
         <Underline className="h-3.5 w-3.5" />
       </ToolBtn>
+      <ToolBtn ariaLabel="Strikethrough" onClick={() => exec("strikeThrough")}>
+        <Strikethrough className="h-3.5 w-3.5" />
+      </ToolBtn>
 
       <Separator />
 
@@ -107,6 +152,58 @@ export function FormatToolbar() {
       </ToolBtn>
       <ToolBtn ariaLabel="Align right" onClick={() => exec("justifyRight")}>
         <AlignRight className="h-3.5 w-3.5" />
+      </ToolBtn>
+      <ToolBtn ariaLabel="Justify" onClick={() => exec("justifyFull")}>
+        <AlignJustify className="h-3.5 w-3.5" />
+      </ToolBtn>
+
+      <Separator />
+
+      <ToolBtn ariaLabel="Bulleted list" onClick={() => exec("insertUnorderedList")}>
+        <List className="h-3.5 w-3.5" />
+      </ToolBtn>
+      <ToolBtn
+        ariaLabel="Numbered list"
+        onClick={() => exec("insertOrderedList")}
+      >
+        <ListOrdered className="h-3.5 w-3.5" />
+      </ToolBtn>
+
+      <Separator />
+
+      <ToolBtn
+        ariaLabel="Insert link"
+        onClick={() => {
+          const url = window.prompt("Link URL");
+          if (!url) return;
+          // Basic schema guard — sanitiser also blocks javascript:/data:
+          // but skipping the round-trip for the common case.
+          const safe = /^(https?:|mailto:|tel:)/i.test(url) ? url : `https://${url}`;
+          exec("createLink", safe);
+        }}
+      >
+        <LinkIcon className="h-3.5 w-3.5" />
+      </ToolBtn>
+      <ToolBtn ariaLabel="Remove link" onClick={() => exec("unlink")}>
+        <Unlink className="h-3.5 w-3.5" />
+      </ToolBtn>
+
+      <Separator />
+
+      <ColorPicker />
+
+      <Separator />
+
+      <ToolBtn
+        ariaLabel="Clear formatting"
+        onClick={() => {
+          exec("removeFormat");
+          // removeFormat doesn't strip block-level alignment / lists; do it
+          // ourselves so the user gets a true reset.
+          exec("formatBlock", "div");
+        }}
+      >
+        <Eraser className="h-3.5 w-3.5" />
       </ToolBtn>
 
       <Separator />
@@ -134,6 +231,72 @@ export function FormatToolbar() {
           </option>
         ))}
       </Select>
+
+      <Separator />
+
+      {/* Live word + character count for the focused field. Sits at the
+          right edge of the toolbar; readers can ignore but writers will
+          appreciate it for catalogue copy that has length targets. */}
+      <span className="px-1 text-[11px] tabular-nums text-muted-foreground">
+        {counts.words} word{counts.words === 1 ? "" : "s"} · {counts.chars} char
+        {counts.chars === 1 ? "" : "s"}
+      </span>
+    </div>
+  );
+}
+
+// Color picker: 8 preset swatches + a native <input type="color"> for
+// arbitrary hex. Click commits via execCommand("foreColor"), which
+// writes <span style="color: ..."> — the sanitiser allows it through
+// and the PDF renderer paints accordingly.
+function ColorPicker() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative" onMouseDown={(e) => e.preventDefault()}>
+      <button
+        type="button"
+        aria-label="Text color"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 items-center gap-1 border border-transparent px-1 text-xs text-muted-foreground hover:border-border hover:text-foreground"
+      >
+        <span className="text-[11px] font-semibold">A</span>
+        <span
+          aria-hidden
+          className="h-2 w-3 border border-border"
+          style={{ background: "linear-gradient(to right, #0a0a0a, #EC6660)" }}
+        />
+      </button>
+      {open ? (
+        <div
+          className="absolute left-0 top-8 z-[70] flex flex-col gap-1 border border-border bg-popover p-1.5 shadow-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="grid grid-cols-4 gap-1">
+            {COLOR_SWATCHES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Color ${c}`}
+                onClick={() => {
+                  exec("foreColor", c);
+                  setOpen(false);
+                }}
+                className="h-5 w-5 border border-border"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+          <input
+            type="color"
+            aria-label="Custom color"
+            onChange={(e) => {
+              exec("foreColor", e.target.value);
+              setOpen(false);
+            }}
+            className="h-6 w-full cursor-pointer border border-border"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

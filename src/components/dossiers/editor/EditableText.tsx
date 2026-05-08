@@ -19,6 +19,13 @@ type Props = {
   placeholder?: string;
   multiline?: boolean;
   rich?: boolean;
+  // BCP-47 language tag — drives the browser's native spell checker.
+  // E.g. "en" for English bios, "es" for Spanish bios. Default: don't set,
+  // browser falls back to document language.
+  lang?: string;
+  // Default true for rich + multiline; opt out per-instance if needed
+  // (e.g. internal IDs that shouldn't be flagged).
+  spellCheck?: boolean;
   className?: string;
   ariaLabel?: string;
   style?: React.CSSProperties;
@@ -30,6 +37,8 @@ export function EditableText({
   placeholder,
   multiline = false,
   rich = false,
+  lang,
+  spellCheck,
   className,
   ariaLabel,
   style,
@@ -132,6 +141,10 @@ export function EditableText({
       data-placeholder={placeholder}
       // FormatToolbar attaches to any element with this attribute.
       data-rich-editor={rich ? "true" : undefined}
+      // Spell-check on by default for rich+multiline; respects per-instance
+      // overrides. lang= drives which dictionary the browser uses.
+      spellCheck={spellCheck ?? (rich && multiline) ? true : false}
+      lang={lang}
       style={style}
       className={cn(
         "outline-none cursor-text",

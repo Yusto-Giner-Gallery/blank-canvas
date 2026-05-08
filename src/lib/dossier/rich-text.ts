@@ -16,10 +16,17 @@ const ALLOWED_TAGS = new Set([
   "i",
   "em",
   "u",
+  "s",
+  "strike",
+  "del",
   "br",
   "div",
   "p",
   "span",
+  "ul",
+  "ol",
+  "li",
+  "a",
 ]);
 
 const ALLOWED_STYLE_PROPS = new Set([
@@ -30,21 +37,31 @@ const ALLOWED_STYLE_PROPS = new Set([
   "text-decoration",
   "text-align",
   "color",
+  "background-color",
+  "letter-spacing",
+  "line-height",
 ]);
+
+const ALLOWED_ATTRS_BY_TAG: Record<string, Set<string>> = {
+  a: new Set(["href", "target", "rel"]),
+};
 
 // Tag → semantic flag the PDF runs care about.
 const BOLD_TAGS = new Set(["b", "strong"]);
 const ITALIC_TAGS = new Set(["i", "em"]);
 const UNDERLINE_TAGS = new Set(["u"]);
+const STRIKE_TAGS = new Set(["s", "strike", "del"]);
 
 export type RichRun = {
   text: string;
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  strike: boolean;
   fontFamily?: string;
   fontSize?: number;
   color?: string;
+  href?: string;
 };
 
 export type RichParagraph = {
@@ -78,14 +95,32 @@ function cleanNode(el: Element): void {
       parent.removeChild(child);
       continue;
     }
-    // Strip every attribute except a sanitised inline style.
+    // Strip every attribute except a sanitised inline style and any
+    // tag-specific allow-list (a[href], etc.).
     const styleAttr = child.getAttribute("style");
+    const allowed = ALLOWED_ATTRS_BY_TAG[tag];
+    const keep: Record<string, string> = {};
+    if (allowed) {
+      for (const name of allowed) {
+        const v = child.getAttribute(name);
+        if (v) keep[name] = v;
+      }
+    }
     for (const attr of Array.from(child.attributes)) {
       child.removeAttribute(attr.name);
     }
     if (styleAttr) {
       const cleaned = sanitizeStyle(styleAttr);
       if (cleaned) child.setAttribute("style", cleaned);
+    }
+    for (const [name, v] of Object.entries(keep)) {
+      // Block javascript: / data: schemes on links.
+      if (name === "href" && /^(javascript|data):/i.test(v.trim())) continue;
+      child.setAttribute(name, v);
+    }
+    if (tag === "a" && !child.getAttribute("rel")) {
+      child.setAttribute("rel", "noreferrer noopener");
+      child.setAttribute("target", "_blank");
     }
     cleanNode(child);
   }
@@ -140,16 +175,23 @@ type StyleStack = {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  strike: boolean;
   fontFamily?: string;
   fontSize?: number;
   color?: string;
+  href?: string;
   align: "left" | "center" | "right";
+  // List context for the current sub-tree. When list>0 each <li>'s contents
+  // become their own paragraph prefixed with the appropriate marker.
+  listKind?: "ul" | "ol";
+  listIndex?: number;
 };
 
 const ROOT_STACK: StyleStack = {
   bold: false,
   italic: false,
   underline: false,
+  strike: false,
   align: "left",
 };
 
@@ -188,7 +230,33 @@ function walk(node: Node, parent: StyleStack, out: RichParagraph[]): void {
     if (BOLD_TAGS.has(tag)) next.bold = true;
     if (ITALIC_TAGS.has(tag)) next.italic = true;
     if (UNDERLINE_TAGS.has(tag)) next.underline = true;
+    if (STRIKE_TAGS.has(tag)) next.strike = true;
+    if (tag === "a") {
+      const href = el.getAttribute("href");
+      if (href) next.href = href;
+    }
     applyStyleAttr(el, next);
+
+    if (tag === "ul" || tag === "ol") {
+      next.listKind = tag;
+      next.listIndex = 0;
+    }
+    if (tag === "li" && parent.listKind) {
+      // Each <li> starts its own paragraph with a marker run.
+      const idx = (parent.listIndex ?? 0) + 1;
+      next.listIndex = idx;
+      startNewParagraph(out, next.align);
+      const marker =
+        parent.listKind === "ol" ? `${idx}. ` : "•  ";
+      out[out.length - 1].runs.push(
+        runFromStack(marker, { ...next, bold: false, italic: false, underline: false, strike: false, href: undefined }),
+      );
+      walk(el, next, out);
+      // Bump the parent's running index so siblings see the increment.
+      parent.listIndex = idx;
+      startNewParagraph(out, parent.align);
+      continue;
+    }
 
     const isBlock = tag === "div" || tag === "p";
     if (isBlock && out[out.length - 1].runs.length > 0) {
@@ -222,9 +290,11 @@ function runFromStack(text: string, s: StyleStack): RichRun {
     bold: s.bold,
     italic: s.italic,
     underline: s.underline,
+    strike: s.strike,
     fontFamily: s.fontFamily,
     fontSize: s.fontSize,
     color: s.color,
+    href: s.href,
   };
 }
 
@@ -250,6 +320,7 @@ function applyStyleAttr(el: HTMLElement, target: StyleStack): void {
         break;
       case "text-decoration":
         if (/underline/.test(value)) target.underline = true;
+        if (/line-through/.test(value)) target.strike = true;
         break;
       case "font-family":
         target.fontFamily = value

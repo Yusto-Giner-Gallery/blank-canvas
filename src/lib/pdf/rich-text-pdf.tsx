@@ -1,5 +1,5 @@
 import type React from "react";
-import { Text, View } from "@react-pdf/renderer";
+import { Link, Text, View } from "@react-pdf/renderer";
 import {
   parseHtmlToRuns,
   type RichRun,
@@ -49,7 +49,11 @@ function runStyle(run: RichRun): React.CSSProperties {
   const out: React.CSSProperties = {};
   if (run.bold) out.fontWeight = "bold";
   if (run.italic) out.fontStyle = "italic";
-  if (run.underline) out.textDecoration = "underline";
+  // @react-pdf accepts space-separated values for textDecoration.
+  const decorations: string[] = [];
+  if (run.underline) decorations.push("underline");
+  if (run.strike) decorations.push("line-through");
+  if (decorations.length > 0) out.textDecoration = decorations.join(" ");
   if (run.fontSize) out.fontSize = run.fontSize;
   const family = resolveFont(run.fontFamily);
   if (family) out.fontFamily = family;
@@ -70,7 +74,20 @@ export function RichText({
   const paragraphs: RichParagraph[] = html
     ? parseHtmlToRuns(html)
     : fallback
-      ? [{ align: "left", runs: [{ text: fallback, bold: false, italic: false, underline: false }] }]
+      ? [
+          {
+            align: "left",
+            runs: [
+              {
+                text: fallback,
+                bold: false,
+                italic: false,
+                underline: false,
+                strike: false,
+              },
+            ],
+          },
+        ]
       : [];
   if (paragraphs.length === 0) return null;
   return (
@@ -81,11 +98,23 @@ export function RichText({
           // @react-pdf merges arrays of styles; later wins.
           style={[baseStyle, { textAlign: p.align }] as never}
         >
-          {p.runs.map((run, j) => (
-            <Text key={j} style={runStyle(run) as never}>
-              {run.text}
-            </Text>
-          ))}
+          {p.runs.map((run, j) => {
+            const style = runStyle(run);
+            // Hyperlinks get the @react-pdf <Link> primitive — clickable
+            // in PDF viewers — with the formatted run inside it.
+            if (run.href) {
+              return (
+                <Link key={j} src={run.href} style={style as never}>
+                  {run.text}
+                </Link>
+              );
+            }
+            return (
+              <Text key={j} style={style as never}>
+                {run.text}
+              </Text>
+            );
+          })}
         </Text>
       ))}
     </View>
