@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { ArtworkStatus } from "@/integrations/supabase/domain";
+import { resolveArtist } from "@/lib/artists";
 import { useProfile } from "./useProfile";
 
 export type DraftArtwork = {
@@ -25,39 +26,6 @@ export type UploadOutcome = {
   artwork_id: string | null;
   error: string | null;
 };
-
-async function resolveArtist(
-  gallery_id: string,
-  draft: DraftArtwork,
-): Promise<string> {
-  if (draft.artist_id) return draft.artist_id;
-  if (!draft.artist_name_new) throw new Error("No artist selected");
-  const trimmed = draft.artist_name_new.trim();
-  // Lookup-first: prevents duplicate artist rows when bulk-uploading
-  // multiple works for the same new artist in one batch (or across batches
-  // before a DB unique constraint exists). Case-insensitive match.
-  const { data: existing } = await supabase
-    .from("artists")
-    .select("id")
-    .eq("gallery_id", gallery_id)
-    .ilike("name", trimmed)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (existing?.id) return existing.id;
-  const { data, error } = await supabase
-    .from("artists")
-    .insert({
-      id: crypto.randomUUID(),
-      gallery_id,
-      name: trimmed,
-      nationality: null,
-      bio: null,
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return data.id;
-}
 
 async function uploadOne(
   gallery_id: string,
