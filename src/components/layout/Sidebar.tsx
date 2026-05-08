@@ -45,7 +45,10 @@ const items: Item[] = [
   { to: "/feedback", i18nKey: "nav.feedback", icon: Inbox, adminOnly: true },
 ];
 
-function Wordmark() {
+// Exported so AppShell can render it as a fixed-position element when
+// sidebar mode is "autohide" — the wordmark must stay visible whether
+// the nav drawer is in or out.
+export function Wordmark() {
   return (
     <div className="flex h-14 items-center gap-2 border-b border-border px-4 font-recta text-sm font-medium uppercase tracking-[0.22em]">
       <span>Yusto</span>
@@ -170,6 +173,48 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
       <Wordmark />
+      <NavList />
+      <FeedbackEntries />
+      <SettingsEntry />
+    </aside>
+  );
+}
+
+// Auto-hide variant: fixed-positioned, slides in from the left edge when
+// the cursor enters the hover zone or the sidebar itself, slides out
+// otherwise. The wordmark is rendered separately by AppShell as a
+// fixed element above this sidebar so it stays visible when the
+// drawer is hidden.
+//
+// Behaviour:
+// - Hover zone (8 px strip on the very left edge) sets visible=true on enter.
+// - Sidebar onMouseEnter keeps visible=true (no flicker when crossing
+//   from the strip onto the sidebar).
+// - Sidebar onMouseLeave sets visible=false — moving away in any
+//   direction collapses it back.
+// - focus-within forces the sidebar visible regardless of mouse so
+//   keyboard tab-navigation can reach the nav links without phantom
+//   off-screen focus.
+//
+// Mobile (<md) hides this entirely; the existing MobileSidebar sheet
+// (hamburger-triggered) remains the right pattern for touch.
+export function AutohideSidebar({
+  visible,
+  onVisibilityChange,
+}: {
+  visible: boolean;
+  onVisibilityChange: (next: boolean) => void;
+}) {
+  return (
+    <aside
+      onMouseEnter={() => onVisibilityChange(true)}
+      onMouseLeave={() => onVisibilityChange(false)}
+      aria-hidden={visible ? undefined : true}
+      className={cn(
+        "fixed bottom-0 left-0 top-14 z-30 hidden w-56 flex-col border-r border-border bg-background shadow-sm transition-transform duration-150 ease-out md:flex focus-within:translate-x-0",
+        visible ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
       <NavList />
       <FeedbackEntries />
       <SettingsEntry />

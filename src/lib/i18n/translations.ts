@@ -56,6 +56,21 @@ export const STRINGS: Record<string, Entry> = {
     en: "List on the left, detail on the right — no back-and-forth. Slide-over panels for nested drilldowns. On mobile, the sidebar becomes a bottom tab bar.",
     es: "Lista a la izquierda, detalle a la derecha — sin idas y vueltas. Paneles deslizantes para desglosar. En móvil, la barra lateral se convierte en barra inferior.",
   },
+  "settings.sidebar.mode": { en: "Sidebar mode", es: "Modo de la barra lateral" },
+  "settings.sidebar.mode.description": {
+    en: "How the left navigation behaves on desktop. Mobile keeps the same hamburger sheet either way.",
+    es: "Cómo se comporta la navegación de la izquierda en el escritorio. En móvil sigue el mismo menú hamburguesa.",
+  },
+  "settings.sidebar.pinned": { en: "Always visible", es: "Siempre visible" },
+  "settings.sidebar.pinned.description": {
+    en: "The sidebar stays open at the left edge. The wordmark sits above the nav.",
+    es: "La barra lateral permanece abierta en el lado izquierdo. El wordmark se sitúa encima de la navegación.",
+  },
+  "settings.sidebar.autohide": { en: "Auto-hide on hover", es: "Mostrar al pasar el ratón" },
+  "settings.sidebar.autohide.description": {
+    en: "The wordmark stays at the top-left. The nav slides in when the cursor touches the left edge and slides out when it moves away.",
+    es: "El wordmark se mantiene arriba a la izquierda. La navegación aparece al acercar el cursor al borde izquierdo y se oculta al alejarlo.",
+  },
   "settings.layout.placeholder": {
     en: "Density, sidebar position, font size, motion. Pending design review.",
     es: "Densidad, posición de la barra, tamaño de fuente, animación. Pendiente de revisión.",

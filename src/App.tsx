@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/layout/RequireAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import { LayoutModeProvider } from "@/lib/layout/LayoutContext";
+import { SidebarModeProvider } from "@/lib/layout/SidebarModeContext";
 import { LightboxProvider } from "@/components/shared/Lightbox";
 import Login from "@/pages/Login";
 import Index from "@/pages/Index";
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <LocaleProvider>
       <LayoutModeProvider>
+      <SidebarModeProvider>
       <LightboxProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -71,6 +73,7 @@ export default function App() {
       </Routes>
       <Toaster />
       </LightboxProvider>
+      </SidebarModeProvider>
       </LayoutModeProvider>
     </LocaleProvider>
   );

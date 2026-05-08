@@ -1,6 +1,7 @@
 import { useT, useLocale } from "@/lib/i18n/LocaleContext";
 import { LOCALES } from "@/lib/i18n/translations";
 import { useLayoutMode, type LayoutMode } from "@/lib/layout/LayoutContext";
+import { useSidebarMode, type SidebarMode } from "@/lib/layout/SidebarModeContext";
 
 // Page Settings — a dedicated area for language, layout, and visual-style
 // preferences. Layout + visual-style sections are placeholders pending the
@@ -10,10 +11,16 @@ export default function PageSettings() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const { mode: layoutMode, setMode: setLayoutMode } = useLayoutMode();
+  const { mode: sidebarMode, setMode: setSidebarMode } = useSidebarMode();
 
   const layoutOptions: Array<{ value: LayoutMode; titleKey: string; descKey: string }> = [
     { value: "classic", titleKey: "settings.layout.classic", descKey: "settings.layout.classic.description" },
     { value: "split", titleKey: "settings.layout.split", descKey: "settings.layout.split.description" },
+  ];
+
+  const sidebarOptions: Array<{ value: SidebarMode; titleKey: string; descKey: string }> = [
+    { value: "pinned", titleKey: "settings.sidebar.pinned", descKey: "settings.sidebar.pinned.description" },
+    { value: "autohide", titleKey: "settings.sidebar.autohide", descKey: "settings.sidebar.autohide.description" },
   ];
 
   return (
@@ -79,6 +86,42 @@ export default function PageSettings() {
                 role="radio"
                 aria-checked={checked}
                 onClick={() => setLayoutMode(opt.value)}
+                className={
+                  "flex cursor-pointer flex-col gap-1 border px-3 py-3 text-left text-sm transition-colors " +
+                  (checked
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-background hover:bg-muted")
+                }
+              >
+                <span className="flex items-center justify-between">
+                  <span className="font-medium">{t(opt.titleKey)}</span>
+                  <span className="text-xs uppercase tracking-wider opacity-60">
+                    {opt.value}
+                  </span>
+                </span>
+                <span className={"text-xs " + (checked ? "text-background/80" : "text-muted-foreground")}>
+                  {t(opt.descKey)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section title={t("settings.sidebar.mode")}>
+        <p className="text-xs text-muted-foreground">
+          {t("settings.sidebar.mode.description")}
+        </p>
+        <div role="radiogroup" aria-label={t("settings.sidebar.mode")} className="flex flex-col gap-2">
+          {sidebarOptions.map((opt) => {
+            const checked = sidebarMode === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                onClick={() => setSidebarMode(opt.value)}
                 className={
                   "flex cursor-pointer flex-col gap-1 border px-3 py-3 text-left text-sm transition-colors " +
                   (checked
