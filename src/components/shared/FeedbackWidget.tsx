@@ -4,34 +4,36 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { FeedbackModal } from "./FeedbackModal";
 
-// Hidden by default. A small invisible hot-zone in the bottom-left
-// corner reveals two icons (Plus = feature, Bug = bug) when the cursor
-// enters it. On touch (no hover) the icons are always visible since
-// pointer:hover queries don't fire there.
+// Hidden by default. On pointer devices, hovering the bottom-left
+// corner reveals the icons. On touch (no hover), tapping the small
+// hot-zone toggles them — they do not stay visible permanently.
 export function FeedbackWidget() {
   const location = useLocation();
   const [open, setOpen] = useState<null | "bug" | "feature">(null);
-  const [hovered, setHovered] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
-  const visible = hovered || open !== null;
+  const visible = revealed || open !== null;
 
   return (
     <>
       <div
         className="pointer-events-auto fixed bottom-0 left-0 z-40 flex h-32 w-32 items-end justify-start p-4"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => setRevealed(true)}
+        onMouseLeave={() => setRevealed(false)}
+        onClick={() => setRevealed((v) => !v)}
       >
         <div
           className={cn(
             "flex flex-col items-start gap-2 transition-opacity duration-200",
             visible ? "opacity-100" : "opacity-0",
-            "[@media(hover:none)]:opacity-100",
           )}
         >
           <button
             type="button"
-            onClick={() => setOpen("feature")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen("feature");
+            }}
             aria-label="Request a feature"
             tabIndex={visible ? 0 : -1}
             className="flex h-9 w-9 items-center justify-center border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -40,7 +42,10 @@ export function FeedbackWidget() {
           </button>
           <button
             type="button"
-            onClick={() => setOpen("bug")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen("bug");
+            }}
             aria-label="Report a bug"
             tabIndex={visible ? 0 : -1}
             className="flex h-9 w-9 items-center justify-center border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
