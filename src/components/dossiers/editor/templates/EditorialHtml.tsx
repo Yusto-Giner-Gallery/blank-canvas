@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 
 const PAGE_W = 792;
 const PAGE_H = 595;
-const BAND_W = 320;
+const BAND_W = 341.2;
 const MARGIN = 40;
 
 const FIXED_DISCLAIMER = "TAXES and transport excluded / IVA y Transporte no incluido";
@@ -438,8 +438,13 @@ function CoverPage({
 }
 
 function Slash({ accent }: { accent: string }) {
-  // Exact PARALLELS cover geometry from the PDF template so the live HTML
-  // preview and exported dossier show the same centered broken slash.
+  // Use the reference slash's exact centerline, then split it at the band
+  // seam so the midpoint is locked to the red/white join.
+  const x1 = 385.95;
+  const y1 = 226.06;
+  const x2 = 296.48;
+  const y2 = 399.43;
+  const sw = 17.85;
   return (
     <svg
       className="pointer-events-none absolute inset-0"
@@ -447,13 +452,33 @@ function Slash({ accent }: { accent: string }) {
       width={PAGE_W}
       height={PAGE_H}
     >
-      <path
-        fill={accent}
-        d="M 375.9 226.06 L 286.4 399.43 L 306.56 399.43 L 396 226.06 Z"
+      <defs>
+        <clipPath id="slash-band-clip">
+          <rect x={0} y={0} width={BAND_W} height={PAGE_H} />
+        </clipPath>
+        <clipPath id="slash-white-clip">
+          <rect x={BAND_W} y={0} width={PAGE_W - BAND_W} height={PAGE_H} />
+        </clipPath>
+      </defs>
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="#ffffff"
+        strokeWidth={sw}
+        strokeLinecap="butt"
+        clipPath="url(#slash-band-clip)"
       />
-      <path
-        fill="#ffffff"
-        d="M 341.2 293.22 L 286.4 399.43 L 306.56 399.43 L 341.2 332.29 Z"
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={accent}
+        strokeWidth={sw}
+        strokeLinecap="butt"
+        clipPath="url(#slash-white-clip)"
       />
     </svg>
   );
