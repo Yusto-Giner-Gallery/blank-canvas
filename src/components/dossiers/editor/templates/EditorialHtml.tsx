@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -596,10 +596,11 @@ function Wordmark({
   );
 }
 
-// Single-line editable language label (default "EN" / "ES"). Empty value
-// hides the label entirely — the user deletes it by selecting + backspace,
-// blur, gone. The block above the bio also collapses so the bio reflows
-// naturally to the top of its column.
+// Single-line editable language label (default "EN" / "ES"). When the
+// value is non-empty a hover-revealed × button hides it (sets value to
+// ""); when empty, the field renders as a faint "+ label" placeholder
+// the user can click to type a new label. So both directions
+// (delete + restore) are explicit and discoverable.
 function BioLangLabel({
   value,
   onChange,
@@ -610,8 +611,6 @@ function BioLangLabel({
   ariaLabel: string;
 }) {
   if (value.trim() === "") {
-    // Render an invisible-but-clickable click target so the user can put
-    // the label back. 1-character height keeps the layout stable.
     return (
       <EditableText
         value=""
@@ -624,14 +623,26 @@ function BioLangLabel({
     );
   }
   return (
-    <EditableText
-      value={value}
-      onChange={onChange}
-      placeholder="EN"
-      ariaLabel={ariaLabel}
-      className="mb-2 block uppercase tracking-wider"
-      style={{ fontSize: 9 }}
-    />
+    <div className="group/label relative mb-2 inline-flex items-start">
+      <EditableText
+        value={value}
+        onChange={onChange}
+        placeholder="EN"
+        ariaLabel={ariaLabel}
+        className="uppercase tracking-wider"
+        style={{ fontSize: 9 }}
+      />
+      <button
+        type="button"
+        onClick={() => onChange("")}
+        onMouseDown={(e) => e.preventDefault()}
+        title="Hide label"
+        aria-label="Hide label"
+        className="absolute -right-5 -top-1 z-20 flex h-4 w-4 items-center justify-center border border-border bg-background text-foreground opacity-0 transition-opacity group-hover/label:opacity-100 hover:text-destructive focus-visible:opacity-100"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </div>
   );
 }
 
@@ -809,16 +820,32 @@ function ArtworkMetaBlock({
         <div className="font-bold" style={{ fontSize: 10, marginTop: 14 }}>
           <span>{price}</span>
           {disclaimer.trim() ? <span className="font-normal" style={{ fontSize: 8 }}> | </span> : null}
-          {/* Editable disclaimer — shared across meta blocks. Empty hides
-              both the leading pipe and the trailing chip. */}
-          <EditableText
-            value={disclaimer}
-            onChange={onDisclaimerChange}
-            placeholder="+ disclaimer"
-            ariaLabel="Price disclaimer"
-            className="font-normal"
-            style={{ fontSize: 8, display: "inline-block", verticalAlign: "baseline" }}
-          />
+          {/* Editable disclaimer with a hover-revealed × button that
+              clears it (hides both the leading pipe and the chip). When
+              empty, the field renders as a "+ disclaimer" placeholder
+              the user can click to type one back. */}
+          <span className="group/disclaimer relative inline-flex items-start">
+            <EditableText
+              value={disclaimer}
+              onChange={onDisclaimerChange}
+              placeholder="+ disclaimer"
+              ariaLabel="Price disclaimer"
+              className="font-normal"
+              style={{ fontSize: 8, display: "inline-block", verticalAlign: "baseline" }}
+            />
+            {disclaimer.trim() ? (
+              <button
+                type="button"
+                onClick={() => onDisclaimerChange("")}
+                onMouseDown={(e) => e.preventDefault()}
+                title="Hide disclaimer"
+                aria-label="Hide disclaimer"
+                className="absolute -right-5 -top-1 z-20 flex h-4 w-4 items-center justify-center border border-border bg-background text-foreground opacity-0 transition-opacity group-hover/disclaimer:opacity-100 hover:text-destructive focus-visible:opacity-100"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            ) : null}
+          </span>
         </div>
       ) : null}
     </div>

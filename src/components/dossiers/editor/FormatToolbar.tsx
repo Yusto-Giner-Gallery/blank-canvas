@@ -181,10 +181,14 @@ export function FormatToolbar() {
         "select-none",
       )}
       style={{ top, left }}
-      onMouseDown={(e) => {
-        // Prevent the contentEditable from losing focus when clicking a button.
-        e.preventDefault();
-      }}
+      // NOTE: deliberately NO blanket onMouseDown preventDefault here.
+      // preventDefault on a parent mousedown bubbles down and blocks
+      // the browser's default action for native <select> elements —
+      // which is to open the dropdown. Each button-like control below
+      // calls preventDefault on its own onMouseDown to keep the
+      // contentEditable focused; selects rely on the saved-range
+      // mechanism (saveSelectionIfRich / restoreSelectionIfNeeded) to
+      // re-install the cursor when their dropdown closes.
     >
       <ToolBtn ariaLabel="Bold" onClick={() => exec("bold")}>
         <Bold className="h-3.5 w-3.5" />
@@ -372,6 +376,7 @@ function ToolBtn({
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}
+      onMouseDown={(e) => e.preventDefault()}
       className="flex h-7 w-7 items-center justify-center border border-transparent text-muted-foreground hover:border-border hover:text-foreground"
     >
       {children}
