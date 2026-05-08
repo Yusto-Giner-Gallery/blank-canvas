@@ -198,6 +198,7 @@ export type Database = {
           height_cm: number | null
           id: string
           internal_id: string
+          is_nfs: boolean
           location_id: string | null
           medium: string | null
           notes: string | null
@@ -217,6 +218,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           internal_id: string
+          is_nfs?: boolean
           location_id?: string | null
           medium?: string | null
           notes?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           internal_id?: string
+          is_nfs?: boolean
           location_id?: string | null
           medium?: string | null
           notes?: string | null
@@ -1159,6 +1162,269 @@ export type Database = {
           },
         ]
       }
+      loans: {
+        Row: {
+          artwork_id: string
+          contact_id: string
+          created_at: string
+          end_date: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["loan_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          contact_id: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          contact_id?: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_artwork_id_fkey"
+            columns: ["artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consignments: {
+        Row: {
+          artwork_id: string
+          created_at: string
+          end_date: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          partner_contact_id: string
+          split_pct: number
+          start_date: string
+          status: Database["public"]["Enums"]["consignment_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          partner_contact_id: string
+          split_pct?: number
+          start_date: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          partner_contact_id?: string
+          split_pct?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignments_artwork_id_fkey"
+            columns: ["artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_partner_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          artwork_id: string
+          carrier: string | null
+          created_at: string
+          delivered_at: string | null
+          from_location_id: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["shipment_status"]
+          to_address: Json | null
+          to_contact_id: string | null
+          tracking_no: string | null
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          from_location_id?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          to_address?: Json | null
+          to_contact_id?: string | null
+          tracking_no?: string | null
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          from_location_id?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          to_address?: Json | null
+          to_contact_id?: string | null
+          tracking_no?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_artwork_id_fkey"
+            columns: ["artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_to_contact_id_fkey"
+            columns: ["to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artwork_documents: {
+        Row: {
+          artwork_id: string
+          byte_size: number | null
+          created_at: string
+          filename: string
+          gallery_id: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          artwork_id: string
+          byte_size?: number | null
+          created_at?: string
+          filename: string
+          gallery_id: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          artwork_id?: string
+          byte_size?: number | null
+          created_at?: string
+          filename?: string
+          gallery_id?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artwork_documents_artwork_id_fkey"
+            columns: ["artwork_id"]
+            isOneToOne: false
+            referencedRelation: "artworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artwork_documents_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artwork_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       artworks_with_attention: {
@@ -1171,6 +1437,7 @@ export type Database = {
           height_cm: number | null
           id: string | null
           internal_id: string | null
+          is_nfs: boolean | null
           location_id: string | null
           medium: string | null
           needs_attention: boolean | null
@@ -1191,6 +1458,7 @@ export type Database = {
           height_cm?: number | null
           id?: string | null
           internal_id?: string | null
+          is_nfs?: boolean | null
           location_id?: string | null
           medium?: string | null
           needs_attention?: never
@@ -1211,6 +1479,7 @@ export type Database = {
           height_cm?: number | null
           id?: string | null
           internal_id?: string | null
+          is_nfs?: boolean | null
           location_id?: string | null
           medium?: string | null
           needs_attention?: never
@@ -1258,7 +1527,16 @@ export type Database = {
       }
     }
     Enums: {
-      activity_entity_type: "artwork" | "contact" | "invoice" | "deal" | "card"
+      activity_entity_type:
+        | "artwork"
+        | "contact"
+        | "invoice"
+        | "deal"
+        | "card"
+        | "loan"
+        | "consignment"
+        | "shipment"
+        | "document"
       app_role: "admin" | "staff"
       artwork_status: "available" | "on_hold" | "sold" | "archived"
       card_label:
@@ -1270,6 +1548,7 @@ export type Database = {
         | "purple"
         | "shipping"
       collection_kind: "exhibition" | "fair" | "viewing_room" | "other"
+      consignment_status: "active" | "returned" | "sold"
       contact_activity_kind:
         | "artwork_shown"
         | "dossier_sent"
@@ -1291,6 +1570,8 @@ export type Database = {
         | "editorial"
       feedback_kind: "bug" | "feature"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
+      loan_status: "active" | "returned" | "overdue"
+      shipment_status: "prep" | "in_transit" | "delivered" | "returned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1418,7 +1699,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      activity_entity_type: ["artwork", "contact", "invoice", "deal", "card"],
+      activity_entity_type: [
+        "artwork",
+        "contact",
+        "invoice",
+        "deal",
+        "card",
+        "loan",
+        "consignment",
+        "shipment",
+        "document",
+      ],
       app_role: ["admin", "staff"],
       artwork_status: ["available", "on_hold", "sold", "archived"],
       card_label: [
@@ -1431,6 +1722,7 @@ export const Constants = {
         "shipping",
       ],
       collection_kind: ["exhibition", "fair", "viewing_room", "other"],
+      consignment_status: ["active", "returned", "sold"],
       contact_activity_kind: [
         "artwork_shown",
         "dossier_sent",
@@ -1455,6 +1747,8 @@ export const Constants = {
       ],
       feedback_kind: ["bug", "feature"],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
+      loan_status: ["active", "returned", "overdue"],
+      shipment_status: ["prep", "in_transit", "delivered", "returned"],
     },
   },
 } as const

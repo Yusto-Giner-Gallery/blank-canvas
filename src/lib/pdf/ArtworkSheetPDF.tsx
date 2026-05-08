@@ -119,7 +119,7 @@ export function ArtworkSheetPDF({
               <Text style={local.cellValue}>{artwork.location.name}</Text>
             </View>
           ) : null}
-          {price ? (
+          {price && !artwork.is_nfs ? (
             <View style={local.cell}>
               <Text style={local.cellLabel}>Price</Text>
               <Text style={local.cellValue}>{price}</Text>
@@ -127,7 +127,11 @@ export function ArtworkSheetPDF({
           ) : null}
           <View style={local.cell}>
             <Text style={local.cellLabel}>Status</Text>
-            <Text style={local.cellValue}>{artwork.status.replace("_", " ")}</Text>
+            <Text style={local.cellValue}>
+              {artwork.is_nfs
+                ? `${artwork.status.replace("_", " ")} · NFS`
+                : artwork.status.replace("_", " ")}
+            </Text>
           </View>
           {artwork.artist_nationality ? (
             <View style={local.cell}>

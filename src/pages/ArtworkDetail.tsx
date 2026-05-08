@@ -330,8 +330,13 @@ export default function ArtworkDetail() {
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <div>
                       <dt className="text-xs text-muted-foreground">Status</dt>
-                      <dd>
+                      <dd className="flex flex-wrap items-center gap-1.5">
                         <StatusPill status={artwork.status} />
+                        {artwork.is_nfs ? (
+                          <span className="inline-flex items-center rounded-sm border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                            NFS
+                          </span>
+                        ) : null}
                       </dd>
                     </div>
                     <div>
@@ -360,6 +365,11 @@ export default function ArtworkDetail() {
                               maximumFractionDigits: 0,
                             }).format(artwork.price_eur)
                           : "—"}
+                        {artwork.is_nfs ? (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            (not for sale)
+                          </span>
+                        ) : null}
                       </dd>
                     </div>
                   </dl>

@@ -19,6 +19,9 @@ export type InvoiceStatus = E["invoice_status"];
 export type DealStage = E["deal_stage"];
 export type CardLabel = E["card_label"];
 export type ActivityEntityType = E["activity_entity_type"];
+export type LoanStatus = E["loan_status"];
+export type ConsignmentStatus = E["consignment_status"];
+export type ShipmentStatus = E["shipment_status"];
 
 // Rows
 export type Gallery = T["galleries"]["Row"];
@@ -100,6 +103,21 @@ export type Dossier = Omit<T["dossiers"]["Row"], "body_blocks" | "image_layout">
 export type Invoice = T["invoices"]["Row"];
 export type InvoiceLine = T["invoice_lines"]["Row"];
 export type Deal = T["deals"]["Row"];
+
+export type Loan = T["loans"]["Row"];
+export type Consignment = T["consignments"]["Row"];
+export type Shipment = T["shipments"]["Row"];
+export type ArtworkDocument = T["artwork_documents"]["Row"];
+
+export type ShipmentAddress = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  region?: string;
+  postcode?: string;
+  country?: string;
+};
 
 export type Board = T["boards"]["Row"];
 export type List = T["lists"]["Row"];

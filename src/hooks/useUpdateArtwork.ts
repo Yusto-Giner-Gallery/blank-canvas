@@ -14,6 +14,7 @@ export type ArtworkPatch = {
   width_cm?: number | null;
   height_cm?: number | null;
   depth_cm?: number | null;
+  is_nfs?: boolean;
 };
 
 export function useUpdateArtwork() {
