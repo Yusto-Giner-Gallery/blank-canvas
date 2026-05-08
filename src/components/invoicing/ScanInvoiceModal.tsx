@@ -16,6 +16,7 @@ import {
   type ExtractedInvoice,
   type ExtractedInvoiceLine,
 } from "@/lib/ai/client";
+import { pdfFirstPageToImageDataUrl } from "@/lib/pdf-import";
 import { errorMessage } from "@/lib/utils";
 
 // Mirrors ScanContactModal: camera or file upload → resize client-side
@@ -108,7 +109,16 @@ export function ScanInvoiceModal({ onClose }: { onClose: () => void }) {
 
   async function onPickImage(file: File) {
     try {
-      const dataUrl = await resizeImage(file);
+      // PDF receipts are common (email attachments, supplier portals).
+      // Render the first page to an image, then feed it through the same
+      // extract path as a photo. pdfjs is lazy-loaded so the bundle only
+      // pays the ~750 KB cost when a PDF actually shows up.
+      const isPdf =
+        file.type === "application/pdf" ||
+        /\.pdf$/i.test(file.name);
+      const dataUrl = isPdf
+        ? await pdfFirstPageToImageDataUrl(file)
+        : await resizeImage(file);
       setImageDataUrl(dataUrl);
       setDraft(null);
       runExtract(dataUrl);
@@ -253,8 +263,8 @@ export function ScanInvoiceModal({ onClose }: { onClose: () => void }) {
               Scan invoice or receipt
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Take a photo or upload a file. AI extracts the vendor, date,
-              total, and line items for you to review.
+              Take a photo or upload an image or PDF. AI extracts the
+              vendor, date, total, and line items for you to review.
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
@@ -279,7 +289,7 @@ export function ScanInvoiceModal({ onClose }: { onClose: () => void }) {
                 className="flex h-32 flex-col items-center justify-center gap-2 border border-dashed border-border bg-background text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
               >
                 <Upload className="h-6 w-6" />
-                Upload image
+                Upload image or PDF
               </button>
               <input
                 ref={cameraRef}
@@ -296,7 +306,7 @@ export function ScanInvoiceModal({ onClose }: { onClose: () => void }) {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 className="sr-only"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
