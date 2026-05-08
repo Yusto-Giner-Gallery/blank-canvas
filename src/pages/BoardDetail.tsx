@@ -5,6 +5,7 @@ import {
   PointerSensor,
   TouchSensor,
   closestCorners,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -200,6 +201,15 @@ function Lane({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(list.name);
 
+  // Register the cards container as a droppable keyed by list.id so an
+  // empty list still accepts drops — without this, dnd-kit only sees
+  // the cards themselves as targets and over.id is null over an empty
+  // list, so onDragEnd bails out.
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: list.id,
+    data: { type: "list" },
+  });
+
   useEffect(() => {
     setName(list.name);
   }, [list.name]);
@@ -276,7 +286,13 @@ function Lane({
         strategy={verticalListSortingStrategy}
         id={list.id}
       >
-        <div className="flex min-h-12 flex-1 flex-col gap-2 p-2">
+        <div
+          ref={setDropRef}
+          className={cn(
+            "flex min-h-16 flex-1 flex-col gap-2 p-2 transition-colors",
+            isOver && cards.length === 0 && "bg-accent/40",
+          )}
+        >
           {cards.map((c) => (
             <CardTile key={c.id} card={c} onOpen={() => onOpenCard(c)} />
           ))}
