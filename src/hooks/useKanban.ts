@@ -9,7 +9,23 @@ import type {
 } from "@/integrations/supabase/domain";
 import { useProfile } from "./useProfile";
 
-export type BoardWithCount = Board & { card_count: number };
+export type BoardCover =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple";
+
+// boards.color and boards.starred arrive in the matching migration.
+// Until Lovable regenerates types.ts after that migration applies, the
+// underlying Board type may not yet have these fields — declare them
+// here as optional and let runtime values flow through.
+export type BoardWithCount = Board & {
+  card_count: number;
+  color?: BoardCover | null;
+  starred?: boolean;
+};
 
 export function useBoards() {
   const { profile } = useProfile();
@@ -24,6 +40,8 @@ export function useBoards() {
         .returns<
           Array<
             Board & {
+              color?: BoardCover | null;
+              starred?: boolean;
               lists: Array<{ cards: Array<{ count: number }> }>;
             }
           >
@@ -147,6 +165,44 @@ export function useCreateBoard() {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
+  });
+}
+
+export function useUpdateBoard() {
+  const qc = useQueryClient();
+  return useMutation<
+    void,
+    Error,
+    {
+      id: string;
+      patch: { name?: string; color?: BoardCover | null; starred?: boolean };
+    }
+  >({
+    mutationFn: async ({ id, patch }) => {
+      // Cast through unknown until Lovable regenerates types.ts after the
+      // boards_cover_starred migration applies (it adds .color and
+      // .starred columns).
+      const { error } = await supabase
+        .from("boards")
+        .update(patch as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["boards"] });
+      qc.invalidateQueries({ queryKey: ["board", vars.id] });
+    },
+  });
+}
+
+export function useDeleteBoard() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase.from("boards").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["boards"] }),
   });
