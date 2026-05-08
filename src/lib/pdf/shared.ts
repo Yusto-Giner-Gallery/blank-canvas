@@ -17,6 +17,9 @@ export const palette = {
   body: "#262626",
   muted: "#737373",
   hairline: "#e5e5e5",
+  // Yusto / Giner brand red — CLAUDE.md §3 approved exception. Used by the
+  // Editorial template (cover band, artist names, slash mark).
+  accent: "#ee4533",
 };
 
 export const baseStyles = StyleSheet.create({
@@ -71,6 +74,7 @@ export const KIND_LABEL = {
   special: "Special",
   art_fair: "Art fair",
   collector_offer: "Collector offer",
+  editorial: "Editorial",
 } as const;
 
 export function formatSize(a: ArtworkListItem) {

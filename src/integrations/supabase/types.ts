@@ -1276,6 +1276,7 @@ export type Database = {
         | "special"
         | "art_fair"
         | "collector_offer"
+        | "editorial"
       feedback_kind: "bug" | "feature"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
     }
@@ -1438,6 +1439,7 @@ export const Constants = {
         "special",
         "art_fair",
         "collector_offer",
+        "editorial",
       ],
       feedback_kind: ["bug", "feature"],
       invoice_status: ["draft", "sent", "paid", "cancelled"],

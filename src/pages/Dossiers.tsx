@@ -15,6 +15,7 @@ const KIND_LABEL: Record<DossierKind, string> = {
   special: "Special",
   art_fair: "Art fair",
   collector_offer: "Collector offer",
+  editorial: "Editorial",
 };
 
 export default function Dossiers() {

@@ -20,9 +20,10 @@ import { useArtworks, imageUrl } from "@/hooks/useArtworks";
 import { useGallery } from "@/hooks/useGallery";
 import { ImageLayoutGrid } from "@/components/dossiers/ImageLayoutGrid";
 import { ArtworkDescriptionEditor } from "@/components/dossiers/ArtworkDescriptionEditor";
+import { EditorialIntrosEditor } from "@/components/dossiers/EditorialIntrosEditor";
 import { SendToContactsModal } from "@/components/dossiers/SendToContactsModal";
-import { generateText } from "@/lib/ai/client";
-import type { DossierKind } from "@/integrations/supabase/domain";
+import { generateText, generateEditorialDossier } from "@/lib/ai/client";
+import type { DossierArtistIntro, DossierKind } from "@/integrations/supabase/domain";
 
 const PdfPanel = lazy(() => import("@/components/dossiers/PdfPanel"));
 
@@ -32,6 +33,7 @@ const KIND_OPTIONS: Array<{ value: DossierKind; label: string }> = [
   { value: "special", label: "Special (extra text)" },
   { value: "art_fair", label: "Art fair" },
   { value: "collector_offer", label: "Collector offer" },
+  { value: "editorial", label: "Editorial (PARALLELS layout)" },
 ];
 
 export default function DossierEditor() {
@@ -46,9 +48,13 @@ export default function DossierEditor() {
   const [kind, setKind] = useState<DossierKind>("solo_show");
   const [intro, setIntro] = useState("");
   const [extra, setExtra] = useState("");
+  const [showTitle, setShowTitle] = useState("");
+  const [artistIntros, setArtistIntros] = useState<Record<string, DossierArtistIntro>>({});
   const [descriptions, setDescriptions] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [fillingHardcoded, setFillingHardcoded] = useState(false);
+  const [fillingAi, setFillingAi] = useState(false);
   const [sending, setSending] = useState(false);
 
   // Hydrate local state from server data once.
@@ -59,11 +65,33 @@ export default function DossierEditor() {
     setKind(d.kind);
     setIntro(d.body_blocks.intro ?? "");
     setExtra(d.body_blocks.extra ?? "");
+    setShowTitle(d.body_blocks.show_title ?? "");
+    setArtistIntros(d.body_blocks.artist_intros ?? {});
     setDescriptions(d.body_blocks.artwork_descriptions ?? {});
     setLayout(d.image_layout);
   }, [dossierQuery.data]);
 
   const artworks = useDossierArtworks(layout, artworksQuery.data);
+
+  // Unique artists in display order, used by the editorial-only intro panel.
+  const editorialArtists = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Array<{ id: string; name: string; nationality: string | null; bio: string | null }> = [];
+    for (const a of artworks) {
+      if (a.artist && !seen.has(a.artist.id)) {
+        seen.add(a.artist.id);
+        out.push({
+          id: a.artist.id,
+          name: a.artist.name,
+          // ArtworkListItem only carries id+name; nationality/bio come from
+          // the artwork query's artist if expanded later. Safe defaults here.
+          nationality: null,
+          bio: null,
+        });
+      }
+    }
+    return out;
+  }, [artworks]);
 
   // Optimistic dossier object for the live preview.
   const previewDossier = useMemo(() => {
@@ -77,10 +105,12 @@ export default function DossierEditor() {
         intro,
         extra: kind === "special" ? extra : undefined,
         artwork_descriptions: descriptions,
+        show_title: kind === "editorial" ? showTitle : undefined,
+        artist_intros: kind === "editorial" ? artistIntros : undefined,
       },
       image_layout: layout,
     };
-  }, [dossierQuery.data, title, kind, intro, extra, descriptions, layout]);
+  }, [dossierQuery.data, title, kind, intro, extra, showTitle, artistIntros, descriptions, layout]);
 
   async function onSave() {
     try {
@@ -94,6 +124,8 @@ export default function DossierEditor() {
             intro,
             extra: kind === "special" ? extra : undefined,
             artwork_descriptions: descriptions,
+            show_title: kind === "editorial" ? showTitle : undefined,
+            artist_intros: kind === "editorial" ? artistIntros : undefined,
           },
           image_layout: layout,
         },
@@ -119,6 +151,70 @@ export default function DossierEditor() {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setGenerating(false);
+    }
+  }
+
+  // Editorial — Option 1: Hard-coded fill. Pulls existing fields verbatim,
+  // makes no AI calls. Existing `artist_intros` entries are preserved; missing
+  // ones are seeded with empty strings + the dossier title as the show title.
+  function onFillHardcoded() {
+    setFillingHardcoded(true);
+    try {
+      if (!showTitle) setShowTitle(title);
+      setArtistIntros((prev) => {
+        const next = { ...prev };
+        for (const a of editorialArtists) {
+          if (!next[a.id]) {
+            next[a.id] = {
+              bio_en: a.bio ?? "",
+              bio_es: "",
+              instagram: "",
+              photo_path: "",
+            };
+          }
+        }
+        return next;
+      });
+      toast.success("Filled from existing data");
+    } finally {
+      setFillingHardcoded(false);
+    }
+  }
+
+  // Editorial — Option 2: AI fill. Single call returns show_title, intro, and
+  // EN/ES bios per artist. User-edited fields are preserved (no overwrite).
+  async function onFillAi() {
+    if (editorialArtists.length === 0) {
+      toast.error("Add artworks with artists before generating");
+      return;
+    }
+    setFillingAi(true);
+    try {
+      const resp = await generateEditorialDossier({
+        kind: "editorial_dossier",
+        title: title || "Untitled dossier",
+        artists: editorialArtists,
+        artwork_count: artworks.length,
+      });
+      if (!showTitle && resp.show_title) setShowTitle(resp.show_title);
+      if (!intro && resp.intro) setIntro(resp.intro);
+      setArtistIntros((prev) => {
+        const next = { ...prev };
+        for (const [artistId, bios] of Object.entries(resp.artist_intros)) {
+          const existing = next[artistId] ?? {};
+          next[artistId] = {
+            ...existing,
+            bio_en: existing.bio_en?.trim() ? existing.bio_en : bios.bio_en ?? "",
+            bio_es: existing.bio_es?.trim() ? existing.bio_es : bios.bio_es ?? "",
+          };
+        }
+        return next;
+      });
+      toast.success("AI filled the dossier");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setFillingAi(false);
     }
   }
 
@@ -218,6 +314,54 @@ export default function DossierEditor() {
                 rows={4}
                 className="w-full rounded-md border border-input bg-background p-2 text-sm"
                 placeholder="Special notes only shown on the Special template…"
+              />
+            </div>
+          ) : null}
+
+          {kind === "editorial" ? (
+            <div className="space-y-3 border border-border bg-secondary/40 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Editorial dossier
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onFillHardcoded}
+                    disabled={fillingHardcoded}
+                  >
+                    {fillingHardcoded ? "Filling…" : "Fill from data"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={onFillAi}
+                    disabled={fillingAi}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {fillingAi ? "Generating…" : "Generate with AI"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Show title (cover word, e.g. PARALLELS)
+                </Label>
+                <Input
+                  value={showTitle}
+                  onChange={(e) => setShowTitle(e.target.value)}
+                  className="h-9 uppercase tracking-widest"
+                  placeholder="UPPERCASE COVER TITLE"
+                />
+              </div>
+
+              <EditorialIntrosEditor
+                artists={editorialArtists}
+                intros={artistIntros}
+                onChange={setArtistIntros}
               />
             </div>
           ) : null}
