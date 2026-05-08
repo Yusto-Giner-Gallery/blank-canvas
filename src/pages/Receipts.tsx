@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,15 +8,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoices, type InvoiceListItem } from "@/hooks/useInvoices";
 import { InvoiceStatusPill } from "@/components/invoicing/StatusPill";
-import { NewInvoiceModal } from "@/components/invoicing/NewInvoiceModal";
+import { ScanInvoiceModal } from "@/components/invoicing/ScanInvoiceModal";
 import { useLayoutMode } from "@/lib/layout/LayoutContext";
 import { SplitViewLayout } from "@/components/layout/SplitViewLayout";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/LocaleContext";
 import { isReceipt } from "@/lib/invoices/kind";
 import InvoiceDetail from "./InvoiceDetail";
+
+// Receipts — incoming bills / expenses scanned from vendors. Best-practice
+// accounting separation from outgoing sales invoices: different counterparty,
+// different reporting category, different VAT treatment. The Scan button
+// lives here (not on /invoices) because that's where receipt capture
+// belongs in the user's workflow. Same `invoices` table backs both
+// surfaces today; isReceipt() is the discriminator (CLAUDE.md §13:
+// Lovable will add a real `kind` column eventually, then isReceipt()
+// becomes a one-line lookup of that column).
 
 function formatPrice(eur: number) {
   return new Intl.NumberFormat("en-IE", {
@@ -26,21 +35,20 @@ function formatPrice(eur: number) {
   }).format(eur);
 }
 
-// Stacked-row compact list — used as the master pane of split view.
-// Two-line layout: ID + total on top, contact + date + status on the
-// subtitle row. No table chrome; fits the narrow pane without truncation.
-function renderInvoicesCompactList({
+function vendorLabel(inv: InvoiceListItem): string {
+  // The scanner writes "Vendor: <name>\nRef: …" into notes. Pull the
+  // vendor name out for display so the receipts list reads as a vendor
+  // ledger, not "contact <our-stand-in> · email".
+  const m = (inv.notes ?? "").match(/^\s*Vendor:\s*(.+)$/im);
+  return m?.[1]?.trim() || inv.contact?.full_name || "—";
+}
+
+function renderReceiptsCompactList({
   invoices,
   peek,
   selectInSplit,
 }: {
-  invoices: Array<{
-    id: string;
-    updated_at: string;
-    total_eur: number;
-    status: import("@/integrations/supabase/domain").InvoiceStatus;
-    contact: { full_name: string; email: string } | null;
-  }>;
+  invoices: InvoiceListItem[];
   peek: string | null;
   selectInSplit: (id: string) => void;
 }) {
@@ -59,16 +67,14 @@ function renderInvoicesCompactList({
             )}
           >
             <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate font-mono text-xs font-medium">
-                {inv.id.slice(0, 8).toUpperCase()}
-              </span>
+              <span className="truncate font-medium">{vendorLabel(inv)}</span>
               <span className="shrink-0 text-sm font-semibold tabular-nums">
                 {formatPrice(inv.total_eur)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="truncate">
-                {inv.contact?.full_name ?? "—"}
+              <span className="truncate font-mono">
+                {inv.id.slice(0, 8).toUpperCase()}
                 <span className="hidden sm:inline">
                   {" "}· {new Date(inv.updated_at).toLocaleDateString("en-GB")}
                 </span>
@@ -84,22 +90,13 @@ function renderInvoicesCompactList({
   );
 }
 
-// Table extracted so it can be used standalone (classic) and as the `list`
-// slot of SplitViewLayout (split mode), without an IIFE that hid control
-// flow inside the JSX.
-function renderInvoicesTable({
+function renderReceiptsTable({
   invoices,
   splitMode,
   peek,
   selectInSplit,
 }: {
-  invoices: Array<{
-    id: string;
-    updated_at: string;
-    total_eur: number;
-    status: import("@/integrations/supabase/domain").InvoiceStatus;
-    contact: { full_name: string; email: string } | null;
-  }>;
+  invoices: InvoiceListItem[];
   splitMode: boolean;
   peek: string | null;
   selectInSplit: (id: string) => void;
@@ -109,10 +106,10 @@ function renderInvoicesTable({
       <table className="w-full text-sm">
         <thead className="bg-muted text-muted-foreground">
           <tr>
+            <th className="px-3 py-2 text-left font-medium">Vendor</th>
             <th className="px-3 py-2 text-left font-medium">No.</th>
-            <th className="px-3 py-2 text-left font-medium">Contact</th>
             <th className="hidden px-3 py-2 text-left font-medium md:table-cell">
-              Updated
+              Date
             </th>
             <th className="px-3 py-2 text-right font-medium">Total</th>
             <th className="px-3 py-2 text-left font-medium">Status</th>
@@ -129,32 +126,23 @@ function renderInvoicesTable({
                   peeked && "bg-accent/80",
                 )}
               >
-                <td className="px-3 py-2 font-mono text-xs">
+                <td className="px-3 py-2">
                   {splitMode ? (
                     <button
                       type="button"
                       onClick={() => selectInSplit(inv.id)}
-                      className="hover:underline"
+                      className="text-left font-medium hover:underline"
                     >
-                      {inv.id.slice(0, 8).toUpperCase()}
+                      {vendorLabel(inv)}
                     </button>
                   ) : (
-                    <Link to={`/invoices/${inv.id}`} className="hover:underline">
-                      {inv.id.slice(0, 8).toUpperCase()}
+                    <Link to={`/invoices/${inv.id}`} className="font-medium hover:underline">
+                      {vendorLabel(inv)}
                     </Link>
                   )}
                 </td>
-                <td className="px-3 py-2">
-                  {inv.contact ? (
-                    <span className="block">
-                      <span className="block">{inv.contact.full_name}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {inv.contact.email}
-                      </span>
-                    </span>
-                  ) : (
-                    "—"
-                  )}
+                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                  {inv.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">
                   {new Date(inv.updated_at).toLocaleDateString("en-GB")}
@@ -174,13 +162,11 @@ function renderInvoicesTable({
   );
 }
 
-export default function Invoices() {
+export default function Receipts() {
   const t = useT();
   const { data, isLoading, error } = useInvoices();
-  // /invoices is sales-only — incoming receipts (scanned vendor bills)
-  // live at /receipts. See src/lib/invoices/kind.ts for the discriminator.
-  const invoices = (data ?? []).filter((i) => !isReceipt(i));
-  const [creating, setCreating] = useState(false);
+  const receipts = (data ?? []).filter(isReceipt);
+  const [scanning, setScanning] = useState(false);
   const { mode: layoutMode } = useLayoutMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const splitMode = layoutMode === "split";
@@ -200,46 +186,48 @@ export default function Invoices() {
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("invoices.title")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("receipts.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            {t("invoices.summary", {
-              n: invoices.length,
-              plural: invoices.length === 1 ? "" : "s",
+            {t("receipts.summary", {
+              n: receipts.length,
+              plural: receipts.length === 1 ? "" : "s",
             })}
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("invoices.newInvoice")}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setScanning(true)}>
+            <Camera className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("receipts.scan")}</span>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : error ? (
         <p className="text-sm text-destructive">
-          Could not load invoices. {(error as Error).message}
+          {(error as Error).message}
         </p>
-      ) : invoices.length === 0 ? (
+      ) : receipts.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t("invoices.empty.title")}</CardTitle>
-            <CardDescription>{t("invoices.empty.description")}</CardDescription>
+            <CardTitle>{t("receipts.empty.title")}</CardTitle>
+            <CardDescription>{t("receipts.empty.description")}</CardDescription>
           </CardHeader>
         </Card>
       ) : splitMode ? (
         <SplitViewLayout
           selectedId={peek}
           onClearSelection={clearSplitSelection}
-          list={renderInvoicesCompactList({ invoices, peek, selectInSplit })}
+          list={renderReceiptsCompactList({ invoices: receipts, peek, selectInSplit })}
           detail={peek ? <InvoiceDetail id={peek} /> : null}
-          emptyState="Select an invoice from the list to see its details."
+          emptyState={t("receipts.selectHint")}
         />
       ) : (
-        renderInvoicesTable({ invoices, splitMode, peek, selectInSplit })
+        renderReceiptsTable({ invoices: receipts, splitMode, peek, selectInSplit })
       )}
 
-      {creating ? <NewInvoiceModal onClose={() => setCreating(false)} /> : null}
+      {scanning ? <ScanInvoiceModal onClose={() => setScanning(false)} /> : null}
     </div>
   );
 }

@@ -24,6 +24,7 @@ export const STRINGS: Record<string, Entry> = {
   "nav.dossiers": { en: "Dossiers", es: "Dossiers" },
   "nav.contacts": { en: "Contacts", es: "Contactos" },
   "nav.invoices": { en: "Invoices", es: "Facturas" },
+  "nav.receipts": { en: "Receipts", es: "Recibos" },
   "nav.pipeline": { en: "Pipeline", es: "Ventas" },
   "nav.shirika": { en: "Shirika", es: "Shirika" },
   "nav.team": { en: "Team", es: "Equipo" },
@@ -254,6 +255,23 @@ export const STRINGS: Record<string, Entry> = {
   },
   "invoices.newInvoice": { en: "New invoice", es: "Nueva factura" },
   "invoices.scan": { en: "Scan", es: "Escanear" },
+
+  // Receipts (incoming bills / vendor invoices captured via the scanner)
+  "receipts.title": { en: "Receipts", es: "Recibos" },
+  "receipts.summary": {
+    en: "{n} receipt{plural} · vendor bills and expenses.",
+    es: "{n} recibo{plural} · facturas de proveedores y gastos.",
+  },
+  "receipts.scan": { en: "Scan receipt", es: "Escanear recibo" },
+  "receipts.empty.title": { en: "No receipts yet", es: "Aún no hay recibos" },
+  "receipts.empty.description": {
+    en: "Tap 'Scan receipt' and snap a photo or upload a file. AI extracts the vendor, date, total, and lines for you to review before saving.",
+    es: "Pulsa 'Escanear recibo' y haz una foto o sube un archivo. La IA extrae el proveedor, la fecha, el total y las líneas para que las revises antes de guardar.",
+  },
+  "receipts.selectHint": {
+    en: "Select a receipt from the list to see its details.",
+    es: "Selecciona un recibo de la lista para ver sus detalles.",
+  },
   "invoices.empty.title": { en: "No invoices yet", es: "Aún no hay facturas" },
   "invoices.empty.description": {
     en: "Click 'New invoice' to start a draft. Add line items, then generate a Stripe payment link or download the PDF.",

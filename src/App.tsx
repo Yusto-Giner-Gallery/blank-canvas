@@ -19,6 +19,7 @@ import ContactDetail from "@/pages/ContactDetail";
 import PublicSignup from "@/pages/PublicSignup";
 import Invoices from "@/pages/Invoices";
 import InvoiceDetail from "@/pages/InvoiceDetail";
+import Receipts from "@/pages/Receipts";
 import Pipeline from "@/pages/Pipeline";
 import Kanban from "@/pages/Kanban";
 import BoardDetail from "@/pages/BoardDetail";
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/contacts/:id" element={<ContactDetail />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/receipts" element={<Receipts />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/kanban/:id" element={<BoardDetail />} />
