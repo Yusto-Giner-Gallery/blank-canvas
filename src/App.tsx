@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/layout/RequireAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import { LayoutModeProvider } from "@/lib/layout/LayoutContext";
+import { LightboxProvider } from "@/components/shared/Lightbox";
 import Login from "@/pages/Login";
 import Index from "@/pages/Index";
 import Inventory from "@/pages/Inventory";
