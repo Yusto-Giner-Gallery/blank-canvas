@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { FeedbackModal } from "./FeedbackModal";
 
-// Hidden by default. A small invisible hot-zone in the bottom-right
+// Hidden by default. A small invisible hot-zone in the bottom-left
 // corner reveals two icons (Plus = feature, Bug = bug) when the cursor
 // enters it. On touch (no hover) the icons are always visible since
 // pointer:hover queries don't fire there.
@@ -18,13 +18,13 @@ export function FeedbackWidget() {
   return (
     <>
       <div
-        className="pointer-events-auto fixed bottom-0 right-0 z-40 flex h-32 w-32 items-end justify-end p-4"
+        className="pointer-events-auto fixed bottom-0 left-0 z-40 flex h-32 w-32 items-end justify-start p-4"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
         <div
           className={cn(
-            "flex flex-col items-end gap-2 transition-opacity duration-200",
+            "flex flex-col items-start gap-2 transition-opacity duration-200",
             visible ? "opacity-100" : "opacity-0",
             "[@media(hover:none)]:opacity-100",
           )}
