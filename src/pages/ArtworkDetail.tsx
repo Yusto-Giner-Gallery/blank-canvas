@@ -166,7 +166,6 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
       : 0;
     lightbox.open({ images: lightboxImages, index: idx });
   };
-  
 
   async function onCreateTag(e: React.FormEvent) {
     e.preventDefault();

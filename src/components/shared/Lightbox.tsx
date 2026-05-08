@@ -12,7 +12,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 // Full-screen click-to-zoom overlay. A single instance is mounted at the
 // app root; any image surface calls `useLightbox().open({ src })` (or pass
 // a list + index for prev/next paging). Esc / backdrop / × close. Arrow
-// keys page when a list is provided. Pure presentation — no data fetching.
+// keys page when a list is provided.
 
 type LightboxImage = { src: string; alt?: string };
 
@@ -50,11 +50,9 @@ export function LightboxProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const close = useCallback(() => setImages(null), []);
-
   const prev = useCallback(() => {
     setIndex((i) => (images ? (i - 1 + images.length) % images.length : 0));
   }, [images]);
-
   const next = useCallback(() => {
     setIndex((i) => (images ? (i + 1) % images.length : 0));
   }, [images]);
@@ -86,7 +84,7 @@ export function LightboxProvider({ children }: { children: React.ReactNode }) {
               role="dialog"
               aria-modal="true"
               onClick={close}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 sm:p-8"
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 sm:p-8"
             >
               <button
                 type="button"
