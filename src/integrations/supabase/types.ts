@@ -109,6 +109,42 @@ export type Database = {
           },
         ]
       }
+      artwork_documents: {
+        Row: {
+          artwork_id: string
+          byte_size: number | null
+          created_at: string
+          filename: string
+          gallery_id: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          artwork_id: string
+          byte_size?: number | null
+          created_at?: string
+          filename: string
+          gallery_id: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          artwork_id?: string
+          byte_size?: number | null
+          created_at?: string
+          filename?: string
+          gallery_id?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       artwork_images: {
         Row: {
           artwork_id: string
@@ -198,6 +234,7 @@ export type Database = {
           height_cm: number | null
           id: string
           internal_id: string
+          is_nfs: boolean
           location_id: string | null
           medium: string | null
           notes: string | null
@@ -217,6 +254,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           internal_id: string
+          is_nfs?: boolean
           location_id?: string | null
           medium?: string | null
           notes?: string | null
@@ -236,6 +274,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           internal_id?: string
+          is_nfs?: boolean
           location_id?: string | null
           medium?: string | null
           notes?: string | null
@@ -612,6 +651,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      consignments: {
+        Row: {
+          artwork_id: string
+          created_at: string
+          end_date: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          partner_contact_id: string
+          split_pct: number
+          start_date: string
+          status: Database["public"]["Enums"]["consignment_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          partner_contact_id: string
+          split_pct?: number
+          start_date: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          created_at?: string
+          end_date?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          partner_contact_id?: string
+          split_pct?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["consignment_status"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       contact_activity: {
         Row: {
@@ -1060,6 +1141,45 @@ export type Database = {
           },
         ]
       }
+      loans: {
+        Row: {
+          artwork_id: string
+          contact_id: string
+          created_at: string
+          end_date: string
+          gallery_id: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["loan_status"]
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          contact_id: string
+          created_at?: string
+          end_date: string
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          contact_id?: string
+          created_at?: string
+          end_date?: string
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           created_at: string
@@ -1130,6 +1250,57 @@ export type Database = {
           },
         ]
       }
+      shipments: {
+        Row: {
+          artwork_id: string
+          carrier: string | null
+          created_at: string
+          delivered_at: string | null
+          from_location_id: string | null
+          gallery_id: string
+          id: string
+          notes: string | null
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["shipment_status"]
+          to_address: Json | null
+          to_contact_id: string | null
+          tracking_no: string | null
+          updated_at: string
+        }
+        Insert: {
+          artwork_id: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          from_location_id?: string | null
+          gallery_id: string
+          id?: string
+          notes?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          to_address?: Json | null
+          to_contact_id?: string | null
+          tracking_no?: string | null
+          updated_at?: string
+        }
+        Update: {
+          artwork_id?: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          from_location_id?: string | null
+          gallery_id?: string
+          id?: string
+          notes?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          to_address?: Json | null
+          to_contact_id?: string | null
+          tracking_no?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string
@@ -1171,6 +1342,7 @@ export type Database = {
           height_cm: number | null
           id: string | null
           internal_id: string | null
+          is_nfs: boolean | null
           location_id: string | null
           medium: string | null
           needs_attention: boolean | null
@@ -1191,6 +1363,7 @@ export type Database = {
           height_cm?: number | null
           id?: string | null
           internal_id?: string | null
+          is_nfs?: boolean | null
           location_id?: string | null
           medium?: string | null
           needs_attention?: never
@@ -1211,6 +1384,7 @@ export type Database = {
           height_cm?: number | null
           id?: string | null
           internal_id?: string | null
+          is_nfs?: boolean | null
           location_id?: string | null
           medium?: string | null
           needs_attention?: never
@@ -1249,6 +1423,7 @@ export type Database = {
     }
     Functions: {
       current_gallery_id: { Args: never; Returns: string }
+      flip_overdue_loans: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1258,7 +1433,16 @@ export type Database = {
       }
     }
     Enums: {
-      activity_entity_type: "artwork" | "contact" | "invoice" | "deal" | "card"
+      activity_entity_type:
+        | "artwork"
+        | "contact"
+        | "invoice"
+        | "deal"
+        | "card"
+        | "loan"
+        | "consignment"
+        | "shipment"
+        | "document"
       app_role: "admin" | "staff"
       artwork_status: "available" | "on_hold" | "sold" | "archived"
       card_label:
@@ -1270,6 +1454,7 @@ export type Database = {
         | "purple"
         | "shipping"
       collection_kind: "exhibition" | "fair" | "viewing_room" | "other"
+      consignment_status: "active" | "returned" | "sold"
       contact_activity_kind:
         | "artwork_shown"
         | "dossier_sent"
@@ -1291,6 +1476,8 @@ export type Database = {
         | "editorial"
       feedback_kind: "bug" | "feature"
       invoice_status: "draft" | "sent" | "paid" | "cancelled"
+      loan_status: "active" | "returned" | "overdue"
+      shipment_status: "prep" | "in_transit" | "delivered" | "returned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1418,7 +1605,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      activity_entity_type: ["artwork", "contact", "invoice", "deal", "card"],
+      activity_entity_type: [
+        "artwork",
+        "contact",
+        "invoice",
+        "deal",
+        "card",
+        "loan",
+        "consignment",
+        "shipment",
+        "document",
+      ],
       app_role: ["admin", "staff"],
       artwork_status: ["available", "on_hold", "sold", "archived"],
       card_label: [
@@ -1431,6 +1628,7 @@ export const Constants = {
         "shipping",
       ],
       collection_kind: ["exhibition", "fair", "viewing_room", "other"],
+      consignment_status: ["active", "returned", "sold"],
       contact_activity_kind: [
         "artwork_shown",
         "dossier_sent",
@@ -1455,6 +1653,8 @@ export const Constants = {
       ],
       feedback_kind: ["bug", "feature"],
       invoice_status: ["draft", "sent", "paid", "cancelled"],
+      loan_status: ["active", "returned", "overdue"],
+      shipment_status: ["prep", "in_transit", "delivered", "returned"],
     },
   },
 } as const
