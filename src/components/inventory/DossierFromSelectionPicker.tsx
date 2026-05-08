@@ -8,6 +8,7 @@ import { useCreateDossier } from "@/hooks/useDossiers";
 import type { DossierKind } from "@/integrations/supabase/domain";
 
 const KIND_OPTIONS: Array<{ value: DossierKind; label: string }> = [
+  { value: "editorial", label: "Editorial (PARALLELS layout)" },
   { value: "solo_show", label: "Solo show" },
   { value: "group_show", label: "Group show" },
   { value: "special", label: "Special (extra text)" },
@@ -25,7 +26,7 @@ export function DossierFromSelectionPicker({
   const navigate = useNavigate();
   const create = useCreateDossier();
   const [title, setTitle] = useState("");
-  const [kind, setKind] = useState<DossierKind>("group_show");
+  const [kind, setKind] = useState<DossierKind>("editorial");
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
