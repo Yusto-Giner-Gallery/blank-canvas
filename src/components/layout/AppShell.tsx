@@ -29,6 +29,18 @@ export function AppShell() {
   useEffect(() => {
     setNavOpen(false);
     setAutohideVisible(false);
+    // Drop focus from whatever just got clicked (typically a sidebar
+    // nav link) so :focus-within on the AutohideSidebar releases. Without
+    // this, the sidebar stays slid-out on hover but the link keeps focus,
+    // and the focus-within rule would re-pin the sidebar open until the
+    // user clicks somewhere else to blur. Mouseleave alone wouldn't be
+    // enough.
+    if (
+      typeof document !== "undefined" &&
+      document.activeElement instanceof HTMLElement
+    ) {
+      document.activeElement.blur();
+    }
   }, [location.pathname]);
 
   return (
@@ -39,8 +51,15 @@ export function AppShell() {
           {/* Wordmark stays fixed at top-left at all times — visible
               whether the auto-hide drawer is in or out. Same dimensions
               as the pinned sidebar's internal wordmark so the layout
-              math doesn't change between modes. */}
-          <div className="fixed left-0 top-0 z-40 hidden h-14 w-56 items-center gap-2 border-b border-r border-border bg-background px-4 font-recta text-sm font-medium uppercase tracking-[0.22em] md:flex">
+              math doesn't change between modes.
+              No border-b / border-r in this mode: the topbar's own
+              border-b runs across at the same y, and the slid-in
+              AutohideSidebar carries its own border-r — duplicating
+              them on the floating wordmark would draw a small boxed-off
+              header that visually severs the wordmark from the rest of
+              the topbar (when the drawer is hidden) and from the
+              sidebar (when the drawer is in). */}
+          <div className="fixed left-0 top-0 z-40 hidden h-14 w-56 items-center gap-2 bg-background px-4 font-recta text-sm font-medium uppercase tracking-[0.22em] md:flex">
             <span>Yusto</span>
             <span aria-hidden className="text-accent-red text-base font-normal leading-none">
               /
