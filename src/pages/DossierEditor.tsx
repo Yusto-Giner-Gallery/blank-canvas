@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { errorMessage } from "@/lib/utils";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Send, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Maximize2, Send, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,9 @@ export default function DossierEditor() {
   const [sending, setSending] = useState(false);
   const [reviewing, setReviewing] = useState<{ context: string; text: string } | null>(null);
   const [previewMode, setPreviewMode] = useState<"edit" | "pdf">("edit");
+  // 3.3: full-screen enlarge of the live PDF preview (incl. the price list)
+  // before downloading.
+  const [enlarged, setEnlarged] = useState(false);
 
   // Hydrate local state from server data once.
   useEffect(() => {
@@ -534,20 +537,30 @@ export default function DossierEditor() {
                 </div>
               ) : null}
             </div>
-            <Suspense
-              fallback={
-                <Button size="sm" variant="outline" disabled>
-                  <Download className="h-4 w-4" /> Download
-                </Button>
-              }
-            >
-              <PdfDownloadButton
-                dossier={previewDossier}
-                artworks={artworks}
-                galleryName={galleryName}
-                titlePath={titlePath}
-              />
-            </Suspense>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEnlarged(true)}
+                disabled={!previewDossier}
+              >
+                <Maximize2 className="h-4 w-4" /> Enlarge
+              </Button>
+              <Suspense
+                fallback={
+                  <Button size="sm" variant="outline" disabled>
+                    <Download className="h-4 w-4" /> Download
+                  </Button>
+                }
+              >
+                <PdfDownloadButton
+                  dossier={previewDossier}
+                  artworks={artworks}
+                  galleryName={galleryName}
+                  titlePath={titlePath}
+                />
+              </Suspense>
+            </div>
           </div>
           <div className="h-[80vh] overflow-auto rounded-md border border-border bg-muted">
             {previewDossier ? (
@@ -583,6 +596,34 @@ export default function DossierEditor() {
           </div>
         </div>
       </div>
+
+      {enlarged && previewDossier ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center justify-between border-b border-border px-4 py-2">
+            <span className="text-sm font-medium">{previewDossier.title} — preview</span>
+            <Button size="sm" variant="ghost" onClick={() => setEnlarged(false)}>
+              <X className="h-4 w-4" /> Close
+            </Button>
+          </div>
+          <div className="flex-1 overflow-hidden bg-muted">
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                  Loading preview…
+                </div>
+              }
+            >
+              <PdfPanel
+                dossier={previewDossier}
+                artworks={artworks}
+                galleryName={galleryName}
+                imageUrlFor={imageUrl}
+                titlePath={titlePath}
+              />
+            </Suspense>
+          </div>
+        </div>
+      ) : null}
 
       {sending && previewDossier ? (
         <SendToContactsModal

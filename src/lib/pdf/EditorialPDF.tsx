@@ -178,6 +178,13 @@ const local = StyleSheet.create({
     bottom: 50,
     width: PAGE.width / 2 - MARGIN * 2,
   },
+  // Mirror of artworkMeta for the image_left variant (3.1).
+  artworkMetaRight: {
+    position: "absolute",
+    right: MARGIN,
+    bottom: 50,
+    width: PAGE.width / 2 - MARGIN * 2,
+  },
   metaArtist: { fontSize: 10, color: palette.ink },
   metaTitle: { fontSize: 10, color: palette.ink, fontWeight: 700, marginTop: 2 },
   metaLine: { fontSize: 9, color: palette.body, marginTop: 2 },
@@ -220,6 +227,15 @@ const local = StyleSheet.create({
     right: 30,
     bottom: 30,
     objectFit: "contain",
+  },
+  // Clipped frame for the zoomable detail image (3.2).
+  detailClip: {
+    position: "absolute",
+    top: 30,
+    left: 30,
+    right: 30,
+    bottom: 30,
+    overflow: "hidden",
   },
 
   // Pair page — two artworks side by side
@@ -600,16 +616,40 @@ function FullImagePage({
 function DetailZoomPage({
   imageUrl,
   watermark,
+  scale = 1,
+  focusX = 0.5,
+  focusY = 0.5,
 }: {
   imageUrl: string | null;
   watermark: string;
+  // 3.2: zoom amount (1..3) + focal point (0..1) chosen in the editor. The
+  // image is scaled inside a clipped frame so a specific detail can be
+  // framed, instead of always showing the whole work contained.
+  scale?: number;
+  focusX?: number;
+  focusY?: number;
 }) {
-  // Cropped/zoom variant: dark canvas, image contained without crop, no
-  // meta block. Mirrors PARALLELS' page-8/page-21 detail spreads.
+  const s = Math.max(1, scale);
+  const left = `${(0.5 - focusX * s) * 100}%`;
+  const top = `${(0.5 - focusY * s) * 100}%`;
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <View style={local.detailBg} />
-      {imageUrl ? <Image src={imageUrl} style={local.detailImage} /> : null}
+      <View style={local.detailClip}>
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            style={{
+              position: "absolute",
+              width: `${s * 100}%`,
+              height: `${s * 100}%`,
+              left,
+              top,
+              objectFit: "cover",
+            }}
+          />
+        ) : null}
+      </View>
       <PdfWatermark text={watermark} />
     </Page>
   );
@@ -694,6 +734,7 @@ function ArtworkPage({
   textOffsets,
   watermark,
   disclaimer,
+  mirrored = false,
 }: {
   artwork: ArtworkListItem;
   imageUrl: string | null;
@@ -701,17 +742,26 @@ function ArtworkPage({
   textOffsets: Record<string, { x: number; y: number }>;
   watermark: string;
   disclaimer: string;
+  // image_left (3.1): swap the image box to the left and the meta to the
+  // right, mirroring the default image_right layout.
+  mirrored?: boolean;
 }) {
   const off = textOffsets[`artwork.${artwork.id}.meta`] ?? { x: 0, y: 0 };
+  const imageBoxStyle = mirrored
+    ? Object.assign({}, local.artworkImageBox, { right: undefined, left: MARGIN })
+    : local.artworkImageBox;
   return (
     <Page size={[PAGE.width, PAGE.height]} style={local.page}>
       <Wordmark galleryName={galleryName} />
-      <View style={local.artworkImageBox}>
+      <View style={imageBoxStyle}>
         {imageUrl ? <Image src={imageUrl} style={local.artworkImage} /> : null}
       </View>
       <ArtworkMeta
         artwork={artwork}
-        offsetStyle={leftOffsetStyle(off, MARGIN)}
+        style={mirrored ? local.artworkMetaRight : undefined}
+        offsetStyle={
+          mirrored ? rightOffsetStyle(off, MARGIN) : leftOffsetStyle(off, MARGIN)
+        }
         disclaimer={disclaimer}
       />
       <PdfWatermark text={watermark} />
@@ -797,7 +847,16 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
       const detailUrl = layout?.detail_image_path
         ? imageUrlFor(layout.detail_image_path)
         : imgUrl;
-      return <DetailZoomPage key={`aw-${aw.id}`} imageUrl={detailUrl} watermark={watermark} />;
+      return (
+        <DetailZoomPage
+          key={`aw-${aw.id}`}
+          imageUrl={detailUrl}
+          watermark={watermark}
+          scale={layout?.detail_scale ?? 1}
+          focusX={layout?.detail_x ?? 0.5}
+          focusY={layout?.detail_y ?? 0.5}
+        />
+      );
     }
     if (spec.variant === "pair_with" && spec.paired_with) {
       const right = spec.paired_with;
@@ -824,6 +883,7 @@ export function EditorialPDF({ dossier, artworks, galleryName, imageUrlFor }: Co
         textOffsets={textOffsets}
         watermark={watermark}
         disclaimer={disclaimer}
+        mirrored={spec.variant === "image_left"}
       />
     );
   });

@@ -58,6 +58,7 @@ export type DossierArtistIntro = {
 
 export type PageLayoutVariant =
   | "image_right" // default — image right, meta block bottom-left
+  | "image_left" // mirror — image left, meta block bottom-right
   | "full_image" // full-bleed image, meta as small footer
   | "detail_zoom" // cropped detail view, no meta
   | "pair_with"; // two artworks side-by-side on one page
@@ -66,6 +67,11 @@ export type EditorialPageLayout = {
   variant: PageLayoutVariant;
   pair_artwork_id?: string; // for pair_with
   detail_image_path?: string; // for detail_zoom (optional alt image)
+  // detail_zoom focal point (0..1) + zoom scale (1..3) — lets the user pick
+  // which detail to show and how close (3.2). Absent → centered, scale 1.
+  detail_scale?: number;
+  detail_x?: number;
+  detail_y?: number;
 };
 
 export type DossierCustomPage = {

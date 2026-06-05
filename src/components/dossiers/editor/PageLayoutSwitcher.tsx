@@ -12,6 +12,7 @@ const VARIANTS: Array<{
   description: string;
 }> = [
   { value: "image_right", label: "Image right", description: "Image on the right, meta on the left (default)" },
+  { value: "image_left", label: "Image left", description: "Image on the left, meta on the right" },
   { value: "full_image", label: "Full page", description: "Full-bleed image — no meta block" },
   { value: "detail_zoom", label: "Detail zoom", description: "Cropped detail view — no meta block" },
   { value: "pair_with", label: "Pair with…", description: "Two artworks side-by-side on one page" },

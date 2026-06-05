@@ -241,6 +241,12 @@ export function EditorialHtml({
                 onDetailUpload={(path) =>
                   setVariant(aw.id, "detail_zoom", { detail_image_path: path })
                 }
+                detailScale={layouts[aw.id]?.detail_scale ?? 1}
+                detailX={layouts[aw.id]?.detail_x ?? 0.5}
+                detailY={layouts[aw.id]?.detail_y ?? 0.5}
+                onChangeDetail={(extra) =>
+                  setVariant(aw.id, "detail_zoom", extra)
+                }
               />
             );
           })}
@@ -868,6 +874,10 @@ function ArtworkPageBlock({
   onClearPair,
   detailImageUrl,
   onDetailUpload,
+  detailScale,
+  detailX,
+  detailY,
+  onChangeDetail,
 }: {
   artwork: ArtworkListItem;
   paired: ArtworkListItem | undefined;
@@ -884,6 +894,10 @@ function ArtworkPageBlock({
   onClearPair: () => void;
   detailImageUrl: string | null;
   onDetailUpload: (path: string) => void;
+  detailScale: number;
+  detailX: number;
+  detailY: number;
+  onChangeDetail: (extra: Partial<EditorialPageLayout>) => void;
 }) {
   const [pairPickerOpen, setPairPickerOpen] = useState(false);
   // Each artwork's meta block has one stable slot keyed by artwork id; the
@@ -963,6 +977,41 @@ function ArtworkPageBlock({
         </Page>
       ) : null}
 
+      {variant === "image_left" ? (
+        <Page watermark={watermark}>
+          <Wordmark galleryName={galleryName} accent={accent} />
+          <div
+            className="absolute flex items-center justify-center"
+            style={{
+              top: 70,
+              left: MARGIN,
+              width: PAGE_W / 2 - MARGIN,
+              bottom: 110,
+            }}
+          >
+            <ArtworkImage path={artwork.primary_image?.storage_path} />
+          </div>
+          <div
+            className="absolute"
+            style={{ right: MARGIN, bottom: 50, width: PAGE_W / 2 - MARGIN * 2 }}
+          >
+            <DraggableTextBlock
+              blockKey={metaKey}
+              offset={metaOffset}
+              onCommit={(next) => setOffset(metaKey, next)}
+              onReset={() => setOffset(metaKey, { x: 0, y: 0 })}
+            >
+              <ArtworkMetaBlock
+                artwork={artwork}
+                alignRight
+                disclaimer={disclaimer}
+                onDisclaimerChange={onDisclaimerChange}
+              />
+            </DraggableTextBlock>
+          </div>
+        </Page>
+      ) : null}
+
       {variant === "full_image" ? (
         <Page watermark={watermark}>
           <div className="absolute inset-0 bg-neutral-900">
@@ -982,16 +1031,66 @@ function ArtworkPageBlock({
       {variant === "detail_zoom" ? (
         <Page watermark={watermark}>
           <div className="absolute inset-0 bg-neutral-950" />
-          <div className="absolute" style={{ top: 30, left: 30, right: 30, bottom: 30 }}>
+          <div
+            className="absolute overflow-hidden"
+            style={{ top: 30, left: 30, right: 30, bottom: 30 }}
+          >
             {detailImageUrl ? (
               <img
                 src={detailImageUrl}
                 alt=""
-                className="h-full w-full object-contain"
+                className="absolute max-w-none"
+                style={{
+                  width: `${detailScale * 100}%`,
+                  height: `${detailScale * 100}%`,
+                  left: `${(0.5 - detailX * detailScale) * 100}%`,
+                  top: `${(0.5 - detailY * detailScale) * 100}%`,
+                  objectFit: "cover",
+                }}
               />
             ) : (
               <ArtworkImageContained path={artwork.primary_image?.storage_path} />
             )}
+          </div>
+          {/* Zoom + focal-point controls (3.2). Stop propagation so dragging
+              a slider doesn't start a page drag. */}
+          <div
+            className="absolute left-3 top-3 z-20 w-44 space-y-1 border border-border bg-background/90 p-2 text-[10px]"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <label className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Zoom</span>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={detailScale}
+                onChange={(e) => onChangeDetail({ detail_scale: Number(e.target.value) })}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Focus X</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.02}
+                value={detailX}
+                onChange={(e) => onChangeDetail({ detail_x: Number(e.target.value) })}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">Focus Y</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.02}
+                value={detailY}
+                onChange={(e) => onChangeDetail({ detail_y: Number(e.target.value) })}
+              />
+            </label>
           </div>
           {/* Optional: upload a different "detail" image just for this page */}
           <div className="absolute right-3 bottom-3 z-20 w-40">

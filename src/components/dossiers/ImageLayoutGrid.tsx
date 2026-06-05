@@ -9,7 +9,6 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   rectSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
@@ -76,10 +75,15 @@ export function ImageLayoutGrid({
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
+    // True swap (3.4): dragging image A onto B exchanges their two slots,
+    // rather than shifting the whole sequence (arrayMove). Matches the
+    // "drag it onto the other and they switch places" mental model.
     const ids = artworks.map((a) => a.id);
-    const oldIndex = ids.indexOf(String(active.id));
-    const newIndex = ids.indexOf(String(over.id));
-    onReorder(arrayMove(ids, oldIndex, newIndex));
+    const i = ids.indexOf(String(active.id));
+    const j = ids.indexOf(String(over.id));
+    if (i === -1 || j === -1) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    onReorder(ids);
   }
 
   return (
