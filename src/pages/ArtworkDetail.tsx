@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useArtworks, imageUrl } from "@/hooks/useArtworks";
+import { useInterestedCollectors } from "@/hooks/useInterestedCollectors";
 import { useLightbox } from "@/components/shared/Lightbox";
 import { useUpdateArtwork, useDeleteArtwork } from "@/hooks/useUpdateArtwork";
 import { useTags } from "@/hooks/useTags";
@@ -83,6 +84,9 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
     () => (data ?? []).find((a) => a.id === id) ?? null,
     [data, id],
   );
+
+  // 4.4: collectors tagged for this work's artist — a nudge to follow up.
+  const interested = useInterestedCollectors(artwork?.artist?.name);
 
   // Edit form state
   const [form, setForm] = useState({
@@ -257,6 +261,19 @@ export default function ArtworkDetail({ id: idProp }: { id?: string } = {}) {
           onChange={onPickFiles}
         />
       </div>
+
+      {interested.length > 0 && artwork.artist ? (
+        <Link
+          to={`/contacts?artist=${artwork.artist.id}`}
+          className="flex items-center gap-2 rounded-md border border-[hsl(var(--attention))]/40 bg-[hsl(var(--attention))]/5 px-3 py-2 text-sm hover:border-[hsl(var(--attention))]"
+        >
+          <Star className="h-4 w-4 text-[hsl(var(--attention))]" />
+          <span>
+            {interested.length} collector{interested.length === 1 ? "" : "s"} tagged
+            for {artwork.artist.name} — follow up?
+          </span>
+        </Link>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0 space-y-6">

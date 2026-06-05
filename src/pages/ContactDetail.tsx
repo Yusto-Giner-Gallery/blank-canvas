@@ -15,6 +15,12 @@ import {
   useDetachContactTag,
 } from "@/hooks/useContactTags";
 import { useTags } from "@/hooks/useTags";
+import { useArtworks } from "@/hooks/useArtworks";
+import {
+  useContactArtworks,
+  useLinkContactArtwork,
+  useUnlinkContactArtwork,
+} from "@/hooks/useContactArtworks";
 import type { ContactActivityKind } from "@/integrations/supabase/domain";
 import { ActivityTimeline } from "@/components/shared/ActivityTimeline";
 
@@ -36,11 +42,17 @@ export default function ContactDetail({ id: idProp }: { id?: string } = {}) {
   const detach = useDetachContactTag();
   const createAndAttach = useCreateAndAttachContactTag();
 
+  const works = useContactArtworks(id);
+  const allArtworks = useArtworks().data ?? [];
+  const linkWork = useLinkContactArtwork();
+  const unlinkWork = useUnlinkContactArtwork();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [interest, setInterest] = useState("");
   const [notes, setNotes] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [linkId, setLinkId] = useState("");
 
   useEffect(() => {
     if (!contact) return;
@@ -222,6 +234,73 @@ export default function ContactDetail({ id: idProp }: { id?: string } = {}) {
                 {createAndAttach.isPending ? "Adding…" : "Create + add"}
               </Button>
             </form>
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold tracking-tight">Works</h2>
+            {works.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : (works.data?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No works linked to this contact yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-border rounded-md border border-border">
+                {works.data!.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                    <Link to={`/inventory/${a.id}`} className="min-w-0 flex-1 hover:underline">
+                      <span className="truncate">{a.title}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {a.artist?.name ?? "—"}
+                        {a.internal_id ? ` · ${a.internal_id}` : ""}
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        unlinkWork.mutate({ contact_id: id, artwork_id: a.id })
+                      }
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label={`Unlink ${a.title}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 pt-1">
+              <select
+                value={linkId}
+                onChange={(e) => setLinkId(e.target.value)}
+                className="h-9 max-w-xs flex-1 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                <option value="">Link a work…</option>
+                {allArtworks
+                  .filter((a) => !(works.data ?? []).some((w) => w.id === a.id))
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.title}
+                      {a.artist?.name ? ` — ${a.artist.name}` : ""}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                size="sm"
+                disabled={!linkId || linkWork.isPending}
+                onClick={() => {
+                  linkWork.mutate(
+                    { contact_id: id, artwork_id: linkId },
+                    {
+                      onSuccess: () => setLinkId(""),
+                      onError: (e) => toast.error(errorMessage(e)),
+                    },
+                  );
+                }}
+              >
+                {linkWork.isPending ? "Linking…" : "Link"}
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3">

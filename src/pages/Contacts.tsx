@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
+import { useArtists } from "@/hooks/useArtists";
 import { SignupShare } from "@/components/crm/SignupShare";
 import { ScanContactModal } from "@/components/crm/ScanContactModal";
 import { cn, errorMessage } from "@/lib/utils";
@@ -170,6 +171,7 @@ export default function Contacts() {
   const { data, isLoading, error } = useContacts();
   const tagsQuery = useTags();
   const tags = tagsQuery.data ?? [];
+  const artists = useArtists().data ?? [];
   const create = useCreateContact();
   const update = useUpdateContact();
 
@@ -179,6 +181,11 @@ export default function Contacts() {
   const [newEmail, setNewEmail] = useState("");
   const [newInterest, setNewInterest] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  // Seed from ?artist= so the "follow up?" nudge on an artwork deep-links
+  // straight into the filtered contact list (4.4 → 4.3).
+  const [artistFilter, setArtistFilter] = useState(
+    () => new URLSearchParams(window.location.search).get("artist") ?? "",
+  );
   const [search, setSearch] = useState("");
   const { mode: layoutMode } = useLayoutMode();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -196,6 +203,19 @@ export default function Contacts() {
   }
 
   const contacts = data ?? [];
+  // 4.3: "filter by artist" reuses the tag system — a contact counts as
+  // interested in an artist when they carry a tag named after that artist
+  // (e.g. tag "Daniel Núñez"). Resolve the chosen artist to the matching
+  // tag id(s) once, then filter contacts by those tags.
+  const artistTagIds = useMemo(() => {
+    if (!artistFilter) return null;
+    const name = artists.find((a) => a.id === artistFilter)?.name.toLowerCase();
+    if (!name) return null;
+    return new Set(
+      tags.filter((t) => t.name.toLowerCase() === name).map((t) => t.id),
+    );
+  }, [artistFilter, artists, tags]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return contacts.filter((c) => {
@@ -210,9 +230,13 @@ export default function Contacts() {
           if (!c.tag_ids.includes(t)) return false;
         }
       }
+      if (artistTagIds) {
+        if (artistTagIds.size === 0) return false;
+        if (!c.tag_ids.some((id) => artistTagIds.has(id))) return false;
+      }
       return true;
     });
-  }, [contacts, search, activeTags]);
+  }, [contacts, search, activeTags, artistTagIds]);
 
   function toggleTag(id: string) {
     setActiveTags((prev) => {
@@ -328,12 +352,27 @@ export default function Contacts() {
       ) : null}
 
       <div className="space-y-3 rounded-md border border-border bg-card p-3">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("contacts.searchPlaceholder")}
-          className="h-9"
-        />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("contacts.searchPlaceholder")}
+            className="h-9 flex-1"
+          />
+          <select
+            value={artistFilter}
+            onChange={(e) => setArtistFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm sm:w-56"
+            aria-label="Filter by artist"
+          >
+            <option value="">Any artist</option>
+            {artists.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {tags.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => {

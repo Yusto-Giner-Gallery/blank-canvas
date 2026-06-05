@@ -66,8 +66,25 @@ export function ScanContactModal({ onClose }: { onClose: () => void }) {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
+    // 4.1: paste a screenshot straight from the clipboard (Cmd/Ctrl+V) —
+    // the gallery's contacts often arrive as a phone screenshot, not a card.
+    function onPaste(e: ClipboardEvent) {
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) =>
+        i.type.startsWith("image/"),
+      );
+      const file = item?.getAsFile();
+      if (file) {
+        e.preventDefault();
+        onPickImage(file);
+      }
+    }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("paste", onPaste);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
 
   async function onPickImage(file: File) {
@@ -165,10 +182,11 @@ export function ScanContactModal({ onClose }: { onClose: () => void }) {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
               <Sparkles className="h-4 w-4 text-accent-red" />
-              Scan business card
+              Scan contact
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Take a photo or upload an image. AI extracts the details for you to review.
+              Photograph a business card, upload an image, or paste a screenshot
+              (⌘/Ctrl+V). AI extracts the details for you to review.
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
@@ -225,13 +243,13 @@ export function ScanContactModal({ onClose }: { onClose: () => void }) {
               <div className="relative border border-border bg-muted">
                 <img
                   src={imageDataUrl}
-                  alt="Captured business card"
+                  alt="Captured contact"
                   className="block max-h-56 w-full object-contain"
                 />
                 {extracting ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Reading the card…
+                    Reading the image…
                   </div>
                 ) : null}
               </div>

@@ -256,7 +256,7 @@ export const STRINGS: Record<string, Entry> = {
     es: "{filtered} de {total} contacto{plural}.",
   },
   "contacts.searchPlaceholder": { en: "Search name or email…", es: "Buscar nombre o email…" },
-  "contacts.scanCard": { en: "Scan card", es: "Escanear tarjeta" },
+  "contacts.scanCard": { en: "Scan contact", es: "Escanear contacto" },
   "contacts.addContact": { en: "Add contact", es: "Añadir contacto" },
   "contacts.empty.title": { en: "No contacts yet", es: "Aún no hay contactos" },
   "contacts.empty.description": {
