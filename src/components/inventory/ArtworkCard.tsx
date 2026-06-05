@@ -100,8 +100,19 @@ export function ArtworkCard({
           {artwork.artist?.name ?? "Unknown artist"}
         </div>
         <div className="truncate text-xs text-muted-foreground">
-          {size ?? "—"}
+          {[size, artwork.year].filter(Boolean).join(" · ") || "—"}
         </div>
+        {artwork.is_nfs ? (
+          <div className="truncate text-xs text-muted-foreground">NFS</div>
+        ) : artwork.price_eur != null ? (
+          <div className="truncate text-xs font-medium">
+            {new Intl.NumberFormat("en-IE", {
+              style: "currency",
+              currency: "EUR",
+              maximumFractionDigits: 0,
+            }).format(artwork.price_eur)}
+          </div>
+        ) : null}
         <div className="mt-1 flex items-center justify-between gap-2">
           <span className="truncate text-xs text-muted-foreground">
             {artwork.location?.name ?? "—"}

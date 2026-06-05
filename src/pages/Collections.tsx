@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Folder } from "lucide-react";
+import { Folder, Search } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardDescription,
@@ -17,7 +19,11 @@ const KIND_LABEL: Record<string, string> = {
 
 export default function Collections() {
   const { data, isLoading, error } = useCollections();
-  const collections = data ?? [];
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const collections = (data ?? []).filter((c) =>
+    query ? c.name.toLowerCase().includes(query) : true,
+  );
 
   return (
     <div className="space-y-4">
@@ -29,6 +35,16 @@ export default function Collections() {
         </p>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search collections…"
+          className="h-9 max-w-sm"
+        />
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
@@ -38,11 +54,22 @@ export default function Collections() {
       ) : collections.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No collections yet</CardTitle>
-            <CardDescription>
-              Select artworks from the inventory page and choose "Add to
-              collection" to create your first one.
-            </CardDescription>
+            {query ? (
+              <>
+                <CardTitle>No matches</CardTitle>
+                <CardDescription>
+                  No collections match "{q}".
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle>No collections yet</CardTitle>
+                <CardDescription>
+                  Select artworks from the inventory page and choose "Add to
+                  collection" to create your first one.
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
         </Card>
       ) : (

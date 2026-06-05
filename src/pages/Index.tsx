@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useT } from "@/lib/i18n/LocaleContext";
 import { useArtworks } from "@/hooks/useArtworks";
@@ -31,39 +32,48 @@ export default function Index() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("dashboard.cards.inventory")}</CardTitle>
-            <CardDescription>
-              {t("dashboard.cards.inventory.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {inventoryCount ?? "—"}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("dashboard.cards.attention")}</CardTitle>
-            <CardDescription>
-              {t("dashboard.cards.attention.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold text-[hsl(var(--attention))]">
-            {attentionCount ?? "—"}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("dashboard.cards.invoices")}</CardTitle>
-            <CardDescription>
-              {t("dashboard.cards.invoices.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold">
-            {openInvoiceCount ?? "—"}
-          </CardContent>
-        </Card>
+        <Link to="/inventory" className="block transition-colors hover:border-foreground/40">
+          <Card className="h-full transition-colors hover:border-foreground/40">
+            <CardHeader>
+              <CardTitle>{t("dashboard.cards.inventory")}</CardTitle>
+              <CardDescription>
+                {t("dashboard.cards.inventory.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold">
+              {inventoryCount ?? "—"}
+            </CardContent>
+          </Card>
+        </Link>
+        <Link
+          to="/inventory?attention=1"
+          className="block transition-colors hover:border-foreground/40"
+        >
+          <Card className="h-full transition-colors hover:border-foreground/40">
+            <CardHeader>
+              <CardTitle>{t("dashboard.cards.attention")}</CardTitle>
+              <CardDescription>
+                {t("dashboard.cards.attention.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold text-[hsl(var(--attention))]">
+              {attentionCount ?? "—"}
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/invoices" className="block transition-colors hover:border-foreground/40">
+          <Card className="h-full transition-colors hover:border-foreground/40">
+            <CardHeader>
+              <CardTitle>{t("dashboard.cards.invoices")}</CardTitle>
+              <CardDescription>
+                {t("dashboard.cards.invoices.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold">
+              {openInvoiceCount ?? "—"}
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <section className="space-y-2">

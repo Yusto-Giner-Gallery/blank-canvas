@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFilters, type Filters } from "@/hooks/useFilters";
-import { useArtists } from "@/hooks/useArtists";
 import { useLocations } from "@/hooks/useLocations";
 import { useTags } from "@/hooks/useTags";
 import { cn } from "@/lib/utils";
@@ -25,7 +24,6 @@ function selectClass(extra?: string) {
 
 export function FilterBar() {
   const { filters, setFilters, clear, activeCount } = useFilters();
-  const artists = useArtists().data ?? [];
   const locations = useLocations().data ?? [];
   const tags = useTags().data ?? [];
 
@@ -36,7 +34,7 @@ export function FilterBar() {
         <Input
           value={filters.q}
           onChange={(e) => setFilters({ q: e.target.value })}
-          placeholder="Search title, notes, internal ID…"
+          placeholder="Search title, artist, notes, internal ID…"
           className="h-9"
         />
         {activeCount > 0 ? (
@@ -76,22 +74,6 @@ export function FilterBar() {
             {locations.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Artist</Label>
-          <select
-            className={selectClass()}
-            value={filters.artist_id}
-            onChange={(e) => setFilters({ artist_id: e.target.value })}
-          >
-            <option value="">Any artist</option>
-            {artists.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
               </option>
             ))}
           </select>

@@ -13,8 +13,12 @@ export function applyFilters(
       const inTitle = a.title.toLowerCase().includes(q);
       const inNotes = (a.notes ?? "").toLowerCase().includes(q);
       const inInternal = a.internal_id.toLowerCase().includes(q);
-      if (!inTitle && !inNotes && !inInternal) return false;
+      // Artist name is searchable here (1.4) — it was removed from the
+      // filter-bar dropdown in favour of free-text search.
+      const inArtist = (a.artist?.name ?? "").toLowerCase().includes(q);
+      if (!inTitle && !inNotes && !inInternal && !inArtist) return false;
     }
+    if (filters.attention && !a.needs_attention) return false;
     if (filters.status && a.status !== filters.status) return false;
     if (filters.location_id && a.location?.id !== filters.location_id) return false;
     if (filters.artist_id && a.artist?.id !== filters.artist_id) return false;

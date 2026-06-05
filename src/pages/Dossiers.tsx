@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import { useDossiers } from "@/hooks/useDossiers";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardDescription,
@@ -20,7 +22,11 @@ const KIND_LABEL: Record<DossierKind, string> = {
 
 export default function Dossiers() {
   const { data, isLoading, error } = useDossiers();
-  const dossiers = data ?? [];
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const dossiers = (data ?? []).filter((d) =>
+    query ? d.title.toLowerCase().includes(query) : true,
+  );
 
   return (
     <div className="space-y-4">
@@ -32,6 +38,16 @@ export default function Dossiers() {
         </p>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search dossiers…"
+          className="h-9 max-w-sm"
+        />
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
@@ -41,11 +57,20 @@ export default function Dossiers() {
       ) : dossiers.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No dossiers yet</CardTitle>
-            <CardDescription>
-              Build a collection from inventory, then click "Generate
-              dossier" on the collection page.
-            </CardDescription>
+            {query ? (
+              <>
+                <CardTitle>No matches</CardTitle>
+                <CardDescription>No dossiers match "{q}".</CardDescription>
+              </>
+            ) : (
+              <>
+                <CardTitle>No dossiers yet</CardTitle>
+                <CardDescription>
+                  Build a collection from inventory, then click "Generate
+                  dossier" on the collection page.
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
         </Card>
       ) : (

@@ -13,6 +13,7 @@ export type Filters = {
   year_min: number | null;
   year_max: number | null;
   nationality: string;
+  attention: boolean;
 };
 
 const DEFAULTS: Filters = {
@@ -26,6 +27,7 @@ const DEFAULTS: Filters = {
   year_min: null,
   year_max: null,
   nationality: "",
+  attention: false,
 };
 
 const STATUS_VALUES: readonly ArtworkStatus[] = [
@@ -60,6 +62,7 @@ export function useFilters() {
       year_min: num(params.get("year_min")),
       year_max: num(params.get("year_max")),
       nationality: params.get("nat") ?? "",
+      attention: params.get("attention") === "1",
     }),
     [params],
   );
@@ -78,6 +81,7 @@ export function useFilters() {
       if (next.year_min != null) out.set("year_min", String(next.year_min));
       if (next.year_max != null) out.set("year_max", String(next.year_max));
       if (next.nationality) out.set("nat", next.nationality);
+      if (next.attention) out.set("attention", "1");
       setParams(out, { replace: true });
     },
     [filters, setParams],
@@ -90,7 +94,7 @@ export function useFilters() {
   const activeCount = useMemo(
     () =>
       Object.entries(filters).reduce((acc, [, v]) => {
-        if (v === "" || v === null) return acc;
+        if (v === "" || v === null || v === false) return acc;
         return acc + 1;
       }, 0),
     [filters],
