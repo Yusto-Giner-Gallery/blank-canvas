@@ -25,6 +25,7 @@ import Invoices from "@/pages/Invoices";
 import InvoiceDetail from "@/pages/InvoiceDetail";
 import Receipts from "@/pages/Receipts";
 import Pipeline from "@/pages/Pipeline";
+import Calendar from "@/pages/Calendar";
 import Kanban from "@/pages/Kanban";
 import BoardDetail from "@/pages/BoardDetail";
 import Team from "@/pages/Team";
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/invoices/:id" element={<InvoiceDetail />} />
           <Route path="/receipts" element={<Receipts />} />
           <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/kanban/:id" element={<BoardDetail />} />
           <Route path="/team" element={<Team />} />

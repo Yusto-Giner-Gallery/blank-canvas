@@ -5,6 +5,7 @@ import { useArtworks } from "@/hooks/useArtworks";
 import { useInvoices } from "@/hooks/useInvoices";
 import { ActivityStream } from "@/components/dashboard/ActivityStream";
 import { MyAssignments } from "@/components/dashboard/MyAssignments";
+import { Notifications } from "@/components/dashboard/Notifications";
 
 export default function Index() {
   const t = useT();
@@ -75,6 +76,18 @@ export default function Index() {
           </Card>
         </Link>
       </div>
+
+      <section className="space-y-2">
+        <div>
+          <h2 className="text-xs font-medium uppercase tracking-[0.18em]">
+            Notifications
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            To-dos teammates have sent you, and a quick way to tag someone.
+          </p>
+        </div>
+        <Notifications />
+      </section>
 
       <section className="space-y-2">
         <div>

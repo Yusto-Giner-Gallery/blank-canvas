@@ -353,14 +353,21 @@ export function useUpdateCard() {
     {
       board_id: string;
       id: string;
+      // link_url (5.3) lets a card point at an external doc. The column isn't
+      // in the generated types yet (added on the Lovable port), so it's
+      // carried as an optional extra and the update payload is cast.
       patch: Partial<
         Pick<Card, "title" | "description" | "due_date" | "labels">
-      >;
+      > & { link_url?: string | null };
     }
   >({
     mutationFn: async ({ id, patch }) => {
       if (!profile) throw new Error("No profile");
-      const { error } = await supabase.from("cards").update(patch).eq("id", id);
+      const { error } = await supabase
+        .from("cards")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(patch as any)
+        .eq("id", id);
       if (error) throw error;
 
       // Mention writeback: parse card title + description for

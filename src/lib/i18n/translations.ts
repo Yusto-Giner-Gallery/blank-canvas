@@ -27,6 +27,7 @@ export const STRINGS: Record<string, Entry> = {
   "nav.invoices": { en: "Invoices", es: "Facturas" },
   "nav.receipts": { en: "Receipts", es: "Recibos" },
   "nav.pipeline": { en: "Pipeline", es: "Ventas" },
+  "nav.calendar": { en: "Calendar", es: "Calendario" },
   "nav.shirika": { en: "Shirika", es: "Shirika" },
   "nav.team": { en: "Team", es: "Equipo" },
   "nav.feedback": { en: "Feedback", es: "Comentarios" },

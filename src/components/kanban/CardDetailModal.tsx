@@ -14,6 +14,8 @@ import {
   AlignLeft,
   CalendarDays,
   CheckSquare,
+  ExternalLink,
+  Link2,
   MessageSquare,
   Paperclip,
   Plus,
@@ -27,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Markdown } from "@/components/shared/Markdown";
 import { useBoard, useDeleteCard, useUpdateCard } from "@/hooks/useKanban";
 import {
   useAttachmentUrl,
@@ -120,6 +123,7 @@ export function CardDetailModal({
   const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
   const [labels, setLabels] = useState<CardLabel[]>([]);
+  const [linkUrl, setLinkUrl] = useState("");
   const [newItem, setNewItem] = useState("");
   const [newComment, setNewComment] = useState("");
 
@@ -129,6 +133,7 @@ export function CardDetailModal({
     setDescription(card.description ?? "");
     setDue(card.due_date ? card.due_date.slice(0, 10) : "");
     setLabels(card.labels ?? []);
+    setLinkUrl((card as { link_url?: string | null }).link_url ?? "");
   }, [card]);
 
   useEffect(() => {
@@ -162,6 +167,7 @@ export function CardDetailModal({
           description: description || null,
           due_date: due ? new Date(due).toISOString() : null,
           labels,
+          link_url: linkUrl.trim() || null,
         },
       });
       toast.success("Saved");
@@ -238,7 +244,9 @@ export function CardDetailModal({
                 <Label className="text-sm font-semibold">Description</Label>
               </div>
               <p className="mb-1 text-xs text-muted-foreground">
-                Mention artworks with <code>@artwork:YG-0042</code>.
+                Mention artworks with <code>@artwork:YG-0042</code>. Markdown:
+                <code> - bullets</code>, <code>[text](url)</code>,{" "}
+                <code>![alt](img)</code>, <code>**bold**</code>.
               </p>
               <textarea
                 value={description}
@@ -247,6 +255,40 @@ export function CardDetailModal({
                 placeholder="Add a more detailed description…"
                 className="w-full resize-y border border-input bg-background p-2 text-sm"
               />
+              {description.trim() ? (
+                <div className="mt-2 border border-border bg-card p-2 text-sm">
+                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Preview
+                  </div>
+                  <Markdown text={description} className="space-y-1" />
+                </div>
+              ) : null}
+            </section>
+
+            <section>
+              <div className="mb-1.5 flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Document link</Label>
+              </div>
+              <p className="mb-1 text-xs text-muted-foreground">
+                Link this card to a doc you open often (e.g. the visitor-count
+                spreadsheet).
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://docs.google.com/…"
+                  className="h-9"
+                />
+                {linkUrl.trim() ? (
+                  <Button asChild variant="outline" size="sm">
+                    <a href={linkUrl.trim()} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Open
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
             </section>
 
             {mentioned.length > 0 ? (
