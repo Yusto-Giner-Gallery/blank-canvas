@@ -20,7 +20,8 @@ export const STRINGS: Record<string, Entry> = {
   // Navigation
   "nav.dashboard": { en: "Dashboard", es: "Inicio" },
   "nav.inventory": { en: "Inventory", es: "Inventario" },
-  "nav.collections": { en: "Collections", es: "Colecciones" },
+  "nav.artists": { en: "Artists", es: "Artistas" },
+  "nav.collections": { en: "Sets", es: "Sets" },
   "nav.dossiers": { en: "Dossiers", es: "Dossiers" },
   "nav.contacts": { en: "Contacts", es: "Contactos" },
   "nav.invoices": { en: "Invoices", es: "Facturas" },

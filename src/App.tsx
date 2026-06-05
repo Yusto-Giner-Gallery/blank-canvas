@@ -10,6 +10,8 @@ import Login from "@/pages/Login";
 import Index from "@/pages/Index";
 import Inventory from "@/pages/Inventory";
 import ArtworkDetail from "@/pages/ArtworkDetail";
+import Artists from "@/pages/Artists";
+import ArtistDetail from "@/pages/ArtistDetail";
 import BulkUpload from "@/pages/BulkUpload";
 import InventoryImport from "@/pages/InventoryImport";
 import Collections from "@/pages/Collections";
@@ -53,6 +55,8 @@ export default function App() {
           <Route path="/inventory/upload" element={<BulkUpload />} />
           <Route path="/inventory/import" element={<InventoryImport />} />
           <Route path="/inventory/:id" element={<ArtworkDetail />} />
+          <Route path="/artists" element={<Artists />} />
+          <Route path="/artists/:id" element={<ArtistDetail />} />
           <Route path="/collections" element={<Collections />} />
           <Route path="/collections/:id" element={<CollectionDetail />} />
           <Route path="/dossiers" element={<Dossiers />} />

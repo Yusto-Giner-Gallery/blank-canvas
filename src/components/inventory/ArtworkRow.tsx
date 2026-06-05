@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ImageOff } from "lucide-react";
 import type { ArtworkListItem } from "@/integrations/supabase/domain";
 import { imageUrl } from "@/hooks/useArtworks";
 import { useLongPress } from "@/hooks/useLongPress";
+import { useClickIntent } from "@/hooks/useClickIntent";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLightbox } from "@/components/shared/Lightbox";
 import { StatusPill } from "./StatusPill";
@@ -39,6 +40,8 @@ export function ArtworkRow({
   const url = imageUrl(artwork.primary_image?.storage_path);
   const size = formatSize(artwork.width_cm, artwork.height_cm, artwork.depth_cm);
   const lightbox = useLightbox();
+  const navigate = useNavigate();
+  const to = `/inventory/${artwork.id}`;
 
   const longPress = useLongPress<HTMLAnchorElement>((e) => {
     if (!onQuickEdit) return;
@@ -47,18 +50,33 @@ export function ArtworkRow({
   });
   const { onClick: longPressOnClick, ...longPressTouch } = longPress;
 
+  // 1.9: single click selects, double click opens. Peek mode (onSelect)
+  // keeps single-click = peek; double-click still opens the full page.
+  const intent = useClickIntent({
+    onSingle: () => {
+      if (onSelect) onSelect(artwork.id);
+      else if (onToggleSelect) onToggleSelect(artwork.id);
+      else navigate(to);
+    },
+    onDouble: () => navigate(to),
+  });
+
   return (
     <Link
-      to={`/inventory/${artwork.id}`}
+      to={to}
       {...longPressTouch}
       onClick={(e) => {
         // Compose: longPress.onClick swallows the click after a long-press.
         longPressOnClick(e);
         if (e.defaultPrevented) return;
-        if (onSelect) {
-          e.preventDefault();
-          onSelect(artwork.id);
-        }
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return; // let Link open a tab
+        if (!onSelect && !onToggleSelect) return; // read-only: navigate normally
+        e.preventDefault();
+        intent.onClick();
+      }}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        intent.onDoubleClick();
       }}
       onContextMenu={(e) => {
         if (!onQuickEdit) return;
@@ -102,7 +120,7 @@ export function ArtworkRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{artwork.title}</span>
-          {artwork.needs_attention ? <AttentionBadge /> : null}
+          {artwork.needs_attention ? <AttentionBadge artworkId={artwork.id} /> : null}
         </div>
         <div className="flex items-center gap-2 truncate text-xs text-muted-foreground">
           <span className="truncate">

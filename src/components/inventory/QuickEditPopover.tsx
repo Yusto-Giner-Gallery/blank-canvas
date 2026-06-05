@@ -69,19 +69,35 @@ export function QuickEditPopover({
   const left = Math.min(edit.x, window.innerWidth - POPOVER_W - 12);
   const top = Math.min(edit.y, window.innerHeight - 280);
 
-  async function onSave() {
-    const patch = {
-      status,
-      location_id: locationId || null,
-      price_eur: price.trim() === "" ? null : Number(price),
-    };
+  async function save(patch: {
+    status: ArtworkStatus;
+    location_id: string | null;
+    price_eur: number | null;
+  }, message: string) {
     try {
       await update.mutateAsync({ id: edit.artwork.id, patch });
-      toast.success(`${edit.artwork.title} updated`);
+      toast.success(message);
       onClose();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
+  }
+
+  const currentPatch = () => ({
+    location_id: locationId || null,
+    price_eur: price.trim() === "" ? null : Number(price),
+  });
+
+  function onSave() {
+    return save({ status, ...currentPatch() }, `${edit.artwork.title} updated`);
+  }
+
+  function onMarkSold() {
+    setStatus("sold");
+    return save(
+      { status: "sold", ...currentPatch() },
+      `${edit.artwork.title} marked sold`,
+    );
   }
 
   return (
@@ -97,6 +113,18 @@ export function QuickEditPopover({
       <div className="mb-2 truncate text-xs text-muted-foreground">
         {edit.artwork.title}
       </div>
+
+      {edit.artwork.status !== "sold" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="mb-3 w-full"
+          onClick={onMarkSold}
+          disabled={update.isPending}
+        >
+          Mark as sold
+        </Button>
+      ) : null}
 
       <div className="space-y-3">
         <div className="space-y-1">
