@@ -9,6 +9,12 @@
 > backend (migrations, RLS, triggers, realtime) is deferred to the Lovable
 > port per `CLAUDE.md` §13. Each phase notes the schema it will need so the
 > Lovable handoff at the end of this file is complete.
+>
+> **Status (2026-06-05):** Phases 0–5 all implemented frontend-first on branch
+> `claude/wizardly-franklin-HVnaV`; `npm run typecheck` + `npm run build` green.
+> Features needing new tables (works-per-contact, notifications, calendar,
+> card link_url) ship empty-safe and activate once the Lovable backend in §6
+> below is applied.
 
 ---
 
@@ -215,11 +221,12 @@ the backend match. This **extends** `CLAUDE.md` §13 — it does not replace it.
 >
 > 7. **Notifications (Phase 5.2).** Create
 >    `notifications (id uuid pk, gallery_id uuid, recipient_profile_id uuid,
->    sender_profile_id uuid, body text, entity_type text, entity_id uuid,
->    done boolean default false, created_at timestamptz default now())`.
->    RLS: a profile reads rows where it is recipient or sender; insert allowed
->    for any authenticated profile in the gallery. Add `notifications` to the
->    realtime publication.
+>    sender_profile_id uuid, body text, link text, done boolean default false,
+>    created_at timestamptz default now())`. The frontend selects the sender
+>    via `sender:profiles!sender_profile_id ( id, full_name )`. RLS: a profile
+>    reads rows where it is recipient or sender; insert allowed for any
+>    authenticated profile in the gallery. Add `notifications` to the realtime
+>    publication.
 >
 > 8. **Rich Kanban cards (Phase 5.3).** Add `cards.link_url text` (nullable)
 >    for the title hyperlink. Card description stays text/markdown — no schema
@@ -244,14 +251,17 @@ the backend match. This **extends** `CLAUDE.md` §13 — it does not replace it.
 ## 7. Build order summary
 
 ```
-Phase 0  Record rulings in CLAUDE.md (§3 color #5, §6 sets≠locations)
-Phase 1  Corrections & quick wins (1.1–1.12)  ← start here
-Phase 2  Sets rename
-Phase 3  Dossier polish (3.1–3.4)
-Phase 4  CRM depth (4.1–4.4)
-Phase 5  Big features (5.1–5.5)
-→ Lovable handoff (§6 above)
+Phase 0  ✅ Record rulings in CLAUDE.md (§3 color #5, §6 sets≠locations)
+Phase 1  ✅ Corrections & quick wins (1.1–1.12)
+Phase 2  ✅ Sets rename
+Phase 3  ✅ Dossier polish (3.1–3.4)
+Phase 4  ✅ CRM depth (4.1–4.4)
+Phase 5  ✅ Big features (5.1–5.5)
+→ Lovable handoff (§6 above) — apply to activate the new-table features
 ```
+
+> Artist `bio` already exists in the schema; the homepage stores CV text in it
+> for now (a dedicated `cv` column / documents bucket is optional, see §6.6).
 
 One commit per item (or per logical step), referencing the phase number, e.g.
 `feat(1.1): pipeline won marks artwork sold`. Verify each item's success
