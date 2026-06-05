@@ -60,6 +60,12 @@ export default {
         },
         attention: "hsl(var(--attention))",
         "accent-red": "hsl(var(--accent-red))",
+        status: {
+          available: "hsl(var(--status-available))",
+          "on-hold": "hsl(var(--status-on-hold))",
+          sold: "hsl(var(--status-sold))",
+          archived: "hsl(var(--status-archived))",
+        },
       },
       borderRadius: {
         none: "0",

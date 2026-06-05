@@ -77,6 +77,7 @@ each with a fixed and narrow purpose:
 2. **Kanban card color labels** — user-defined per-card tags. Rendered as small filled chips in the user's chosen palette (red, orange, yellow, green, blue, purple). Allowed because the user is choosing them as data; they do not theme the chrome.
 3. `--accent-red` (`hsl(4 85% 55%)`, ≈ `#ee4533`) — Yusto Giner Gallery brand accent, sampled from the gallery's wordmark slash. Used at three identity moments: (a) the slash in the `YUSTO / GINER` wordmark in the sidebar, (b) the active-item left rail in the sidebar, (c) the small `┐` corner bracket in the top-right of every page. `--destructive` shares the same hue (one red, two semantic uses — destructive actions are also branded red). Never as a fill for content surfaces.
 4. **Editorial dossier accent** — per-dossier user-chosen color (default `#EC6660`, the PARALLELS coral). Used only inside an exported editorial dossier PDF (cover band + slash + artist names list). User-data, not chrome — never themes the live app. Stored at `dossier.body_blocks.accent_color`; default lives in `palette.accent` in `src/lib/pdf/shared.ts`. If a fifth use is needed, list it here in the same commit.
+5. **Artwork status colors** (added 2026-06-05, per user) — the artwork status word is shown in its own hue so state is scannable at a glance: `available` green (`--status-available`), `on_hold` yellow/amber (`--status-on-hold`), `sold` red (`--status-sold`), `archived` orange (`--status-archived`). Rendered only by `StatusPill.tsx` (colored text + hairline border + small dot). Hues are darkened for legibility on white. Tokens live in `src/index.css` + `tailwind.config.ts` like every other. Status is data state, not decoration — never themes the chrome.
 
 ### Brand mark — corner bracket
 
@@ -237,10 +238,19 @@ ygmanager/
 
 **RLS:** every policy joins through `profiles.gallery_id = row.gallery_id`. `client_portal` role added later via new policies, no schema change.
 
-**Identity rule (sets = locations):** updating `artworks.location_id` is the
-*only* operation needed to change a set membership. Any view labelled "Set:
-Madrid Almacén" is just a filter on `location_id`. There is **no separate
-`sets` table** and no manual sync step. (Per spec: "One change, not two.")
+**Naming (updated 2026-06-05, per user):** the curated-groups feature
+(exhibition / fair / viewing-room — formerly "Collections") is now called
+**Sets** everywhere user-facing. The earlier convention "sets = locations" is
+**retired**: physical places keep the name **Locations** and are still changed
+only via `artworks.location_id` (one change, not two — that rule stands, just
+without the "set" label). A **Set** is a curated group backed by the
+`set_artworks` join table (renamed from `collection_artworks` on the Lovable
+port — see `ADDITIONS.md`). See `ADDITIONS.md` Phase 2 for the rename surface.
+
+**Location rule (one change, not two):** updating `artworks.location_id` is the
+*only* operation needed to move an artwork between physical locations. Any view
+labelled "Location: Madrid Almacén" is just a filter on `location_id`. No
+manual sync step.
 
 **Mention rule (`@artwork:YG-0042` writes back to artwork):** when a card body
 or comment contains `@artwork:<internal_id>`:

@@ -126,6 +126,13 @@ export function useUpdateDealStage() {
             sort_order: 0,
           });
           if (lineErr) throw lineErr;
+          // Generating an invoice means the work is sold — reflect that in
+          // inventory immediately so it no longer reads "available" (1.1).
+          const { error: artErr } = await supabase
+            .from("artworks")
+            .update({ status: "sold" })
+            .eq("id", deal.artwork_id);
+          if (artErr) throw artErr;
         }
         invoice_id = inv;
       }
@@ -134,6 +141,7 @@ export function useUpdateDealStage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deals"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["artworks"] });
     },
   });
 }

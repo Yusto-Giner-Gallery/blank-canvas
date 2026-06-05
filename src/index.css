@@ -59,6 +59,13 @@
     --attention: 25 100% 50%;
     --accent-red: 4 85% 55%;
 
+    /* Status colors — color exception #5 (CLAUDE.md §3). Word shown in hue;
+       saturations chosen to stay legible as text/border on white. */
+    --status-available: 142 64% 30%; /* green */
+    --status-on-hold: 38 92% 36%; /* amber/yellow */
+    --status-sold: 4 74% 48%; /* red */
+    --status-archived: 24 90% 42%; /* orange */
+
     --radius: 0;
   }
 
