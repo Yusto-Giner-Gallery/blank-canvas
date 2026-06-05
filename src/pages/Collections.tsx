@@ -28,7 +28,7 @@ export default function Collections() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Collections</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Sets</h1>
         <p className="text-sm text-muted-foreground">
           Curated groups of artworks (exhibitions, art fair booths, viewing
           rooms). Build from the inventory page using multi-select.
@@ -40,7 +40,7 @@ export default function Collections() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search collections…"
+          placeholder="Search sets…"
           className="h-9 max-w-sm"
         />
       </div>
@@ -49,7 +49,7 @@ export default function Collections() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
         <p className="text-sm text-destructive">
-          Could not load collections. {(error as Error).message}
+          Could not load sets. {(error as Error).message}
         </p>
       ) : collections.length === 0 ? (
         <Card>
@@ -58,15 +58,15 @@ export default function Collections() {
               <>
                 <CardTitle>No matches</CardTitle>
                 <CardDescription>
-                  No collections match "{q}".
+                  No sets match "{q}".
                 </CardDescription>
               </>
             ) : (
               <>
-                <CardTitle>No collections yet</CardTitle>
+                <CardTitle>No sets yet</CardTitle>
                 <CardDescription>
                   Select artworks from the inventory page and choose "Add to
-                  collection" to create your first one.
+                  set" to create your first one.
                 </CardDescription>
               </>
             )}
@@ -77,7 +77,7 @@ export default function Collections() {
           {collections.map((c) => (
             <Link
               key={c.id}
-              to={`/collections/${c.id}`}
+              to={`/sets/${c.id}`}
               className="rounded-md border border-border bg-card p-4 transition-colors hover:border-foreground/40"
             >
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">

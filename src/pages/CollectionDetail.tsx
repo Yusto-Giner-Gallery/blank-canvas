@@ -131,7 +131,7 @@ function SortableTile({
           e.stopPropagation();
           onRemove(artwork.id);
         }}
-        aria-label="Remove from collection"
+        aria-label="Remove from set"
         className="absolute right-2 top-2 z-10 rounded-sm border border-border bg-background/80 p-1 text-muted-foreground hover:text-destructive"
       >
         <Trash2 className="h-3 w-3" />
@@ -241,10 +241,10 @@ export default function CollectionDetail() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Collection not found</CardTitle>
+          <CardTitle>Set not found</CardTitle>
           <CardDescription>
-            <Link to="/collections" className="underline">
-              Back to collections
+            <Link to="/sets" className="underline">
+              Back to sets
             </Link>
           </CardDescription>
         </CardHeader>
@@ -255,7 +255,7 @@ export default function CollectionDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/collections">
+          <Link to="/sets">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </Button>
@@ -276,14 +276,14 @@ export default function CollectionDetail() {
             onClick={async () => {
               if (
                 !window.confirm(
-                  `Delete collection "${data.name}"? Artworks themselves are kept.`,
+                  `Delete set "${data.name}"? Artworks themselves are kept.`,
                 )
               )
                 return;
               try {
                 await deleteCollection.mutateAsync({ id: data.id });
-                toast.success("Collection deleted.");
-                navigate("/collections", { replace: true });
+                toast.success("Set deleted.");
+                navigate("/sets", { replace: true });
               } catch (err) {
                 toast.error(errorMessage(err));
               }

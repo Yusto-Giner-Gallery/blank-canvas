@@ -407,7 +407,7 @@ export function ArtworkActionRail({
       <Section label="Curate">
         <Row
           icon={FolderPlus}
-          label="Add to collection"
+          label="Add to set"
           onClick={() => setOpen("collection")}
         />
       </Section>

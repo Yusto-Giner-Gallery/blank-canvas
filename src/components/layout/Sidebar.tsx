@@ -36,7 +36,7 @@ const items: Item[] = [
   { to: "/", i18nKey: "nav.dashboard", icon: LayoutDashboard },
   { to: "/inventory", i18nKey: "nav.inventory", icon: Frame },
   { to: "/artists", i18nKey: "nav.artists", icon: Palette },
-  { to: "/collections", i18nKey: "nav.collections", icon: Folder },
+  { to: "/sets", i18nKey: "nav.collections", icon: Folder },
   { to: "/dossiers", i18nKey: "nav.dossiers", icon: FileText },
   { to: "/contacts", i18nKey: "nav.contacts", icon: Users },
   { to: "/invoices", i18nKey: "nav.invoices", icon: Receipt },

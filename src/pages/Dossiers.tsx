@@ -33,7 +33,7 @@ export default function Dossiers() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dossiers</h1>
         <p className="text-sm text-muted-foreground">
-          Catalogues generated from collections. Open a collection and click
+          Catalogues generated from sets. Open a set and click
           "Generate dossier" to start.
         </p>
       </div>
@@ -66,8 +66,8 @@ export default function Dossiers() {
               <>
                 <CardTitle>No dossiers yet</CardTitle>
                 <CardDescription>
-                  Build a collection from inventory, then click "Generate
-                  dossier" on the collection page.
+                  Build a set from inventory, then click "Generate
+                  dossier" on the set page.
                 </CardDescription>
               </>
             )}

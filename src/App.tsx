@@ -57,8 +57,8 @@ export default function App() {
           <Route path="/inventory/:id" element={<ArtworkDetail />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/artists/:id" element={<ArtistDetail />} />
-          <Route path="/collections" element={<Collections />} />
-          <Route path="/collections/:id" element={<CollectionDetail />} />
+          <Route path="/sets" element={<Collections />} />
+          <Route path="/sets/:id" element={<CollectionDetail />} />
           <Route path="/dossiers" element={<Dossiers />} />
           <Route path="/dossiers/:id" element={<DossierEditor />} />
           <Route path="/contacts" element={<Contacts />} />

@@ -51,9 +51,9 @@ export function CollectionPicker({
         kind,
         artwork_ids,
       });
-      toast.success(`Collection "${c.name}" created`);
+      toast.success(`Set "${c.name}" created`);
       onClose();
-      navigate(`/collections/${c.id}`);
+      navigate(`/sets/${c.id}`);
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -62,7 +62,7 @@ export function CollectionPicker({
   async function onAddTo(collection_id: string) {
     try {
       await add.mutateAsync({ collection_id, artwork_ids });
-      toast.success(`Added ${artwork_ids.length} to collection`);
+      toast.success(`Added ${artwork_ids.length} to set`);
       onClose();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -79,11 +79,11 @@ export function CollectionPicker({
       <div
         ref={ref}
         role="dialog"
-        aria-label="Add to collection"
+        aria-label="Add to set"
         className="w-full max-w-md space-y-4 rounded-md border border-border bg-popover p-5 shadow-lg"
       >
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Add to collection</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Add to set</h2>
           <p className="text-sm text-muted-foreground">
             {artwork_ids.length} artwork{artwork_ids.length === 1 ? "" : "s"} selected.
           </p>
@@ -113,12 +113,12 @@ export function CollectionPicker({
 
         <form onSubmit={onCreate} className="space-y-2 border-t border-border pt-3">
           <Label className="text-xs text-muted-foreground">
-            Or create a new collection
+            Or create a new set
           </Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Collection name (e.g. Madrid Show)"
+            placeholder="Set name (e.g. Madrid Show)"
             className="h-9"
           />
           <select

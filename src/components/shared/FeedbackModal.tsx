@@ -63,7 +63,7 @@ export function FeedbackModal({ kind, page_path, onClose }: Props) {
             placeholder={
               kind === "bug"
                 ? "When I click upload, the page reloads instead of saving…"
-                : "I'd love to be able to drag artworks between collections without opening each one…"
+                : "I'd love to be able to drag artworks between sets without opening each one…"
             }
             className="w-full rounded-md border border-input bg-background p-2 text-sm"
           />

@@ -18,7 +18,7 @@ export function SelectionBar({
       <span className="text-sm">{count} selected</span>
       <Button size="sm" onClick={onAddToCollection}>
         <FolderPlus className="h-4 w-4" />
-        Add to collection
+        Add to set
       </Button>
       <Button size="sm" variant="outline" onClick={onGenerateDossier}>
         <FileText className="h-4 w-4" />
